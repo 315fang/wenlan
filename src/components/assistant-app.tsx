@@ -181,25 +181,25 @@ const fontSizeStyles: Record<
   }
 > = {
   sm: {
-    body: "text-[14px] leading-6",
-    title: "text-[2rem] sm:text-[2.15rem]",
-    prompt: "text-[13px]",
-    input: "text-[14px]",
-    meta: "text-[11px]",
-  },
-  md: {
-    body: "text-[15px] leading-7",
-    title: "text-[2.15rem] sm:text-[2.35rem]",
+    body: "text-[16px] leading-[1.6]",
+    title: "text-[2.2rem] sm:text-[2.35rem]",
     prompt: "text-[14px]",
     input: "text-[15px]",
     meta: "text-[12px]",
   },
-  lg: {
-    body: "text-[17px] leading-8",
-    title: "text-[2.35rem] sm:text-[2.65rem]",
+  md: {
+    body: "text-[17.5px] leading-[1.65]",
+    title: "text-[2.4rem] sm:text-[2.55rem]",
     prompt: "text-[15px]",
-    input: "text-[16px]",
+    input: "text-[17px]",
     meta: "text-[13px]",
+  },
+  lg: {
+    body: "text-[19px] leading-[1.7]",
+    title: "text-[2.6rem] sm:text-[2.75rem]",
+    prompt: "text-[16.5px]",
+    input: "text-[18.5px]",
+    meta: "text-[14px]",
   },
 }
 
@@ -1015,7 +1015,7 @@ export function AssistantApp({ initialConfig }: AssistantAppProps) {
 
             <section className="flex min-h-0 flex-1 flex-col overflow-hidden lg:hidden w-full">
               <div className="flex-1 overflow-y-auto px-4 py-4 min-h-0 w-full">
-                <div className="mx-auto w-full max-w-md min-h-full flex flex-col justify-center items-stretch gap-6 sm:gap-8 py-4">
+                <div className="mx-auto w-full max-w-[600px] min-h-full flex flex-col justify-center items-stretch gap-6 sm:gap-8 py-4">
                   <WelcomePanel
                     compact
                     framed={false}
@@ -1031,7 +1031,7 @@ export function AssistantApp({ initialConfig }: AssistantAppProps) {
               </div>
 
               <div className="bg-[#f6f6f4] px-4 pb-4 pt-2 border-t border-black/[0.03] shrink-0 w-full">
-                <div className="mx-auto w-full max-w-md">
+                <div className="mx-auto w-full max-w-[600px]">
                   {composer}
                   <p className={`mx-auto mt-2 text-center leading-5 text-[#7d7d7d] ${fontClasses.meta}`}>
                     重要操作请以后台实际状态为准，涉及权限、资金、删除等动作需人工复核。
@@ -1043,7 +1043,7 @@ export function AssistantApp({ initialConfig }: AssistantAppProps) {
         ) : (
           <section className="grid min-h-0 flex-1 grid-rows-[minmax(0,1fr)_auto]">
             <div className="min-h-0 overflow-y-auto px-4">
-              <div className="mx-auto max-w-3xl space-y-7 py-6 pb-10">
+              <div className="mx-auto max-w-[600px] space-y-7 py-6 pb-10">
                 {activeMessages.map((message) => (
                   <MessageRow
                     key={message.id}
@@ -1059,7 +1059,7 @@ export function AssistantApp({ initialConfig }: AssistantAppProps) {
 
             <div className="bg-white px-3 pb-4 pt-2 sm:px-4">
               {composer}
-              <p className={`mx-auto mt-2 max-w-3xl text-center leading-5 text-[#7d7d7d] ${fontClasses.meta}`}>
+              <p className={`mx-auto mt-2 max-w-[600px] text-center leading-5 text-[#7d7d7d] ${fontClasses.meta}`}>
                 重要操作请以后台实际状态为准，涉及权限、资金、删除等动作需人工复核。
               </p>
             </div>
@@ -1215,7 +1215,7 @@ function EmptyState({
   metaClass: string
 }) {
   return (
-    <div className="w-full max-w-3xl">
+    <div className="w-full max-w-[600px]">
       <WelcomePanel titleClass={titleClass} metaClass={metaClass} />
 
       <div className="mt-7">{composer}</div>
@@ -1371,7 +1371,7 @@ function Composer({
   }, [draft, isCompact, isTight, isTranscribing, textareaRef])
 
   return (
-    <div className="mx-auto w-full max-w-3xl">
+    <div className="mx-auto w-full max-w-[600px]">
       <div className="hidden rounded-[1.65rem] border border-[#d9d9d9] bg-white p-2 shadow-[0_2px_16px_rgba(0,0,0,0.08)] lg:block">
         <textarea
           ref={textareaRef}

@@ -13,10 +13,10 @@ export function MarkdownRenderer({ content }: MarkdownRendererProps) {
     <ReactMarkdown
       remarkPlugins={[remarkGfm]}
       components={{
-        p: ({ children }) => <p className="mb-3 leading-7 text-[#0d0d0d] last:mb-0">{children}</p>,
+        p: ({ children }) => <p className="mb-3 leading-relaxed text-[#0d0d0d] last:mb-0">{children}</p>,
         ul: ({ children }) => <ul className="mb-4 list-disc space-y-1 pl-5 text-[#0d0d0d]">{children}</ul>,
         ol: ({ children }) => <ol className="mb-4 list-decimal space-y-1 pl-5 text-[#0d0d0d]">{children}</ol>,
-        li: ({ children }) => <li className="leading-7">{children}</li>,
+        li: ({ children }) => <li className="leading-relaxed">{children}</li>,
         h1: ({ children }) => <h1 className="mb-3 text-2xl font-semibold tracking-tight text-[#0d0d0d]">{children}</h1>,
         h2: ({ children }) => <h2 className="mb-3 text-xl font-semibold tracking-tight text-[#0d0d0d]">{children}</h2>,
         h3: ({ children }) => <h3 className="mb-2 text-lg font-semibold tracking-tight text-[#0d0d0d]">{children}</h3>,
