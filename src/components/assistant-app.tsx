@@ -1012,7 +1012,13 @@ export function AssistantApp({ initialConfig }: AssistantAppProps) {
                   layoutDensity === "tight" ? "gap-3" : layoutDensity === "compact" ? "gap-4" : "gap-5"
                 }`}
               >
-                <WelcomePanel compact titleClass={fontClasses.title} metaClass={fontClasses.meta} density={layoutDensity} />
+                <WelcomePanel
+                  compact
+                  framed={false}
+                  titleClass={fontClasses.title}
+                  metaClass={fontClasses.meta}
+                  density={layoutDensity}
+                />
                 <MobileQuickActions
                   onQuickPrompt={handleQuickPrompt}
                   labelClass={layoutDensity === "tight" ? "text-[14px] leading-6" : fontClasses.body}
@@ -1101,11 +1107,13 @@ function MessageRow({ message, copiedMessageId, onCopy, fontSizeClass }: Message
 
 function WelcomePanel({
   compact = false,
+  framed = true,
   titleClass,
   metaClass,
   density = "regular",
 }: {
   compact?: boolean
+  framed?: boolean
   titleClass: string
   metaClass: string
   density?: LayoutDensity
@@ -1113,22 +1121,26 @@ function WelcomePanel({
   const titleStyle =
     density === "tight" ? "text-[1.7rem] leading-[1.1] sm:text-[2.1rem]" : compact ? "text-[1.85rem] sm:text-[2.1rem]" : titleClass
   const copyStyle = density === "tight" ? "text-[12px] leading-5" : compact ? "text-[13px]" : metaClass
-  const shellClass =
-    density === "tight"
+  const shellClass = framed
+    ? density === "tight"
       ? "rounded-[1.45rem] px-3 py-3"
       : compact
         ? "px-4 py-4"
         : "px-5 py-5 sm:px-6 sm:py-6"
+    : density === "tight"
+      ? "py-1"
+      : "py-2"
   const chipClass =
     density === "tight"
       ? "rounded-full border border-[#e5e5e5] bg-[#fafafa] px-2.5 py-1 text-[11px] font-medium text-[#555]"
       : "rounded-full border border-[#e5e5e5] bg-[#fafafa] px-3 py-1.5 text-xs font-medium text-[#555]"
+  const shellStyle = framed
+    ? "border border-black/[0.08] bg-white shadow-[0_1px_12px_rgba(0,0,0,0.03)]"
+    : "bg-transparent shadow-none"
 
   return (
-    <section
-      className={`border border-black/[0.08] bg-white shadow-[0_1px_12px_rgba(0,0,0,0.03)] ${shellClass}`}
-    >
-      <div className="flex items-center justify-center gap-2 text-xs font-medium uppercase tracking-[0.18em] text-[#8a8a8a]">
+    <section className={`${shellStyle} ${shellClass}`}>
+      <div className={`flex items-center justify-center gap-2 text-xs font-medium uppercase tracking-[0.18em] text-[#8a8a8a] ${framed ? "" : "sm:justify-center"}`}>
         <Sparkles className="h-4 w-4" />
         问兰智能体
       </div>
@@ -1137,7 +1149,7 @@ function WelcomePanel({
 
       <p className={`mx-auto mt-3 max-w-2xl text-center leading-6 text-[#777] ${copyStyle}`}>{emptyStateCopy}</p>
 
-      <div className="mt-4 flex flex-wrap justify-center gap-2">
+      <div className={`mt-4 flex flex-wrap justify-center gap-2 ${framed ? "" : "px-0"}`}>
         {launchFeatureLabels.map((label) => (
           <span key={label} className={chipClass}>
             {label}
