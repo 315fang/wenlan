@@ -10,19 +10,16 @@ import {
   Copy,
   FileText,
   Loader2,
-  Menu,
   Mic,
-  PanelLeftClose,
   Plus,
   Search,
   ShieldAlert,
   Square,
-  Trash2,
 } from "lucide-react"
 
 import { MarkdownRenderer } from "@/components/markdown-renderer"
 import { assistantName } from "@/lib/prompts"
-import { createId, ensureUserId, formatClock, readStoredJson, sortConversations, trimText, writeStoredJson } from "@/lib/storage"
+import { createId, ensureUserId, readStoredJson, trimText, writeStoredJson } from "@/lib/storage"
 import type { ChatConversation, ChatMessage, PortalConfig, ServerStatus } from "@/types/chat"
 
 type AssistantAppProps = {
@@ -107,6 +104,47 @@ function scrollElementIntoView(ref: RefObject<HTMLDivElement | null>) {
   requestAnimationFrame(() => {
     ref.current?.scrollIntoView({ block: "end", behavior: "smooth" })
   })
+}
+
+type FontSizeMode = "sm" | "md" | "lg"
+
+const fontSizeOptions: Array<{ value: FontSizeMode; label: string }> = [
+  { value: "sm", label: "小" },
+  { value: "md", label: "中" },
+  { value: "lg", label: "大" },
+]
+
+const fontSizeStyles: Record<
+  FontSizeMode,
+  {
+    body: string
+    title: string
+    prompt: string
+    input: string
+    meta: string
+  }
+> = {
+  sm: {
+    body: "text-[14px] leading-6",
+    title: "text-[2rem] sm:text-[2.15rem]",
+    prompt: "text-[13px]",
+    input: "text-[14px]",
+    meta: "text-[11px]",
+  },
+  md: {
+    body: "text-[15px] leading-7",
+    title: "text-[2.15rem] sm:text-[2.35rem]",
+    prompt: "text-[14px]",
+    input: "text-[15px]",
+    meta: "text-[12px]",
+  },
+  lg: {
+    body: "text-[17px] leading-8",
+    title: "text-[2.35rem] sm:text-[2.65rem]",
+    prompt: "text-[15px]",
+    input: "text-[16px]",
+    meta: "text-[13px]",
+  },
 }
 
 const preferredRecorderMimeTypes = [
@@ -208,7 +246,11 @@ export function AssistantApp({ initialConfig }: AssistantAppProps) {
   const [isSending, setIsSending] = useState(false)
   const [isRecording, setIsRecording] = useState(false)
   const [isTranscribing, setIsTranscribing] = useState(false)
-  const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [fontSize, setFontSize] = useState<FontSizeMode>(() => {
+    if (typeof window === "undefined") return "md"
+    const stored = window.localStorage.getItem(`${initialConfig.appName}:fontSize`)
+    return stored === "sm" || stored === "md" || stored === "lg" ? stored : "md"
+  })
   const [copiedMessageId, setCopiedMessageId] = useState("")
   const [serverStatus, setServerStatus] = useState<ServerStatus>(initialServerStatus)
 
@@ -283,21 +325,16 @@ export function AssistantApp({ initialConfig }: AssistantAppProps) {
   }, [conversations, activeConversationId, isSending])
 
   useEffect(() => {
-    if (!sidebarOpen) return
-    const originalOverflow = document.body.style.overflow
-    document.body.style.overflow = "hidden"
-    return () => {
-      document.body.style.overflow = originalOverflow
-    }
-  }, [sidebarOpen])
+    window.localStorage.setItem(`${initialConfig.appName}:fontSize`, fontSize)
+  }, [fontSize, initialConfig.appName])
 
-  const sortedConversations = useMemo(() => sortConversations(conversations), [conversations])
   const activeConversation = useMemo(
     () => conversations.find((item) => item.id === activeConversationId) || conversations[0],
     [conversations, activeConversationId]
   )
   const activeMessages = activeConversation?.messages ?? []
   const hasMessages = activeMessages.length > 0
+  const fontClasses = fontSizeStyles[fontSize]
 
   function patchConversation(conversationId: string, updater: (conversation: ChatConversation) => ChatConversation) {
     setConversations((current) =>
@@ -305,16 +342,11 @@ export function AssistantApp({ initialConfig }: AssistantAppProps) {
     )
   }
 
-  function setActiveConversation(conversation: ChatConversation) {
-    setActiveConversationId(conversation.id)
-    setSidebarOpen(false)
-    setDraft("")
-  }
-
   function startNewChat() {
     const conversation = emptyConversation()
     setConversations((current) => [conversation, ...current])
-    setActiveConversation(conversation)
+    setActiveConversationId(conversation.id)
+    setDraft("")
   }
 
   function appendMessage(conversationId: string, message: ChatMessage) {
@@ -536,21 +568,6 @@ export function AssistantApp({ initialConfig }: AssistantAppProps) {
     }
   }
 
-  function removeConversation(conversationId: string) {
-    setConversations((current) => {
-      const next = current.filter((conversation) => conversation.id !== conversationId)
-      if (conversationId === activeConversationId) {
-        const fallback = next[0] || emptyConversation()
-        if (next.length === 0) {
-          setActiveConversationId(fallback.id)
-          return [fallback]
-        }
-        setActiveConversationId(fallback.id)
-      }
-      return next
-    })
-  }
-
   function handleTextareaKeyDown(event: KeyboardEvent<HTMLTextAreaElement>) {
     if (event.key !== "Enter" || event.shiftKey || event.nativeEvent.isComposing) return
     event.preventDefault()
@@ -572,64 +589,56 @@ export function AssistantApp({ initialConfig }: AssistantAppProps) {
       onSubmit={handleSubmit}
       onNewChat={startNewChat}
       onToggleVoice={toggleVoiceRecording}
+      fontSizeClass={fontClasses.input}
     />
   )
 
   return (
-    <div className="flex h-dvh overflow-hidden bg-white text-[#0d0d0d]">
-      <aside
-        className={`fixed inset-y-0 left-0 z-40 w-[min(86vw,17rem)] bg-[#f9f9f9] transition-transform duration-200 lg:static lg:z-auto lg:w-[16.5rem] lg:translate-x-0 ${
-          sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
-        }`}
-      >
-        <Sidebar
-          appName={initialConfig.appName}
-          conversations={sortedConversations}
-          activeConversationId={activeConversationId}
-          onNewChat={startNewChat}
-          onSelectConversation={setActiveConversation}
-          onDeleteConversation={removeConversation}
-          onCloseMobile={() => setSidebarOpen(false)}
-        />
-      </aside>
+    <div className="flex h-dvh overflow-hidden bg-[#f6f6f4] text-[#0d0d0d]">
+      <main className="flex min-w-0 flex-1 flex-col">
+        <header className="shrink-0 border-b border-black/[0.05] bg-white/[0.96]">
+          <div className="flex h-16 items-center justify-between gap-3 px-4 sm:px-6 lg:px-8">
+            <div className="flex min-w-0 items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#111111] text-white">
+                <Image
+                  src="/wenlan-yizhantong.ico"
+                  alt=""
+                  width={22}
+                  height={22}
+                  unoptimized
+                  className="h-6 w-6 rounded-sm"
+                />
+              </div>
+              <div className="min-w-0">
+                <div className="truncate text-[17px] font-semibold tracking-tight text-[#111]">问兰</div>
+                <div className="truncate text-xs text-[#7a7a7a]">{initialConfig.headline}</div>
+              </div>
+            </div>
 
-      {sidebarOpen ? (
-        <button
-          aria-label="关闭侧栏"
-          className="fixed inset-0 z-30 bg-black/25 lg:hidden"
-          onClick={() => setSidebarOpen(false)}
-        />
-      ) : null}
+            <div className="flex items-center gap-2 sm:gap-3">
+              <div className="inline-flex items-center rounded-full bg-[#f2f2f2] p-1 shadow-[0_1px_8px_rgba(0,0,0,0.04)]">
+                {fontSizeOptions.map((option) => (
+                  <button
+                    key={option.value}
+                    className={`h-8 min-w-10 rounded-full px-3 text-sm transition ${
+                      option.value === fontSize ? "bg-white text-[#111] shadow-sm" : "text-[#666] hover:text-[#111]"
+                    }`}
+                    onClick={() => setFontSize(option.value)}
+                    type="button"
+                    aria-label={`切换到${option.label}字号`}
+                  >
+                    {option.label}
+                  </button>
+                ))}
+              </div>
 
-      <main className="flex min-w-0 flex-1 flex-col bg-white">
-        <header className="shrink-0 border-b border-black/[0.04] bg-white/95">
-          <div className="flex h-16 items-center justify-between px-3 sm:px-4 lg:hidden">
-            <button
-              className="inline-flex h-11 w-11 items-center justify-center rounded-full bg-white text-[#121212] shadow-[0_8px_28px_rgba(0,0,0,0.08)] ring-1 ring-black/[0.06] transition hover:bg-[#f7f7f7]"
-              onClick={() => setSidebarOpen(true)}
-              aria-label="打开侧栏"
-            >
-              <Menu className="h-5 w-5" />
-            </button>
-
-            <button className="inline-flex items-center gap-2 rounded-full bg-white px-4 py-2.5 text-[15px] font-medium text-[#2a2a2a] shadow-[0_10px_30px_rgba(0,0,0,0.06)] ring-1 ring-black/[0.05]">
-              <Image src="/wenlan-yizhantong.ico" alt="" width={20} height={20} unoptimized className="h-5 w-5 rounded-sm" />
-              <span>问兰</span>
-            </button>
-
-            <button
-              className="inline-flex h-11 w-11 items-center justify-center rounded-full bg-white text-[#121212] shadow-[0_8px_28px_rgba(0,0,0,0.08)] ring-1 ring-black/[0.06] transition hover:bg-[#f7f7f7]"
-              onClick={startNewChat}
-              aria-label="新建对话"
-            >
-              <CircleDashed className="h-5 w-5" />
-            </button>
-          </div>
-
-          <div className="hidden h-14 items-center justify-between px-3 sm:px-4 lg:flex">
-            <div className="flex min-w-0 items-center gap-2">
-              <button className="truncate rounded-lg px-2 py-1.5 text-lg font-medium text-[#303030] transition hover:bg-[#f7f7f7]">
-                {initialConfig.assistantName}
+              <button
+                className="inline-flex items-center gap-2 rounded-full bg-[#111111] px-4 py-2.5 text-sm font-medium text-white transition hover:bg-[#2f2f2f]"
+                onClick={startNewChat}
+                type="button"
+              >
+                <CircleDashed className="h-4 w-4" />
+                <span className="hidden sm:inline">新对话</span>
               </button>
             </div>
           </div>
@@ -637,18 +646,21 @@ export function AssistantApp({ initialConfig }: AssistantAppProps) {
 
         {!hasMessages ? (
           <>
-            <section className="hidden min-h-0 flex-1 items-center justify-center px-4 pb-20 pt-4 lg:flex">
+            <section className="hidden min-h-0 flex-1 items-center justify-center px-4 py-6 lg:flex">
               <EmptyState
                 prompts={initialConfig.starterPrompts}
                 composer={composer}
                 onQuickPrompt={handleQuickPrompt}
+                titleClass={fontClasses.title}
+                promptClass={fontClasses.prompt}
+                metaClass={fontClasses.meta}
               />
             </section>
 
             <section className="flex min-h-0 flex-1 flex-col px-4 pb-4 pt-5 lg:hidden">
               <div className="flex-1" />
               <div className="mx-auto flex w-full max-w-md flex-col gap-6">
-                <MobileQuickActions onQuickPrompt={handleQuickPrompt} />
+                <MobileQuickActions onQuickPrompt={handleQuickPrompt} labelClass={fontClasses.body} />
                 {composer}
               </div>
             </section>
@@ -663,6 +675,7 @@ export function AssistantApp({ initialConfig }: AssistantAppProps) {
                     message={message}
                     onCopy={copyMessage}
                     copiedMessageId={copiedMessageId}
+                    fontSizeClass={fontClasses.body}
                   />
                 ))}
                 <div ref={streamAnchorRef} />
@@ -671,7 +684,7 @@ export function AssistantApp({ initialConfig }: AssistantAppProps) {
 
             <div className="bg-white px-3 pb-4 pt-2 sm:px-4">
               {composer}
-              <p className="mx-auto mt-2 max-w-3xl text-center text-xs leading-5 text-[#7d7d7d]">
+              <p className={`mx-auto mt-2 max-w-3xl text-center leading-5 text-[#7d7d7d] ${fontClasses.meta}`}>
                 重要操作请以后台实际状态为准，涉及权限、资金、删除等动作需人工复核。
               </p>
             </div>
@@ -682,109 +695,21 @@ export function AssistantApp({ initialConfig }: AssistantAppProps) {
   )
 }
 
-type SidebarProps = {
-  appName: string
-  conversations: ChatConversation[]
-  activeConversationId: string
-  onNewChat: () => void
-  onSelectConversation: (conversation: ChatConversation) => void
-  onDeleteConversation: (conversationId: string) => void
-  onCloseMobile: () => void
-}
-
-function Sidebar({
-  appName,
-  conversations,
-  activeConversationId,
-  onNewChat,
-  onSelectConversation,
-  onDeleteConversation,
-  onCloseMobile,
-}: SidebarProps) {
-  return (
-    <div className="flex h-full flex-col border-r border-black/[0.04]">
-      <div className="flex h-14 shrink-0 items-center justify-between px-2">
-        <button
-          className="inline-flex h-10 w-10 items-center justify-center rounded-lg text-[#5d5d5d] transition hover:bg-black/[0.06] lg:hidden"
-          onClick={onCloseMobile}
-          aria-label="关闭侧栏"
-        >
-          <PanelLeftClose className="h-5 w-5" />
-        </button>
-        <button
-          className="ml-auto inline-flex h-10 w-10 items-center justify-center rounded-lg text-[#5d5d5d] transition hover:bg-black/[0.06]"
-          onClick={onNewChat}
-          aria-label="新建对话"
-        >
-          <Plus className="h-5 w-5" />
-        </button>
-      </div>
-
-      <div className="px-2">
-        <button
-          className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-sm text-[#171717] transition hover:bg-black/[0.06]"
-          onClick={onNewChat}
-        >
-          <span className="flex h-6 w-6 items-center justify-center rounded-full bg-[#111111] text-xs font-semibold text-white">
-            问
-          </span>
-          <span className="truncate">新对话</span>
-        </button>
-      </div>
-
-      <div className="min-h-0 flex-1 overflow-y-auto px-2 py-4">
-        <div className="px-3 pb-2 text-xs font-medium text-[#8a8a8a]">最近</div>
-        <div className="space-y-0.5">
-          {conversations.map((conversation) => (
-            <div
-              key={conversation.id}
-              className={`group flex items-center gap-1 rounded-lg pr-1 transition ${
-                conversation.id === activeConversationId ? "bg-black/[0.06]" : "hover:bg-black/[0.05]"
-              }`}
-            >
-              <button
-                className="min-w-0 flex-1 px-3 py-2.5 text-left"
-                onClick={() => onSelectConversation(conversation)}
-              >
-                <div className="truncate text-sm text-[#2f2f2f]">{conversation.title}</div>
-                <div className="mt-0.5 truncate text-[11px] text-[#8a8a8a]">{formatClock(conversation.updatedAt)}</div>
-              </button>
-              <button
-                className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-[#8a8a8a] opacity-0 transition hover:bg-black/[0.08] hover:text-[#d1242f] group-hover:opacity-100"
-                onClick={(event) => {
-                  event.stopPropagation()
-                  onDeleteConversation(conversation.id)
-                }}
-                aria-label="删除会话"
-              >
-                <Trash2 className="h-4 w-4" />
-              </button>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      <div className="shrink-0 px-3 py-3 text-xs text-[#8a8a8a]">
-        <div className="truncate">{appName}</div>
-      </div>
-    </div>
-  )
-}
-
 type MessageRowProps = {
   message: ChatMessage
   copiedMessageId: string
   onCopy: (content: string, messageId: string) => void
+  fontSizeClass: string
 }
 
-function MessageRow({ message, copiedMessageId, onCopy }: MessageRowProps) {
+function MessageRow({ message, copiedMessageId, onCopy, fontSizeClass }: MessageRowProps) {
   const isUser = message.role === "user"
   const isPending = message.status === "pending" && !message.content
 
   if (isUser) {
     return (
       <article className="flex justify-end">
-        <div className="max-w-[min(75%,42rem)] rounded-[1.35rem] bg-[#f4f4f4] px-5 py-3 text-[15px] leading-7 text-[#0d0d0d]">
+        <div className={`max-w-[min(75%,42rem)] rounded-[1.35rem] bg-[#f4f4f4] px-5 py-3 text-[#0d0d0d] ${fontSizeClass}`}>
           {message.content}
         </div>
       </article>
@@ -793,7 +718,7 @@ function MessageRow({ message, copiedMessageId, onCopy }: MessageRowProps) {
 
   return (
     <article className="group">
-      <div className={`text-[15px] leading-7 ${message.status === "error" ? "text-[#d1242f]" : "text-[#0d0d0d]"}`}>
+      <div className={`${fontSizeClass} ${message.status === "error" ? "text-[#d1242f]" : "text-[#0d0d0d]"}`}>
         {isPending ? (
           <div className="flex items-center gap-2 text-sm text-[#6f6f6f]">
             <Loader2 className="h-4 w-4 animate-spin" />
@@ -821,16 +746,23 @@ function EmptyState({
   prompts,
   composer,
   onQuickPrompt,
+  titleClass,
+  promptClass,
+  metaClass,
 }: {
   prompts: string[]
   composer: ReactNode
   onQuickPrompt: (prompt: string) => void
+  titleClass: string
+  promptClass: string
+  metaClass: string
 }) {
   return (
     <div className="w-full max-w-3xl">
-      <h1 className="text-center text-3xl font-medium tracking-normal text-[#2f2f2f] sm:text-[2rem]">
+      <h1 className={`text-center font-medium tracking-normal text-[#2f2f2f] ${titleClass}`}>
         有什么可以帮忙的？
       </h1>
+      <p className={`mt-3 text-center leading-6 text-[#777] ${metaClass}`}>问兰 · 企业级知识增强大模型系统</p>
 
       <div className="mt-8">{composer}</div>
 
@@ -838,7 +770,7 @@ function EmptyState({
         {prompts.slice(0, 4).map((prompt) => (
           <button
             key={prompt}
-            className="max-w-full rounded-full border border-[#e3e3e3] bg-white px-3 py-2 text-sm text-[#4f4f4f] transition hover:bg-[#f7f7f7]"
+            className={`max-w-full rounded-full border border-[#e3e3e3] bg-white px-3 py-2 text-[#4f4f4f] transition hover:bg-[#f7f7f7] ${promptClass}`}
             onClick={() => onQuickPrompt(prompt)}
           >
             <span className="block max-w-[24rem] truncate">{prompt}</span>
@@ -861,6 +793,7 @@ function Composer({
   onSubmit,
   onNewChat,
   onToggleVoice,
+  fontSizeClass,
 }: {
   draft: string
   textareaRef: RefObject<HTMLTextAreaElement | null>
@@ -873,6 +806,7 @@ function Composer({
   onSubmit: () => void
   onNewChat: () => void
   onToggleVoice: () => void
+  fontSizeClass: string
 }) {
   const canSend = draft.trim().length > 0 && !isSending && !isTranscribing
 
@@ -885,7 +819,7 @@ function Composer({
           onChange={(event) => onChange(event.target.value)}
           onKeyDown={onKeyDown}
           placeholder={isTranscribing ? "正在识别语音..." : "给问兰助手发送消息"}
-          className="max-h-48 min-h-14 w-full resize-none bg-transparent px-3 py-3 text-[15px] leading-6 text-[#0d0d0d] outline-none placeholder:text-[#8f8f8f]"
+          className={`max-h-48 min-h-14 w-full resize-none bg-transparent px-3 py-3 text-[#0d0d0d] outline-none placeholder:text-[#8f8f8f] ${fontSizeClass}`}
           rows={1}
         />
 
@@ -933,7 +867,7 @@ function Composer({
               onChange={(event) => onChange(event.target.value)}
               onKeyDown={onKeyDown}
               placeholder={isTranscribing ? "正在识别语音..." : "问问 问兰"}
-              className="min-h-11 flex-1 resize-none bg-transparent px-1 py-2 text-[16px] leading-6 text-[#0d0d0d] outline-none placeholder:text-[#8f8f8f]"
+              className={`min-h-11 flex-1 resize-none bg-transparent px-1 py-2 text-[#0d0d0d] outline-none placeholder:text-[#8f8f8f] ${fontSizeClass}`}
               rows={1}
             />
 
@@ -966,7 +900,7 @@ function Composer({
   )
 }
 
-function MobileQuickActions({ onQuickPrompt }: { onQuickPrompt: (prompt: string) => void }) {
+function MobileQuickActions({ onQuickPrompt, labelClass }: { onQuickPrompt: (prompt: string) => void; labelClass: string }) {
   return (
     <div className="space-y-2">
       {mobileShortcuts.map(({ icon: Icon, label, prompt }) => (
@@ -978,7 +912,7 @@ function MobileQuickActions({ onQuickPrompt }: { onQuickPrompt: (prompt: string)
           <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-black/[0.08] bg-white text-[#111111] shadow-[0_2px_10px_rgba(0,0,0,0.04)]">
             <Icon className="h-5 w-5" />
           </span>
-          <span className="text-[17px] font-medium tracking-normal text-[#111111]">{label}</span>
+          <span className={`font-medium tracking-normal text-[#111111] ${labelClass}`}>{label}</span>
         </button>
       ))}
     </div>

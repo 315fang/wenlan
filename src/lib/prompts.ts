@@ -1,7 +1,7 @@
 export const appName = "问兰 AI Portal"
 export const assistantName = "问兰后台操作助手"
-export const assistantSubtitle = "面向运营、客服和管理后台使用人员的 AI 工作台"
-export const assistantHeadline = "把后台问答、培训和排查收进一个入口"
+export const assistantSubtitle = "面向运营、客服和管理后台使用人员的问兰智能体系统"
+export const assistantHeadline = "企业级知识增强大模型系统"
 
 export const starterPrompts = [
   "新人第一次使用后台，应该先熟悉哪些模块？",

@@ -87,6 +87,12 @@ export type TranscribeTarget = {
   transport: "multipart" | "mimo-audio"
 } | null
 
+export type KnowledgeTarget = {
+  baseUrl: string
+  apiKey: string
+  datasetId: string
+} | null
+
 function normalizeMimoAudioModel(value: string) {
   const normalized = value.trim().toLowerCase()
   if (normalized === "mimo-v2.5" || normalized === "mimo-v2-omni") {
@@ -116,5 +122,18 @@ export function getTranscribeTarget(): TranscribeTarget {
     apiKey,
     model: normalizeMimoAudioModel(readEnv("MIMO_AUDIO_MODEL") || readEnv("MIMO_ASR_MODEL")),
     transport: "mimo-audio",
+  }
+}
+
+export function getKnowledgeTarget(): KnowledgeTarget {
+  const datasetId = readEnv("DIFY_KB_DATASET_ID") || readEnv("DIFY_DATASET_ID")
+  const apiKey = readEnv("DIFY_KB_API_KEY") || readEnv("DIFY_API_KEY")
+  if (!datasetId || !apiKey) return null
+
+  const baseUrl = readEnv("DIFY_KB_BASE_URL") || readEnv("DIFY_PLATFORM_BASE_URL") || "https://api.dify.ai/v1"
+  return {
+    baseUrl,
+    apiKey,
+    datasetId,
   }
 }
