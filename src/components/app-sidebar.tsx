@@ -54,7 +54,7 @@ const sidebarSizeStyles = {
     navItemIcon: "h-8 w-8",
     navItemLabel: "text-[26px]",
     navItemDesc: "text-[22px]",
-    footerText: "px-7.5 py-5.5 text-[22px] leading-6",
+    footerText: "px-5 py-3.5 text-[16px] text-center leading-normal",
     onCloseBtn: "h-17.5 w-17.5",
     onCloseIcon: "h-9 w-9",
   },
@@ -69,7 +69,7 @@ const sidebarSizeStyles = {
     navItemIcon: "h-9.5 w-9.5",
     navItemLabel: "text-[31px]",
     navItemDesc: "text-[25px]",
-    footerText: "px-9.5 py-7.5 text-[27.5px] leading-7",
+    footerText: "px-6 py-4.5 text-[19px] text-center leading-normal",
     onCloseBtn: "h-20 w-20",
     onCloseIcon: "h-11 w-11",
   },
@@ -84,7 +84,7 @@ const sidebarSizeStyles = {
     navItemIcon: "h-12 w-12",
     navItemLabel: "text-[39px]",
     navItemDesc: "text-[31px]",
-    footerText: "px-12 py-9 text-[32.5px] leading-8",
+    footerText: "px-8 py-6 text-[24px] text-center leading-normal",
     onCloseBtn: "h-25 w-25",
     onCloseIcon: "h-14 w-14",
   },
@@ -193,7 +193,7 @@ export function MobileAppSidebar({
         type="button"
         aria-label="关闭侧边菜单遮罩"
       />
-      <div className="relative h-full w-[84vw] max-w-80">
+      <div className="relative h-full w-[85vw] max-w-[34rem]">
         <AppSidebar active={active} sections={sections} footer={footer} onClose={onClose} className="shadow-2xl" fontSizeMode={fontSizeMode}>
           {children}
         </AppSidebar>
