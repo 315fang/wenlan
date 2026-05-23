@@ -238,7 +238,7 @@ const fontSizeStyles: Record<
     sidebarItemBtn: "px-6 py-4",
     sidebarPrefBtn: "h-15 text-[22px] rounded-xl",
     messageSpacing: "space-y-12 py-9 pb-15",
-    userBubble: "px-9 py-5 rounded-[2.2rem] max-w-[min(75%,62rem)]",
+    userBubble: "px-5 py-3 rounded-2xl max-w-[88%] bg-[#e3effd] border border-[#d2e3fc]/30",
     copyBtn: "h-16 px-5 text-[22.5px] gap-3",
     welcomeShell: "px-7.5 py-7.5 sm:px-10 sm:py-10",
     welcomeLogoBox: "h-25 w-25 rounded-[1.6rem] p-3.5",
@@ -274,7 +274,7 @@ const fontSizeStyles: Record<
     sidebarItemBtn: "px-6.5 py-4.5",
     sidebarPrefBtn: "h-19 text-[26px] rounded-[1.5rem]",
     messageSpacing: "space-y-15 py-12 pb-22",
-    userBubble: "px-10 py-6.5 rounded-[2.8rem] max-w-[min(75%,69rem)]",
+    userBubble: "px-6 py-4 rounded-[1.4rem] max-w-[88%] bg-[#e3effd] border border-[#d2e3fc]/30",
     copyBtn: "h-19 px-6 text-[26px] gap-4",
     welcomeShell: "px-9.5 py-9.5 sm:px-12.5 sm:py-12.5",
     welcomeLogoBox: "h-35 w-35 rounded-[2.2rem] p-5",
@@ -310,7 +310,7 @@ const fontSizeStyles: Record<
     sidebarItemBtn: "px-9 py-6",
     sidebarPrefBtn: "h-21 text-[31px] rounded-[1.9rem]",
     messageSpacing: "space-y-19 py-17 pb-32",
-    userBubble: "px-14 py-9 rounded-[3.25rem] max-w-[min(75%,81rem)]",
+    userBubble: "px-8 py-5.5 rounded-[1.8rem] max-w-[88%] bg-[#e3effd] border border-[#d2e3fc]/30",
     copyBtn: "h-22.5 px-7.5 text-[31px] gap-4.5",
     welcomeShell: "px-12 py-12 sm:px-17.5 sm:py-17.5",
     welcomeLogoBox: "h-44 w-44 rounded-[3rem] p-6.5",
@@ -1173,8 +1173,8 @@ export function AssistantApp({ initialConfig }: AssistantAppProps) {
               <div className="bg-[#f6f6f4] px-4 pb-4 pt-2 border-t border-black/[0.03] shrink-0 w-full">
                 <div className="mx-auto w-full max-w-[600px]">
                   {composer}
-                  <p className={`mx-auto mt-2 text-center leading-5 text-[#7d7d7d] ${fontClasses.meta}`}>
-                    重要操作请以后台实际状态为准，涉及权限、资金、删除等动作需人工复核。
+                  <p className="mx-auto mt-2 text-center text-[0.65em] text-[#7d7d7d] leading-normal opacity-75 max-w-[600px]">
+                    回答来自AI生成，请自行诊断真假
                   </p>
                 </div>
               </div>
@@ -1182,7 +1182,7 @@ export function AssistantApp({ initialConfig }: AssistantAppProps) {
           </>
         ) : (
           <section className="grid min-h-0 flex-1 grid-rows-[minmax(0,1fr)_auto]">
-            <div className="min-h-0 overflow-y-auto px-4">
+            <div className="min-h-0 overflow-y-auto px-2 sm:px-4">
               <div className={`mx-auto max-w-[600px] ${fontClasses.messageSpacing}`}>
                 {activeMessages.map((message) => (
                   <MessageRow
@@ -1198,10 +1198,10 @@ export function AssistantApp({ initialConfig }: AssistantAppProps) {
               </div>
             </div>
 
-            <div className="bg-white px-3 pb-4 pt-2 sm:px-4">
+            <div className="bg-white px-2 pb-4 pt-2 sm:px-4">
               {composer}
-              <p className={`mx-auto mt-2 max-w-[600px] text-center leading-5 text-[#7d7d7d] ${fontClasses.meta}`}>
-                重要操作请以后台实际状态为准，涉及权限、资金、删除等动作需人工复核。
+              <p className="mx-auto mt-2 text-center text-[0.65em] text-[#7d7d7d] leading-normal opacity-75 max-w-[600px]">
+                回答来自AI生成，请自行诊断真假
               </p>
             </div>
           </section>
@@ -1499,21 +1499,17 @@ function Composer({
     : fontSizeMode === "md"
       ? "h-[2.5rem] w-[2.5rem]"
       : "h-14 w-14"
-  const mobilePlusIconSize = fontSizeMode === "sm"
-    ? "h-[2.5rem] w-[2.5rem]"
-    : fontSizeMode === "md"
-      ? "h-12 w-12"
-      : "h-[3.8rem] w-[3.8rem]"
+
   const containerPadding = fontSizeMode === "sm"
     ? "p-5 rounded-[2.8rem]"
     : fontSizeMode === "md"
       ? "p-7 rounded-[3.2rem]"
       : "p-9 rounded-[4rem]"
   const mobileContainerPadding = fontSizeMode === "sm"
-    ? "p-5.5 rounded-[2.5rem]"
+    ? "px-3.5 py-2.5 rounded-2xl"
     : fontSizeMode === "md"
-      ? "p-7 rounded-[3.2rem]"
-      : "p-9 rounded-[3.8rem]"
+      ? "px-4.5 py-3 rounded-[1.4rem]"
+      : "px-6 py-4 rounded-[1.8rem]"
   const textareaPadding = fontSizeMode === "sm"
     ? "px-6 py-5"
     : fontSizeMode === "md"
@@ -1524,6 +1520,23 @@ function Composer({
     : fontSizeMode === "md"
       ? "min-h-20"
       : "min-h-24"
+
+  // Mobile specific variables to make input "宽长" (wide and long)
+  const mobileBtnSize = fontSizeMode === "sm"
+    ? "h-11 w-11"
+    : fontSizeMode === "md"
+      ? "h-14 w-14"
+      : "h-17 w-17"
+  const mobileIconSize = fontSizeMode === "sm"
+    ? "h-5.5 w-5.5"
+    : fontSizeMode === "md"
+      ? "h-7 w-7"
+      : "h-8.5 w-8.5"
+  const mobileTextareaMinHeight = fontSizeMode === "sm"
+    ? "min-h-12"
+    : fontSizeMode === "md"
+      ? "min-h-14"
+      : "min-h-17"
 
   useEffect(() => {
     const textarea = textareaRef.current
@@ -1584,12 +1597,12 @@ function Composer({
         <div className={`border border-[#e0e0e0] bg-white shadow-[0_4px_24px_rgba(0,0,0,0.08)] ${mobileContainerPadding}`}>
           <div className="flex items-end gap-2">
             <button
-              className={`inline-flex shrink-0 items-center justify-center rounded-full text-[#1a1a1a] transition hover:bg-[#f4f4f4] ${btnSize}`}
+              className={`inline-flex shrink-0 items-center justify-center rounded-full text-[#1a1a1a] transition hover:bg-[#f4f4f4] ${mobileBtnSize}`}
               onClick={onNewChat}
               aria-label="新建对话"
               title="新建对话"
             >
-              <Plus className={mobilePlusIconSize} />
+              <Plus className={mobileIconSize} />
             </button>
 
             <textarea
@@ -1598,12 +1611,12 @@ function Composer({
               onChange={(event) => onChange(event.target.value)}
               onKeyDown={onKeyDown}
               placeholder={placeholder}
-              className={`flex-1 resize-none bg-transparent px-1 py-2 text-[#0d0d0d] outline-none placeholder:text-[#8f8f8f] ${textareaMinHeight} ${fontSizeClass}`}
+              className={`flex-1 resize-none bg-transparent px-2 py-1 text-[#0d0d0d] outline-none placeholder:text-[#8f8f8f] placeholder:text-[0.8em] leading-normal ${mobileTextareaMinHeight} ${fontSizeClass}`}
               rows={1}
             />
 
             <button
-              className={`inline-flex shrink-0 items-center justify-center rounded-full transition ${btnSize} ${
+              className={`inline-flex shrink-0 items-center justify-center rounded-full transition ${mobileBtnSize} ${
                 isRecording
                   ? "bg-[#d1242f] text-white"
                   : "text-[#7a7a7a] hover:bg-[#f4f4f4] disabled:cursor-not-allowed disabled:opacity-35 disabled:hover:bg-transparent"
@@ -1613,16 +1626,16 @@ function Composer({
               disabled={!canTranscribe || isTranscribing}
               aria-label={isRecording ? "停止录音" : "语音输入"}
             >
-              {isRecording ? <Square className={iconSize} /> : <Mic className={iconSize} />}
+              {isRecording ? <Square className={mobileIconSize} /> : <Mic className={mobileIconSize} />}
             </button>
 
             <button
-              className={`inline-flex shrink-0 items-center justify-center rounded-full bg-[#111111] text-white transition hover:bg-[#303030] disabled:cursor-not-allowed disabled:bg-[#d7d7d7] disabled:text-white ${btnSize}`}
+              className={`inline-flex shrink-0 items-center justify-center rounded-full bg-[#111111] text-white transition hover:bg-[#303030] disabled:cursor-not-allowed disabled:bg-[#d7d7d7] disabled:text-white ${mobileBtnSize}`}
               onClick={() => void onSubmit()}
               disabled={!canSend}
               aria-label="发送"
             >
-              {isSending ? <Loader2 className={`${iconSize} animate-spin`} /> : <ArrowUp className={iconSize} />}
+              {isSending ? <Loader2 className={`${mobileIconSize} animate-spin`} /> : <ArrowUp className={mobileIconSize} />}
             </button>
           </div>
           <VoiceMeter isRecording={isRecording} isTranscribing={isTranscribing} voiceLevel={voiceLevel} compact />
