@@ -220,112 +220,112 @@ const fontSizeStyles: Record<
   }
 > = {
   sm: {
-    body: "text-[21.5px] leading-[1.65]",
-    title: "text-[2.6rem] sm:text-[2.85rem]",
-    prompt: "text-[18.5px]",
-    input: "text-[20.5px]",
-    meta: "text-[16px]",
-    headerHeight: "h-17 sm:h-19",
-    headerTitle: "text-[19px] sm:text-[20.5px]",
-    headerSubtitle: "text-[13px] sm:text-[14px]",
-    headerNewChatBtn: "h-11 px-4 text-sm gap-2",
-    sidebarWidth: "w-[19rem]",
-    sidebarNewChatBtn: "h-13 text-[16px] gap-2.5 rounded-[1.2rem]",
-    sidebarGuideBtn: "h-12 text-[15px] gap-2 rounded-[1.2rem]",
-    sidebarHeading: "text-[13px]",
-    sidebarItemTitle: "text-[16.5px]",
-    sidebarItemDate: "text-[14px]",
-    sidebarItemBtn: "px-3.5 py-2.5",
-    sidebarPrefBtn: "h-10 text-[14px] rounded-lg",
-    messageSpacing: "space-y-7.5 py-6 pb-10",
-    userBubble: "px-5.5 py-3.5 rounded-[1.5rem] max-w-[min(75%,45rem)]",
-    copyBtn: "h-10 px-3 text-[14.5px] gap-2",
-    welcomeShell: "px-5 py-5 sm:px-6 sm:py-6",
-    welcomeLogoBox: "h-16 w-16 rounded-2xl p-2.5",
-    welcomeLogoSize: 48,
-    welcomeSubtitleChip: "text-[14px] gap-2 mt-1.5",
-    welcomeTitleMargin: "mt-3.5",
-    welcomeCopyMargin: "mt-4",
-    welcomeChipMargin: "mt-4.5",
-    welcomeFeatureChip: "rounded-full border border-[#e5e5e5] bg-[#fafafa] px-4 py-2 text-[14px] font-medium text-[#555]",
-    qaSpacing: "space-y-3",
-    qaPadding: "gap-4 rounded-2xl p-4",
-    qaIconBox: "h-13 w-13 rounded-xl",
-    qaIcon: "h-5.5 w-5.5",
-    qaTitle: "text-[17px]",
-    qaSubtitle: "text-[14px] mt-0.5",
-  },
-  md: {
-    body: "text-[25px] leading-[1.65]",
-    title: "text-[3.1rem] sm:text-[3.4rem]",
-    prompt: "text-[22px]",
-    input: "text-[24px]",
-    meta: "text-[18.5px]",
-    headerHeight: "h-19 sm:h-24",
-    headerTitle: "text-[23px] sm:text-[25px]",
-    headerSubtitle: "text-[15.5px] sm:text-[17px]",
-    headerNewChatBtn: "h-13 px-5.5 text-[16px] gap-2.5",
-    sidebarWidth: "w-[22rem]",
-    sidebarNewChatBtn: "h-15.5 text-[19px] gap-3 rounded-[1.4rem]",
-    sidebarGuideBtn: "h-14 text-[18px] gap-2.5 rounded-[1.4rem]",
-    sidebarHeading: "text-[15px]",
-    sidebarItemTitle: "text-[18.5px]",
-    sidebarItemDate: "text-[15.5px]",
-    sidebarItemBtn: "px-4 py-3",
-    sidebarPrefBtn: "h-12 text-[17px] rounded-xl",
-    messageSpacing: "space-y-9.5 py-8 pb-14",
-    userBubble: "px-6.5 py-4 rounded-[1.8rem] max-w-[min(75%,48rem)]",
-    copyBtn: "h-12 px-4 text-[17px] gap-2.5",
-    welcomeShell: "px-6 py-6 sm:px-8 sm:py-8",
-    welcomeLogoBox: "h-22 w-22 rounded-[1.5rem] p-3",
-    welcomeLogoSize: 62,
-    welcomeSubtitleChip: "text-[15.5px] gap-2.5 mt-2",
-    welcomeTitleMargin: "mt-4.5",
-    welcomeCopyMargin: "mt-5",
-    welcomeChipMargin: "mt-5.5",
-    welcomeFeatureChip: "rounded-full border border-[#e5e5e5] bg-[#fafafa] px-5 py-2.5 text-[17px] font-medium text-[#555]",
-    qaSpacing: "space-y-4",
-    qaPadding: "gap-5 rounded-2xl p-5",
-    qaIconBox: "h-16 w-16 rounded-2xl",
-    qaIcon: "h-7.5 w-7.5",
-    qaTitle: "text-[21px]",
-    qaSubtitle: "text-[16px] mt-1",
-  },
-  lg: {
-    body: "text-[31px] leading-[1.7]",
-    title: "text-[3.7rem] sm:text-[4rem]",
-    prompt: "text-[28px]",
-    input: "text-[30px]",
-    meta: "text-[23px]",
-    headerHeight: "h-24 sm:h-28",
-    headerTitle: "text-[29px] sm:text-[32px]",
-    headerSubtitle: "text-[19px] sm:text-[21.5px]",
-    headerNewChatBtn: "h-16 px-7.5 text-[20px] gap-3",
-    sidebarWidth: "w-[27rem]",
-    sidebarNewChatBtn: "h-19 text-[23px] gap-3.5 rounded-[1.7rem]",
-    sidebarGuideBtn: "h-17 text-[21.5px] gap-3 rounded-[1.7rem]",
-    sidebarHeading: "text-[18px]",
-    sidebarItemTitle: "text-[23px]",
-    sidebarItemDate: "text-[18.5px]",
-    sidebarItemBtn: "px-5.5 py-4",
-    sidebarPrefBtn: "h-14 text-[20px] rounded-[1.2rem]",
-    messageSpacing: "space-y-12 py-11 pb-20",
-    userBubble: "px-8.5 py-5.5 rounded-[2.1rem] max-w-[min(75%,55rem)]",
-    copyBtn: "h-14.5 px-5 text-[20px] gap-3",
-    welcomeShell: "px-7.5 py-7.5 sm:px-11 sm:py-11",
-    welcomeLogoBox: "h-28 w-28 rounded-[1.9rem] p-4",
-    welcomeLogoSize: 86,
-    welcomeSubtitleChip: "text-[19px] gap-3 mt-2.5",
-    welcomeTitleMargin: "mt-6",
+    body: "text-[34px] leading-[1.65]",
+    title: "text-[4.1rem] sm:text-[4.45rem]",
+    prompt: "text-[29px]",
+    input: "text-[33px]",
+    meta: "text-[25px]",
+    headerHeight: "h-25 sm:h-28",
+    headerTitle: "text-[30px] sm:text-[33px]",
+    headerSubtitle: "text-[20px] sm:text-[22px]",
+    headerNewChatBtn: "h-16 px-6 text-[20px] gap-3",
+    sidebarWidth: "w-[30rem]",
+    sidebarNewChatBtn: "h-20 text-[25px] gap-4 rounded-[1.75rem]",
+    sidebarGuideBtn: "h-19 text-[24px] gap-3 rounded-[1.75rem]",
+    sidebarHeading: "text-[20px]",
+    sidebarItemTitle: "text-[26px]",
+    sidebarItemDate: "text-[22px]",
+    sidebarItemBtn: "px-6 py-4",
+    sidebarPrefBtn: "h-15 text-[22px] rounded-xl",
+    messageSpacing: "space-y-12 py-9 pb-15",
+    userBubble: "px-9 py-5 rounded-[2.2rem] max-w-[min(75%,62rem)]",
+    copyBtn: "h-16 px-5 text-[22.5px] gap-3",
+    welcomeShell: "px-7.5 py-7.5 sm:px-10 sm:py-10",
+    welcomeLogoBox: "h-25 w-25 rounded-[1.6rem] p-3.5",
+    welcomeLogoSize: 75,
+    welcomeSubtitleChip: "text-[22px] gap-3 mt-2.5",
+    welcomeTitleMargin: "mt-5.5",
     welcomeCopyMargin: "mt-6.5",
     welcomeChipMargin: "mt-7",
-    welcomeFeatureChip: "rounded-full border border-[#e5e5e5] bg-[#fafafa] px-6 py-3 text-[20.5px] font-medium text-[#555]",
+    welcomeFeatureChip: "rounded-full border border-[#e5e5e5] bg-[#fafafa] px-6 py-3 text-[22px] font-medium text-[#555]",
     qaSpacing: "space-y-5",
-    qaPadding: "gap-6 rounded-[1.8rem] p-6.5",
-    qaIconBox: "h-22 w-22 rounded-[1.5rem]",
-    qaIcon: "h-10 w-10",
-    qaTitle: "text-[27px]",
-    qaSubtitle: "text-[20.5px] mt-2",
+    qaPadding: "gap-6.5 rounded-[1.9rem] p-6.5",
+    qaIconBox: "h-20 w-20 rounded-[1.5rem]",
+    qaIcon: "h-9 w-9",
+    qaTitle: "text-[26px]",
+    qaSubtitle: "text-[22px] mt-0.5",
+  },
+  md: {
+    body: "text-[40px] leading-[1.65]",
+    title: "text-[4.9rem] sm:text-[5.3rem]",
+    prompt: "text-[35px]",
+    input: "text-[38px]",
+    meta: "text-[29px]",
+    headerHeight: "h-30 sm:h-35",
+    headerTitle: "text-[36px] sm:text-[40px]",
+    headerSubtitle: "text-[24.5px] sm:text-[27px]",
+    headerNewChatBtn: "h-20 px-9 text-[25px] gap-4",
+    sidebarWidth: "w-[34rem]",
+    sidebarNewChatBtn: "h-24 text-[30px] gap-4.5 rounded-[2.1rem]",
+    sidebarGuideBtn: "h-22 text-[28px] gap-4 rounded-[2.1rem]",
+    sidebarHeading: "text-[24px]",
+    sidebarItemTitle: "text-[29px]",
+    sidebarItemDate: "text-[24.5px]",
+    sidebarItemBtn: "px-6.5 py-4.5",
+    sidebarPrefBtn: "h-19 text-[26px] rounded-[1.5rem]",
+    messageSpacing: "space-y-15 py-12 pb-22",
+    userBubble: "px-10 py-6.5 rounded-[2.8rem] max-w-[min(75%,69rem)]",
+    copyBtn: "h-19 px-6 text-[26px] gap-4",
+    welcomeShell: "px-9.5 py-9.5 sm:px-12.5 sm:py-12.5",
+    welcomeLogoBox: "h-35 w-35 rounded-[2.2rem] p-5",
+    welcomeLogoSize: 98,
+    welcomeSubtitleChip: "text-[24px] gap-4 mt-3",
+    welcomeTitleMargin: "mt-7",
+    welcomeCopyMargin: "mt-7.5",
+    welcomeChipMargin: "mt-9",
+    welcomeFeatureChip: "rounded-full border border-[#e5e5e5] bg-[#fafafa] px-7.5 py-4 text-[26.5px] font-medium text-[#555]",
+    qaSpacing: "space-y-6",
+    qaPadding: "gap-7.5 rounded-[2.2rem] p-8",
+    qaIconBox: "h-25 w-25 rounded-[1.9rem]",
+    qaIcon: "h-12 w-12",
+    qaTitle: "text-[32.5px]",
+    qaSubtitle: "text-[25px] mt-2",
+  },
+  lg: {
+    body: "text-[50px] leading-[1.7]",
+    title: "text-[5.75rem] sm:text-[6.25rem]",
+    prompt: "text-[44px]",
+    input: "text-[48px]",
+    meta: "text-[36px]",
+    headerHeight: "h-35 sm:h-40",
+    headerTitle: "text-[45px] sm:text-[50px]",
+    headerSubtitle: "text-[30px] sm:text-[34px]",
+    headerNewChatBtn: "h-25 px-11.5 text-[31px] gap-4.5",
+    sidebarWidth: "w-[40rem]",
+    sidebarNewChatBtn: "h-30 text-[36px] gap-5 rounded-[2.6rem]",
+    sidebarGuideBtn: "h-26 text-[34px] gap-4.5 rounded-[2.6rem]",
+    sidebarHeading: "text-[28px]",
+    sidebarItemTitle: "text-[36px]",
+    sidebarItemDate: "text-[29px]",
+    sidebarItemBtn: "px-9 py-6",
+    sidebarPrefBtn: "h-21 text-[31px] rounded-[1.9rem]",
+    messageSpacing: "space-y-19 py-17 pb-32",
+    userBubble: "px-14 py-9 rounded-[3.25rem] max-w-[min(75%,81rem)]",
+    copyBtn: "h-22.5 px-7.5 text-[31px] gap-4.5",
+    welcomeShell: "px-12 py-12 sm:px-17.5 sm:py-17.5",
+    welcomeLogoBox: "h-44 w-44 rounded-[3rem] p-6.5",
+    welcomeLogoSize: 135,
+    welcomeSubtitleChip: "text-[30px] gap-4.5 mt-4",
+    welcomeTitleMargin: "mt-8",
+    welcomeCopyMargin: "mt-9",
+    welcomeChipMargin: "mt-10",
+    welcomeFeatureChip: "rounded-full border border-[#e5e5e5] bg-[#fafafa] px-9.5 py-5 text-[32px] font-medium text-[#555]",
+    qaSpacing: "space-y-7.5",
+    qaPadding: "gap-9.5 rounded-[2.75rem] p-10",
+    qaIconBox: "h-35 w-35 rounded-[2.4rem]",
+    qaIcon: "h-16 w-16",
+    qaTitle: "text-[42.5px]",
+    qaSubtitle: "text-[32px] mt-3",
   },
 }
 
@@ -1490,50 +1490,50 @@ function Composer({
 
   // Dynamic Scale Variables
   const btnSize = fontSizeMode === "sm"
-    ? "h-11 w-11"
+    ? "h-[4.5rem] w-[4.5rem]"
     : fontSizeMode === "md"
-      ? "h-13 w-13"
-      : "h-16 w-16"
+      ? "h-20 w-20"
+      : "h-25 w-25"
   const iconSize = fontSizeMode === "sm"
-    ? "h-5 w-5"
+    ? "h-7.5 w-7.5"
     : fontSizeMode === "md"
-      ? "h-6.5 w-6.5"
-      : "h-8.5 w-8.5"
+      ? "h-[2.5rem] w-[2.5rem]"
+      : "h-14 w-14"
   const mobilePlusIconSize = fontSizeMode === "sm"
-    ? "h-6 w-6"
+    ? "h-[2.5rem] w-[2.5rem]"
     : fontSizeMode === "md"
-      ? "h-7.5 w-7.5"
-      : "h-10 w-10"
+      ? "h-12 w-12"
+      : "h-[3.8rem] w-[3.8rem]"
   const containerPadding = fontSizeMode === "sm"
-    ? "p-3 rounded-[2rem]"
+    ? "p-5 rounded-[2.8rem]"
     : fontSizeMode === "md"
-      ? "p-4 rounded-[2.4rem]"
-      : "p-5.5 rounded-[2.8rem]"
+      ? "p-7 rounded-[3.2rem]"
+      : "p-9 rounded-[4rem]"
   const mobileContainerPadding = fontSizeMode === "sm"
-    ? "p-3.5 rounded-[1.75rem]"
+    ? "p-5.5 rounded-[2.5rem]"
     : fontSizeMode === "md"
-      ? "p-4.5 rounded-[2.1rem]"
-      : "p-5.5 rounded-[2.5rem]"
+      ? "p-7 rounded-[3.2rem]"
+      : "p-9 rounded-[3.8rem]"
   const textareaPadding = fontSizeMode === "sm"
-    ? "px-4 py-3.5"
+    ? "px-6 py-5"
     : fontSizeMode === "md"
-      ? "px-5 py-4"
-      : "px-6 py-4.5"
+      ? "px-[1.8rem] py-[1.3rem]"
+      : "px-9.5 py-6.5"
   const textareaMinHeight = fontSizeMode === "sm"
-    ? "min-h-12"
+    ? "min-h-[4.5rem]"
     : fontSizeMode === "md"
-      ? "min-h-14"
-      : "min-h-16"
+      ? "min-h-20"
+      : "min-h-24"
 
   useEffect(() => {
     const textarea = textareaRef.current
     if (!textarea) return
 
     const maxHeight = fontSizeMode === "sm"
-      ? 124
+      ? 195
       : fontSizeMode === "md"
-        ? 168
-        : 220
+        ? 260
+        : 340
     textarea.style.height = "auto"
     textarea.style.height = `${Math.min(textarea.scrollHeight, maxHeight)}px`
     textarea.style.overflowY = textarea.scrollHeight > maxHeight ? "auto" : "hidden"
@@ -1645,11 +1645,21 @@ function VoiceMeter({
 }) {
   if (!isRecording && !isTranscribing) return null
 
+  const isSpeaking = voiceLevel > 0.05
   const bars = Array.from({ length: compact ? 8 : 12 }, (_, index) => {
-    const wave = 0.35 + Math.sin((voiceLevel * 9 + index) * 1.3) * 0.25
-    const height = Math.max(6, Math.round((compact ? 14 : 22) * (isTranscribing ? 0.45 : wave + voiceLevel * 0.95)))
-    const active = isTranscribing ? 0.55 : Math.max(0.2, 0.3 + voiceLevel * 0.7)
-    return { height, opacity: active }
+    // If not speaking, keep it flat (height 6px, low opacity)
+    if (!isSpeaking && !isTranscribing) {
+      return { height: 6, opacity: 0.25 }
+    }
+    // If transcribing, keep it at a flat, medium height/opacity (e.g. 8px)
+    if (isTranscribing) {
+      return { height: compact ? 8 : 10, opacity: 0.4 }
+    }
+    // When speaking, show the dynamic wave
+    const wave = 0.35 + Math.sin((voiceLevel * 12 + index) * 1.3) * 0.25
+    const height = Math.max(6, Math.round((compact ? 14 : 22) * (wave + voiceLevel * 0.95)))
+    const opacity = Math.max(0.3, 0.4 + voiceLevel * 0.6)
+    return { height, opacity }
   })
 
   const statusText = isTranscribing ? "正在识别语音..." : voiceLevel > 0.08 ? "已检测到声音" : "正在录音，请开始说话"
