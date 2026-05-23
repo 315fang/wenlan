@@ -18,7 +18,7 @@ npm run dev
 3. 填环境变量，至少二选一：
    - 直连 Dify：`DIFY_BASE_URL` + `DIFY_API_KEY`
    - 走你自己的后端：`ASSISTANT_BACKEND_URL`，可选再配 `ASSISTANT_BACKEND_API_KEY`
-4. 语音转文字需要：`MIMO_API_KEY`
+4. 语音转文字需要：`MIMO_API_KEY`，官方 MiMo 线路默认走 `mimo-v2.5` 的音频理解接口；如果你接了自定义 ASR 网关，再配 `MIMO_TRANSCRIBE_URL`
 
 ## 关键接口
 
@@ -29,4 +29,3 @@ npm run dev
 ## 环境变量
 
 复制 `.env.example` 填写即可。
-

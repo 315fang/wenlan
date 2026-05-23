@@ -109,6 +109,98 @@ function scrollElementIntoView(ref: RefObject<HTMLDivElement | null>) {
   })
 }
 
+const preferredRecorderMimeTypes = [
+  "audio/mp4",
+  "audio/mp4;codecs=mp4a.40.2",
+  "audio/ogg;codecs=opus",
+  "audio/ogg",
+  "audio/webm;codecs=opus",
+  "audio/webm",
+]
+
+function pickRecorderMimeType() {
+  if (typeof MediaRecorder === "undefined") return ""
+  for (const mimeType of preferredRecorderMimeTypes) {
+    if (MediaRecorder.isTypeSupported(mimeType)) {
+      return mimeType
+    }
+  }
+  return ""
+}
+
+function audioBufferToWavBuffer(buffer: AudioBuffer) {
+  const numChannels = buffer.numberOfChannels
+  const sampleRate = buffer.sampleRate
+  const bytesPerSample = 2
+  const blockAlign = numChannels * bytesPerSample
+  const byteRate = sampleRate * blockAlign
+  const dataSize = buffer.length * blockAlign
+  const wavBuffer = new ArrayBuffer(44 + dataSize)
+  const view = new DataView(wavBuffer)
+  let offset = 0
+
+  const writeString = (value: string) => {
+    for (let index = 0; index < value.length; index += 1) {
+      view.setUint8(offset + index, value.charCodeAt(index))
+    }
+    offset += value.length
+  }
+
+  writeString("RIFF")
+  view.setUint32(offset, 36 + dataSize, true)
+  offset += 4
+  writeString("WAVE")
+  writeString("fmt ")
+  view.setUint32(offset, 16, true)
+  offset += 4
+  view.setUint16(offset, 1, true)
+  offset += 2
+  view.setUint16(offset, numChannels, true)
+  offset += 2
+  view.setUint32(offset, sampleRate, true)
+  offset += 4
+  view.setUint32(offset, byteRate, true)
+  offset += 4
+  view.setUint16(offset, blockAlign, true)
+  offset += 2
+  view.setUint16(offset, bytesPerSample * 8, true)
+  offset += 2
+  writeString("data")
+  view.setUint32(offset, dataSize, true)
+  offset += 4
+
+  const channelData = Array.from({ length: numChannels }, (_, index) => buffer.getChannelData(index))
+  for (let frame = 0; frame < buffer.length; frame += 1) {
+    for (let channel = 0; channel < numChannels; channel += 1) {
+      const sample = Math.max(-1, Math.min(1, channelData[channel][frame]))
+      view.setInt16(offset, sample < 0 ? sample * 0x8000 : sample * 0x7fff, true)
+      offset += 2
+    }
+  }
+
+  return wavBuffer
+}
+
+async function convertRecordedBlobToWav(blob: Blob) {
+  if (blob.type === "audio/wav") {
+    return blob
+  }
+
+  const AudioContextClass =
+    window.AudioContext || (window as Window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext
+  if (!AudioContextClass) {
+    throw new Error("当前浏览器不支持语音转文字所需的音频转换能力")
+  }
+
+  const audioContext = new AudioContextClass()
+  try {
+    const decodedBuffer = await audioContext.decodeAudioData(await blob.arrayBuffer())
+    return new Blob([audioBufferToWavBuffer(decodedBuffer)], { type: "audio/wav" })
+  } finally {
+    await audioContext.close().catch(() => {})
+  }
+}
+
 export function AssistantApp({ initialConfig }: AssistantAppProps) {
   const [conversations, setConversations] = useState<ChatConversation[]>([])
   const [activeConversationId, setActiveConversationId] = useState("")
@@ -389,7 +481,8 @@ export function AssistantApp({ initialConfig }: AssistantAppProps) {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
       recorderStreamRef.current = stream
-      const recorder = new MediaRecorder(stream)
+      const mimeType = pickRecorderMimeType()
+      const recorder = mimeType ? new MediaRecorder(stream, { mimeType }) : new MediaRecorder(stream)
       recorderRef.current = recorder
       audioChunksRef.current = []
 
@@ -402,9 +495,10 @@ export function AssistantApp({ initialConfig }: AssistantAppProps) {
       recorder.onstop = async () => {
         setIsTranscribing(true)
         try {
-          const blob = new Blob(audioChunksRef.current, { type: recorder.mimeType || "audio/webm" })
+          const recordedBlob = new Blob(audioChunksRef.current, { type: recorder.mimeType || "audio/webm" })
+          const blob = await convertRecordedBlobToWav(recordedBlob)
           const formData = new FormData()
-          formData.append("file", blob, "voice.webm")
+          formData.append("file", blob, "voice.wav")
           const response = await fetch("/api/transcribe", {
             method: "POST",
             body: formData,

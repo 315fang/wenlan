@@ -84,7 +84,16 @@ export type TranscribeTarget = {
   url: string
   apiKey: string
   model: string
+  transport: "multipart" | "mimo-audio"
 } | null
+
+function normalizeMimoAudioModel(value: string) {
+  const normalized = value.trim().toLowerCase()
+  if (normalized === "mimo-v2.5" || normalized === "mimo-v2-omni") {
+    return normalized
+  }
+  return "mimo-v2.5"
+}
 
 export function getTranscribeTarget(): TranscribeTarget {
   const apiKey = readEnv("MIMO_API_KEY")
@@ -93,10 +102,19 @@ export function getTranscribeTarget(): TranscribeTarget {
   const directUrl = readEnv("MIMO_TRANSCRIBE_URL")
   const baseUrl = readEnv("MIMO_BASE_URL") || "https://api.xiaomimimo.com/v1"
 
+  if (directUrl) {
+    return {
+      url: directUrl,
+      apiKey,
+      model: readEnv("MIMO_ASR_MODEL") || "MiMo-V2.5-ASR",
+      transport: "multipart",
+    }
+  }
+
   return {
-    url: directUrl || joinUrl(baseUrl, "audio/transcriptions"),
+    url: joinUrl(baseUrl, "chat/completions"),
     apiKey,
-    model: readEnv("MIMO_ASR_MODEL") || "MiMo-V2.5-ASR",
+    model: normalizeMimoAudioModel(readEnv("MIMO_AUDIO_MODEL") || readEnv("MIMO_ASR_MODEL")),
+    transport: "mimo-audio",
   }
 }
-
