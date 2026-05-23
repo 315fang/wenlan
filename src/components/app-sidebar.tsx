@@ -9,6 +9,7 @@ type AppSection = "chat" | "knowledge"
 
 type AppSidebarProps = {
   active: AppSection
+  sections?: AppSection[]
   children?: ReactNode
   className?: string
   footer?: ReactNode
@@ -38,7 +39,7 @@ const navItems: Array<{
   },
 ]
 
-export function AppSidebar({ active, children, className = "", footer, onClose }: AppSidebarProps) {
+export function AppSidebar({ active, sections = ["chat", "knowledge"], children, className = "", footer, onClose }: AppSidebarProps) {
   return (
     <div className={`flex h-full flex-col border-r border-black/[0.07] bg-[#f1f1ee] ${className}`}>
       <div className="flex h-16 shrink-0 items-center justify-between px-3">
@@ -72,39 +73,41 @@ export function AppSidebar({ active, children, className = "", footer, onClose }
       </div>
 
       <nav className="shrink-0 space-y-1 px-3 pb-3">
-        {navItems.map(({ id, href, label, description, icon: Icon }) => {
-          const isActive = active === id
-          return (
-            <Link
-              key={id}
-              href={href}
-              onClick={onClose}
-              className={`flex items-center gap-3 rounded-2xl px-3 py-2.5 transition ${
-                isActive
-                  ? "bg-white text-[#111111] shadow-[0_1px_10px_rgba(0,0,0,0.04)]"
-                  : "text-[#5f5f5f] hover:bg-white/70 hover:text-[#111111]"
-              }`}
-            >
-              <span
-                className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${
-                  isActive ? "bg-[#111111] text-white" : "bg-white text-[#555555]"
+        {navItems
+          .filter((item) => sections.includes(item.id))
+          .map(({ id, href, label, description, icon: Icon }) => {
+            const isActive = active === id
+            return (
+              <Link
+                key={id}
+                href={href}
+                onClick={onClose}
+                className={`flex items-center gap-3 rounded-2xl px-3 py-2.5 transition ${
+                  isActive
+                    ? "bg-white text-[#111111] shadow-[0_1px_10px_rgba(0,0,0,0.04)]"
+                    : "text-[#5f5f5f] hover:bg-white/70 hover:text-[#111111]"
                 }`}
               >
-                <Icon className="h-4 w-4" />
-              </span>
-              <span className="min-w-0">
-                <span className="block truncate text-sm font-medium">{label}</span>
-                <span className="block truncate text-xs text-[#888888]">{description}</span>
-              </span>
-            </Link>
-          )
-        })}
+                <span
+                  className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${
+                    isActive ? "bg-[#111111] text-white" : "bg-white text-[#555555]"
+                  }`}
+                >
+                  <Icon className="h-4 w-4" />
+                </span>
+                <span className="min-w-0">
+                  <span className="block truncate text-sm font-medium">{label}</span>
+                  <span className="block truncate text-xs text-[#888888]">{description}</span>
+                </span>
+              </Link>
+            )
+          })}
       </nav>
 
       <div className="min-h-0 flex-1">{children}</div>
 
       <div className="shrink-0 border-t border-black/[0.07] px-4 py-3 text-xs leading-5 text-[#777777]">
-        {footer || "高风险操作请人工复核。"}
+        {footer || "内容以最新资料为准。"}
       </div>
     </div>
   )
@@ -112,6 +115,7 @@ export function AppSidebar({ active, children, className = "", footer, onClose }
 
 export function MobileAppSidebar({
   active,
+  sections = ["chat", "knowledge"],
   children,
   footer,
   onClose,
@@ -128,7 +132,7 @@ export function MobileAppSidebar({
         aria-label="关闭侧边菜单遮罩"
       />
       <div className="relative h-full w-[84vw] max-w-80">
-        <AppSidebar active={active} footer={footer} onClose={onClose} className="shadow-2xl">
+        <AppSidebar active={active} sections={sections} footer={footer} onClose={onClose} className="shadow-2xl">
           {children}
         </AppSidebar>
       </div>

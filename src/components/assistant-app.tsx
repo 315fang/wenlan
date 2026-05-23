@@ -58,24 +58,24 @@ const initialServerStatus: ServerStatus = {
   provider: "dify",
   baseUrl: "",
   assistantName,
-  assistantLabel: "Dify 服务",
+  assistantLabel: "智能客服",
 }
 
 const mobileShortcuts = [
   {
     icon: FileText,
-    label: "新人上手",
-    prompt: "新人第一次使用后台，应该先熟悉哪些模块？",
+    label: "找官方图片",
+    prompt: "帮我找适合发朋友圈的官方图片素材。",
   },
   {
     icon: Search,
-    label: "后台查询",
-    prompt: "我想查询一个代理商状态，应该怎么操作？",
+    label: "复制文案",
+    prompt: "给我一段可以直接复制的朋友圈宣传文案。",
   },
   {
     icon: ShieldAlert,
-    label: "异常排查",
-    prompt: "代理商说看不到素材，后台应该排查哪些地方？",
+    label: "产品卖点",
+    prompt: "根据最新资料，帮我整理一下产品卖点。",
   },
 ]
 
@@ -118,11 +118,17 @@ function scrollElementIntoView(ref: RefObject<HTMLDivElement | null>) {
 }
 
 type FontSizeMode = "sm" | "md" | "lg"
+type DisplayMode = "youth" | "care"
 
 const fontSizeOptions: Array<{ value: FontSizeMode; label: string }> = [
   { value: "sm", label: "小" },
   { value: "md", label: "中" },
   { value: "lg", label: "大" },
+]
+
+const displayModeOptions: Array<{ value: DisplayMode; label: string }> = [
+  { value: "youth", label: "青年版" },
+  { value: "care", label: "关爱版" },
 ]
 
 const fontSizeStyles: Record<
@@ -258,6 +264,16 @@ export function AssistantApp({ initialConfig }: AssistantAppProps) {
   const [isRecording, setIsRecording] = useState(false)
   const [isTranscribing, setIsTranscribing] = useState(false)
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false)
+  const [displayMode, setDisplayMode] = useState<DisplayMode>(() => {
+    if (typeof window === "undefined") return "youth"
+    const stored = window.localStorage.getItem(STORAGE_KEYS.displayMode)
+    if (stored === "care" || stored === "youth") return stored
+    const legacyFontSize =
+      window.localStorage.getItem(STORAGE_KEYS.fontSize) ||
+      window.localStorage.getItem("问兰 AI Portal:fontSize") ||
+      "md"
+    return legacyFontSize === "lg" ? "care" : "youth"
+  })
   const [fontSize, setFontSize] = useState<FontSizeMode>(() => {
     if (typeof window === "undefined") return "md"
     const stored =
@@ -274,7 +290,12 @@ export function AssistantApp({ initialConfig }: AssistantAppProps) {
   const recorderRef = useRef<MediaRecorder | null>(null)
   const recorderStreamRef = useRef<MediaStream | null>(null)
   const audioChunksRef = useRef<Blob[]>([])
+  const audioContextRef = useRef<AudioContext | null>(null)
+  const voiceFrameRef = useRef<number | null>(null)
+  const analyserRef = useRef<AnalyserNode | null>(null)
+  const voiceDataRef = useRef<Uint8Array<ArrayBuffer> | null>(null)
   const userIdRef = useRef("browser")
+  const [voiceLevel, setVoiceLevel] = useState(0)
 
   useEffect(() => {
     userIdRef.current = ensureUserId()
@@ -350,6 +371,17 @@ export function AssistantApp({ initialConfig }: AssistantAppProps) {
   useEffect(() => {
     window.localStorage.setItem(STORAGE_KEYS.fontSize, fontSize)
   }, [fontSize])
+
+  useEffect(() => {
+    window.localStorage.setItem(STORAGE_KEYS.displayMode, displayMode)
+  }, [displayMode])
+
+  useEffect(() => {
+    return () => {
+      stopVoiceMeter()
+      recorderStreamRef.current?.getTracks().forEach((track) => track.stop())
+    }
+  }, [])
 
   const activeConversation = useMemo(
     () => conversations.find((item) => item.id === activeConversationId) || conversations[0],
@@ -549,12 +581,68 @@ export function AssistantApp({ initialConfig }: AssistantAppProps) {
     }
   }
 
+  function changeDisplayMode(mode: DisplayMode) {
+    setDisplayMode(mode)
+    setFontSize(mode === "care" ? "lg" : "md")
+  }
+
+  function stopVoiceMeter() {
+    if (voiceFrameRef.current !== null) {
+      window.cancelAnimationFrame(voiceFrameRef.current)
+      voiceFrameRef.current = null
+    }
+    analyserRef.current = null
+    voiceDataRef.current = null
+    setVoiceLevel(0)
+    const audioContext = audioContextRef.current
+    audioContextRef.current = null
+    if (audioContext) {
+      void audioContext.close().catch(() => {})
+    }
+  }
+
+  function startVoiceMeter(stream: MediaStream) {
+    stopVoiceMeter()
+    const AudioContextClass =
+      window.AudioContext || (window as Window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext
+    if (!AudioContextClass) return
+
+    const audioContext = new AudioContextClass()
+    const analyser = audioContext.createAnalyser()
+    analyser.fftSize = 256
+    analyser.smoothingTimeConstant = 0.72
+    audioContext.createMediaStreamSource(stream).connect(analyser)
+
+    audioContextRef.current = audioContext
+    analyserRef.current = analyser
+    voiceDataRef.current = new Uint8Array(analyser.frequencyBinCount) as Uint8Array<ArrayBuffer>
+
+    const updateLevel = () => {
+      const currentAnalyser = analyserRef.current
+      const data = voiceDataRef.current
+      if (!currentAnalyser || !data) return
+
+      currentAnalyser.getByteTimeDomainData(data)
+      let total = 0
+      for (const value of data) {
+        const normalized = (value - 128) / 128
+        total += normalized * normalized
+      }
+      const rms = Math.sqrt(total / data.length)
+      setVoiceLevel(Math.min(1, Math.max(0, rms * 5)))
+      voiceFrameRef.current = window.requestAnimationFrame(updateLevel)
+    }
+
+    updateLevel()
+  }
+
   async function toggleVoiceRecording() {
     if (isTranscribing || !serverStatus.transcribeReady) return
     if (isRecording) {
       recorderRef.current?.stop()
       recorderRef.current = null
       setIsRecording(false)
+      stopVoiceMeter()
       recorderStreamRef.current?.getTracks().forEach((track) => track.stop())
       recorderStreamRef.current = null
       return
@@ -563,6 +651,7 @@ export function AssistantApp({ initialConfig }: AssistantAppProps) {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
       recorderStreamRef.current = stream
+      startVoiceMeter(stream)
       const mimeType = pickRecorderMimeType()
       const recorder = mimeType ? new MediaRecorder(stream, { mimeType }) : new MediaRecorder(stream)
       recorderRef.current = recorder
@@ -608,12 +697,14 @@ export function AssistantApp({ initialConfig }: AssistantAppProps) {
           }
         } finally {
           setIsTranscribing(false)
+          stopVoiceMeter()
         }
       }
 
       recorder.start()
       setIsRecording(true)
     } catch {
+      stopVoiceMeter()
       // Permission denial is handled by the browser prompt.
     }
   }
@@ -633,6 +724,7 @@ export function AssistantApp({ initialConfig }: AssistantAppProps) {
       isSending={isSending}
       isRecording={isRecording}
       isTranscribing={isTranscribing}
+      voiceLevel={voiceLevel}
       canTranscribe={serverStatus.transcribeReady}
       onChange={setDraft}
       onKeyDown={handleTextareaKeyDown}
@@ -694,11 +786,14 @@ export function AssistantApp({ initialConfig }: AssistantAppProps) {
   return (
     <div className="flex h-dvh overflow-hidden bg-[#f6f6f4] text-[#0d0d0d]">
       <aside className="hidden w-[18rem] shrink-0 lg:block">
-        <AppSidebar active="chat">{sidebarBody}</AppSidebar>
+        <AppSidebar active="chat" sections={["chat"]}>
+          {sidebarBody}
+        </AppSidebar>
       </aside>
 
       <MobileAppSidebar
         active="chat"
+        sections={["chat"]}
         open={mobileSidebarOpen}
         onClose={() => setMobileSidebarOpen(false)}
       >
@@ -720,7 +815,7 @@ export function AssistantApp({ initialConfig }: AssistantAppProps) {
 
               <div className="min-w-0">
                 <div className="truncate text-[17px] font-semibold tracking-tight text-[#111]">
-                  {activeConversation?.title || "智能问答"}
+                  {hasMessages ? activeConversation?.title || "智能问答" : "今天你要问什么？"}
                 </div>
                 <div className="truncate text-xs text-[#7a7a7a]">{initialConfig.headline}</div>
               </div>
@@ -728,13 +823,33 @@ export function AssistantApp({ initialConfig }: AssistantAppProps) {
 
             <div className="flex items-center gap-2 sm:gap-3">
               <div className="inline-flex items-center rounded-full bg-[#f2f2f2] p-1 shadow-[0_1px_8px_rgba(0,0,0,0.04)]">
+                {displayModeOptions.map((option) => (
+                  <button
+                    key={option.value}
+                    className={`h-8 min-w-12 rounded-full px-3 text-sm transition sm:min-w-14 ${
+                      option.value === displayMode ? "bg-white text-[#111] shadow-sm" : "text-[#666] hover:text-[#111]"
+                    }`}
+                    onClick={() => changeDisplayMode(option.value)}
+                    type="button"
+                    aria-label={`切换到${option.label}`}
+                  >
+                    <span className="sm:hidden">{option.value === "youth" ? "青年" : "关爱"}</span>
+                    <span className="hidden sm:inline">{option.label}</span>
+                  </button>
+                ))}
+              </div>
+
+              <div className="hidden items-center rounded-full bg-[#f2f2f2] p-1 shadow-[0_1px_8px_rgba(0,0,0,0.04)] sm:inline-flex">
                 {fontSizeOptions.map((option) => (
                   <button
                     key={option.value}
                     className={`h-8 min-w-10 rounded-full px-3 text-sm transition ${
                       option.value === fontSize ? "bg-white text-[#111] shadow-sm" : "text-[#666] hover:text-[#111]"
                     }`}
-                    onClick={() => setFontSize(option.value)}
+                    onClick={() => {
+                      setFontSize(option.value)
+                      setDisplayMode(option.value === "lg" ? "care" : "youth")
+                    }}
                     type="button"
                     aria-label={`切换到${option.label}字号`}
                   >
@@ -757,7 +872,7 @@ export function AssistantApp({ initialConfig }: AssistantAppProps) {
 
         {!hasMessages ? (
           <>
-            <section className="hidden min-h-0 flex-1 items-center justify-center px-4 py-6 lg:flex">
+            <section className="hidden min-h-0 flex-1 items-start justify-center px-4 py-8 lg:flex">
               <EmptyState
                 prompts={initialConfig.starterPrompts}
                 composer={composer}
@@ -871,9 +986,11 @@ function EmptyState({
   return (
     <div className="w-full max-w-3xl">
       <h1 className={`text-center font-medium tracking-normal text-[#2f2f2f] ${titleClass}`}>
-        有什么可以帮忙的？
+        今天你要问什么？
       </h1>
-      <p className={`mt-3 text-center leading-6 text-[#777] ${metaClass}`}>先看下面的使用引导，再开始提问或上传资料。</p>
+      <p className={`mt-3 text-center leading-6 text-[#777] ${metaClass}`}>
+        可以咨询资料、搜索官方图片，也可以生成可直接复制的宣传文案。
+      </p>
 
       <UsageGuide />
 
@@ -925,6 +1042,7 @@ function Composer({
   isSending,
   isRecording,
   isTranscribing,
+  voiceLevel,
   canTranscribe,
   onChange,
   onKeyDown,
@@ -938,6 +1056,7 @@ function Composer({
   isSending: boolean
   isRecording: boolean
   isTranscribing: boolean
+  voiceLevel: number
   canTranscribe: boolean
   onChange: (value: string) => void
   onKeyDown: (event: KeyboardEvent<HTMLTextAreaElement>) => void
@@ -956,10 +1075,12 @@ function Composer({
           value={draft}
           onChange={(event) => onChange(event.target.value)}
           onKeyDown={onKeyDown}
-          placeholder={isTranscribing ? "正在识别语音..." : "给问兰助手发送消息"}
+          placeholder={isTranscribing ? "正在识别语音..." : "今天你要问什么？"}
           className={`max-h-48 min-h-14 w-full resize-none bg-transparent px-3 py-3 text-[#0d0d0d] outline-none placeholder:text-[#8f8f8f] ${fontSizeClass}`}
           rows={1}
         />
+
+        <VoiceMeter isRecording={isRecording} isTranscribing={isTranscribing} voiceLevel={voiceLevel} />
 
         <div className="flex items-center justify-between px-1 pb-1">
           <button
@@ -1004,7 +1125,7 @@ function Composer({
               value={draft}
               onChange={(event) => onChange(event.target.value)}
               onKeyDown={onKeyDown}
-              placeholder={isTranscribing ? "正在识别语音..." : "问问 问兰"}
+              placeholder={isTranscribing ? "正在识别语音..." : "今天你要问什么？"}
               className={`min-h-11 flex-1 resize-none bg-transparent px-1 py-2 text-[#0d0d0d] outline-none placeholder:text-[#8f8f8f] ${fontSizeClass}`}
               rows={1}
             />
@@ -1032,7 +1153,49 @@ function Composer({
               {isSending ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowUp className="h-5 w-5" />}
             </button>
           </div>
+          <VoiceMeter isRecording={isRecording} isTranscribing={isTranscribing} voiceLevel={voiceLevel} compact />
         </div>
+      </div>
+    </div>
+  )
+}
+
+function VoiceMeter({
+  isRecording,
+  isTranscribing,
+  voiceLevel,
+  compact = false,
+}: {
+  isRecording: boolean
+  isTranscribing: boolean
+  voiceLevel: number
+  compact?: boolean
+}) {
+  if (!isRecording && !isTranscribing) return null
+
+  const bars = Array.from({ length: compact ? 8 : 12 }, (_, index) => {
+    const wave = 0.35 + Math.sin((voiceLevel * 9 + index) * 1.3) * 0.25
+    const height = Math.max(6, Math.round((compact ? 14 : 22) * (isTranscribing ? 0.45 : wave + voiceLevel * 0.95)))
+    const active = isTranscribing ? 0.55 : Math.max(0.2, 0.3 + voiceLevel * 0.7)
+    return { height, opacity: active }
+  })
+
+  return (
+    <div className={`flex items-center gap-3 px-3 ${compact ? "pb-2 pt-1" : "pb-3 pt-2"}`}>
+      <div className="flex items-center gap-1.5">
+        {bars.map((bar, index) => (
+          <span
+            key={index}
+            className="w-1 rounded-full bg-[#111111] transition-all duration-150"
+            style={{
+              height: `${bar.height}px`,
+              opacity: bar.opacity,
+            }}
+          />
+        ))}
+      </div>
+      <div className="min-w-0 text-xs leading-5 text-[#666666]">
+        {isTranscribing ? "正在识别语音..." : voiceLevel > 0.08 ? "已检测到声音" : "正在录音，请开始说话"}
       </div>
     </div>
   )

@@ -1,4 +1,5 @@
 import { buildKnowledgeDocumentName, extractArticleSnapshot, parseKnowledgeDocumentName } from "@/lib/knowledge"
+import { isAdminConfigured, verifyAdminRequest } from "@/lib/admin-auth"
 import { getKnowledgeTarget } from "@/lib/server"
 import { joinUrl } from "@/lib/url"
 import type { KnowledgeItem, KnowledgeKind } from "@/types/knowledge"
@@ -267,6 +268,13 @@ async function removePreviousVersions(kind: KnowledgeKind, knowledgeKey: string,
 
 export async function GET(request: Request) {
   try {
+    if (!isAdminConfigured()) {
+      return Response.json({ error: "请先配置后台管理密码" }, { status: 503 })
+    }
+    if (!verifyAdminRequest(request)) {
+      return Response.json({ error: "未授权访问" }, { status: 401 })
+    }
+
     const url = new URL(request.url)
     const kind = url.searchParams.get("kind") as KnowledgeKind | null
     const query = (url.searchParams.get("query") || "").trim().toLowerCase()
@@ -289,6 +297,13 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
+    if (!isAdminConfigured()) {
+      return Response.json({ error: "请先配置后台管理密码" }, { status: 503 })
+    }
+    if (!verifyAdminRequest(request)) {
+      return Response.json({ error: "未授权访问" }, { status: 401 })
+    }
+
     const target = getKnowledgeTarget()
     if (!target) {
       return Response.json({ error: "请先配置知识库资料集编号和接口密钥" }, { status: 503 })

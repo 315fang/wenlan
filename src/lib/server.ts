@@ -32,7 +32,7 @@ export function getRuntimeStatus(): ServerStatus {
     provider,
     baseUrl: chatBaseUrl ? safeBaseLabel(chatBaseUrl) : "",
     assistantName: getPortalConfig().assistantName,
-    assistantLabel: customChatUrl ? "自定义后端" : "大模型服务",
+    assistantLabel: customChatUrl ? "自定义后端" : "智能客服",
   }
 }
 
