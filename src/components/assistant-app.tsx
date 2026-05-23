@@ -124,6 +124,7 @@ function scrollElementIntoView(ref: RefObject<HTMLDivElement | null>) {
 
 type FontSizeMode = "sm" | "md" | "lg"
 type DisplayMode = "youth" | "care"
+type LayoutDensity = "regular" | "compact" | "tight"
 
 const fontSizeOptions: Array<{ value: FontSizeMode; label: string }> = [
   { value: "sm", label: "小" },
@@ -135,6 +136,38 @@ const displayModeOptions: Array<{ value: DisplayMode; label: string }> = [
   { value: "youth", label: "青年版" },
   { value: "care", label: "关爱版" },
 ]
+
+function useLayoutDensity() {
+  const [density, setDensity] = useState<LayoutDensity>("regular")
+
+  useEffect(() => {
+    const update = () => {
+      const width = Math.round(window.visualViewport?.width || window.innerWidth || 0)
+      if (width <= 375) {
+        setDensity("tight")
+        return
+      }
+      if (width <= 430) {
+        setDensity("compact")
+        return
+      }
+      setDensity("regular")
+    }
+
+    update()
+    window.addEventListener("resize", update)
+    window.addEventListener("orientationchange", update)
+    window.visualViewport?.addEventListener("resize", update)
+
+    return () => {
+      window.removeEventListener("resize", update)
+      window.removeEventListener("orientationchange", update)
+      window.visualViewport?.removeEventListener("resize", update)
+    }
+  }, [])
+
+  return density
+}
 
 const fontSizeStyles: Record<
   FontSizeMode,
@@ -413,6 +446,7 @@ export function AssistantApp({ initialConfig }: AssistantAppProps) {
   const activeMessages = activeConversation?.messages ?? []
   const hasMessages = activeMessages.length > 0
   const fontClasses = fontSizeStyles[fontSize]
+  const layoutDensity = useLayoutDensity()
 
   function patchConversation(conversationId: string, updater: (conversation: ChatConversation) => ChatConversation) {
     setConversations((current) =>
@@ -759,6 +793,7 @@ export function AssistantApp({ initialConfig }: AssistantAppProps) {
       onNewChat={startNewChat}
       onToggleVoice={toggleVoiceRecording}
       fontSizeClass={fontClasses.input}
+      density={layoutDensity}
     />
   )
 
@@ -840,7 +875,7 @@ export function AssistantApp({ initialConfig }: AssistantAppProps) {
 
       <main className="flex min-w-0 flex-1 flex-col">
         <header className="shrink-0 border-b border-black/[0.05] bg-white/[0.96]">
-          <div className="flex h-16 items-center justify-between gap-3 px-4 sm:px-6 lg:px-8">
+          <div className="flex flex-col gap-3 px-4 py-3 sm:px-6 lg:flex-row lg:h-16 lg:items-center lg:justify-between lg:gap-3 lg:py-0 lg:px-8">
             <div className="flex min-w-0 items-center gap-3">
               <button
                 className="inline-flex h-10 w-10 items-center justify-center rounded-full text-[#5b5b5b] transition hover:bg-[#f4f4f4] lg:hidden"
@@ -859,7 +894,54 @@ export function AssistantApp({ initialConfig }: AssistantAppProps) {
               </div>
             </div>
 
-            <div className="flex items-center gap-2 sm:gap-3">
+            <div className="flex flex-wrap items-center justify-end gap-2 lg:hidden">
+              <div className="inline-flex items-center rounded-full bg-[#f2f2f2] p-1 shadow-[0_1px_8px_rgba(0,0,0,0.04)] max-[420px]:p-0.5">
+                {displayModeOptions.map((option) => (
+                  <button
+                    key={option.value}
+                    className={`h-8 min-w-12 rounded-full px-3 text-sm transition max-[420px]:h-7 max-[420px]:min-w-10 max-[420px]:px-2 max-[420px]:text-xs ${
+                      option.value === displayMode ? "bg-white text-[#111] shadow-sm" : "text-[#666] hover:text-[#111]"
+                    }`}
+                    onClick={() => changeDisplayMode(option.value)}
+                    type="button"
+                    aria-label={`切换到${option.label}`}
+                  >
+                    <span className="max-[420px]:hidden">{option.label}</span>
+                    <span className="hidden max-[420px]:inline">{option.value === "youth" ? "青" : "关"}</span>
+                  </button>
+                ))}
+              </div>
+
+              <div className="inline-flex items-center rounded-full bg-[#f2f2f2] p-1 shadow-[0_1px_8px_rgba(0,0,0,0.04)] max-[420px]:p-0.5">
+                {fontSizeOptions.map((option) => (
+                  <button
+                    key={option.value}
+                    className={`h-8 min-w-10 rounded-full px-3 text-sm transition max-[420px]:h-7 max-[420px]:min-w-8 max-[420px]:px-2 max-[420px]:text-xs ${
+                      option.value === fontSize ? "bg-white text-[#111] shadow-sm" : "text-[#666] hover:text-[#111]"
+                    }`}
+                    onClick={() => {
+                      setFontSize(option.value)
+                      setDisplayMode(option.value === "lg" ? "care" : "youth")
+                    }}
+                    type="button"
+                    aria-label={`切换到${option.label}字号`}
+                  >
+                    {option.label}
+                  </button>
+                ))}
+              </div>
+
+              <button
+                className="inline-flex h-10 items-center gap-2 rounded-full bg-[#111111] px-4 py-2.5 text-sm font-medium text-white transition hover:bg-[#2f2f2f] max-[420px]:h-9 max-[420px]:px-3 max-[420px]:py-2 max-[420px]:text-xs"
+                onClick={startNewChat}
+                type="button"
+              >
+                <CircleDashed className="h-4 w-4" />
+                <span className="hidden sm:inline">新对话</span>
+              </button>
+            </div>
+
+            <div className="hidden items-center gap-2 sm:gap-3 lg:flex">
               <div className="inline-flex items-center rounded-full bg-[#f2f2f2] p-1 shadow-[0_1px_8px_rgba(0,0,0,0.04)]">
                 {displayModeOptions.map((option) => (
                   <button
@@ -876,8 +958,7 @@ export function AssistantApp({ initialConfig }: AssistantAppProps) {
                   </button>
                 ))}
               </div>
-
-              <div className="hidden items-center rounded-full bg-[#f2f2f2] p-1 shadow-[0_1px_8px_rgba(0,0,0,0.04)] sm:inline-flex">
+              <div className="inline-flex items-center rounded-full bg-[#f2f2f2] p-1 shadow-[0_1px_8px_rgba(0,0,0,0.04)]">
                 {fontSizeOptions.map((option) => (
                   <button
                     key={option.value}
@@ -921,10 +1002,22 @@ export function AssistantApp({ initialConfig }: AssistantAppProps) {
               />
             </section>
 
-            <section className="flex min-h-0 flex-1 flex-col overflow-y-auto px-4 pb-4 pt-5 lg:hidden">
-              <div className="mx-auto flex w-full max-w-md flex-col gap-5">
-                <WelcomePanel compact titleClass={fontClasses.title} metaClass={fontClasses.meta} />
-                <MobileQuickActions onQuickPrompt={handleQuickPrompt} labelClass={fontClasses.body} />
+            <section
+              className={`flex min-h-0 flex-1 flex-col overflow-y-auto lg:hidden ${
+                layoutDensity === "regular" ? "px-4 pb-4 pt-4" : "px-3 pb-3 pt-3"
+              }`}
+            >
+              <div
+                className={`mx-auto flex w-full max-w-md flex-col ${
+                  layoutDensity === "tight" ? "gap-3" : layoutDensity === "compact" ? "gap-4" : "gap-5"
+                }`}
+              >
+                <WelcomePanel compact titleClass={fontClasses.title} metaClass={fontClasses.meta} density={layoutDensity} />
+                <MobileQuickActions
+                  onQuickPrompt={handleQuickPrompt}
+                  labelClass={layoutDensity === "tight" ? "text-[14px] leading-6" : fontClasses.body}
+                  density={layoutDensity}
+                />
                 {composer}
               </div>
             </section>
@@ -1010,19 +1103,30 @@ function WelcomePanel({
   compact = false,
   titleClass,
   metaClass,
+  density = "regular",
 }: {
   compact?: boolean
   titleClass: string
   metaClass: string
+  density?: LayoutDensity
 }) {
-  const titleStyle = compact ? "text-[1.85rem] sm:text-[2.1rem]" : titleClass
-  const copyStyle = compact ? "text-[13px]" : metaClass
+  const titleStyle =
+    density === "tight" ? "text-[1.7rem] leading-[1.1] sm:text-[2.1rem]" : compact ? "text-[1.85rem] sm:text-[2.1rem]" : titleClass
+  const copyStyle = density === "tight" ? "text-[12px] leading-5" : compact ? "text-[13px]" : metaClass
+  const shellClass =
+    density === "tight"
+      ? "rounded-[1.45rem] px-3 py-3"
+      : compact
+        ? "px-4 py-4"
+        : "px-5 py-5 sm:px-6 sm:py-6"
+  const chipClass =
+    density === "tight"
+      ? "rounded-full border border-[#e5e5e5] bg-[#fafafa] px-2.5 py-1 text-[11px] font-medium text-[#555]"
+      : "rounded-full border border-[#e5e5e5] bg-[#fafafa] px-3 py-1.5 text-xs font-medium text-[#555]"
 
   return (
     <section
-      className={`rounded-[2rem] border border-black/[0.08] bg-white shadow-[0_1px_12px_rgba(0,0,0,0.03)] ${
-        compact ? "px-4 py-4" : "px-5 py-5 sm:px-6 sm:py-6"
-      }`}
+      className={`border border-black/[0.08] bg-white shadow-[0_1px_12px_rgba(0,0,0,0.03)] ${shellClass}`}
     >
       <div className="flex items-center justify-center gap-2 text-xs font-medium uppercase tracking-[0.18em] text-[#8a8a8a]">
         <Sparkles className="h-4 w-4" />
@@ -1035,7 +1139,7 @@ function WelcomePanel({
 
       <div className="mt-4 flex flex-wrap justify-center gap-2">
         {launchFeatureLabels.map((label) => (
-          <span key={label} className="rounded-full border border-[#e5e5e5] bg-[#fafafa] px-3 py-1.5 text-xs font-medium text-[#555]">
+          <span key={label} className={chipClass}>
             {label}
           </span>
         ))}
@@ -1179,6 +1283,7 @@ function Composer({
   onNewChat,
   onToggleVoice,
   fontSizeClass,
+  density = "regular",
 }: {
   draft: string
   textareaRef: RefObject<HTMLTextAreaElement | null>
@@ -1193,8 +1298,26 @@ function Composer({
   onNewChat: () => void
   onToggleVoice: () => void
   fontSizeClass: string
+  density?: LayoutDensity
 }) {
   const canSend = draft.trim().length > 0 && !isSending && !isTranscribing
+  const isTight = density === "tight"
+  const isCompact = density !== "regular"
+  const placeholder = isTranscribing
+    ? "正在识别语音..."
+    : isCompact
+      ? "输入问题，回车发送"
+      : "输入问题、产品名或关键词，按回车发送"
+
+  useEffect(() => {
+    const textarea = textareaRef.current
+    if (!textarea) return
+
+    const maxHeight = isTight ? 124 : isCompact ? 144 : 168
+    textarea.style.height = "auto"
+    textarea.style.height = `${Math.min(textarea.scrollHeight, maxHeight)}px`
+    textarea.style.overflowY = textarea.scrollHeight > maxHeight ? "auto" : "hidden"
+  }, [draft, isCompact, isTight, isTranscribing, textareaRef])
 
   return (
     <div className="mx-auto w-full max-w-3xl">
@@ -1204,7 +1327,7 @@ function Composer({
           value={draft}
           onChange={(event) => onChange(event.target.value)}
           onKeyDown={onKeyDown}
-          placeholder={isTranscribing ? "正在识别语音..." : "输入问题、产品名或关键词，按回车发送"}
+          placeholder={placeholder}
           className={`max-h-48 min-h-14 w-full resize-none bg-transparent px-3 py-3 text-[#0d0d0d] outline-none placeholder:text-[#8f8f8f] ${fontSizeClass}`}
           rows={1}
         />
@@ -1238,15 +1361,21 @@ function Composer({
       </div>
 
       <div className="lg:hidden">
-        <div className="rounded-[1.9rem] border border-[#e0e0e0] bg-white p-3 shadow-[0_4px_24px_rgba(0,0,0,0.08)]">
-          <div className="flex items-end gap-2">
+        <div
+          className={`border border-[#e0e0e0] bg-white shadow-[0_4px_24px_rgba(0,0,0,0.08)] ${
+            isTight ? "rounded-[1.45rem] p-2.5" : "rounded-[1.7rem] p-3"
+          }`}
+        >
+          <div className={`flex items-end ${isTight ? "gap-1.5" : "gap-2"}`}>
             <button
-              className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-[#1a1a1a] transition hover:bg-[#f4f4f4]"
+              className={`inline-flex shrink-0 items-center justify-center rounded-full text-[#1a1a1a] transition hover:bg-[#f4f4f4] ${
+                isTight ? "h-9 w-9" : "h-10 w-10"
+              }`}
               onClick={onNewChat}
               aria-label="新建对话"
               title="新建对话"
             >
-              <Plus className="h-6 w-6" />
+              <Plus className={isTight ? "h-5 w-5" : "h-6 w-6"} />
             </button>
 
             <textarea
@@ -1254,32 +1383,36 @@ function Composer({
               value={draft}
               onChange={(event) => onChange(event.target.value)}
               onKeyDown={onKeyDown}
-              placeholder={isTranscribing ? "正在识别语音..." : "输入问题、产品名或关键词，按回车发送"}
-              className={`min-h-11 flex-1 resize-none bg-transparent px-1 py-2 text-[#0d0d0d] outline-none placeholder:text-[#8f8f8f] ${fontSizeClass}`}
+              placeholder={placeholder}
+              className={`flex-1 resize-none bg-transparent px-1 py-2 text-[#0d0d0d] outline-none placeholder:text-[#8f8f8f] ${
+                isTight ? "min-h-10" : "min-h-11"
+              } ${fontSizeClass}`}
               rows={1}
             />
 
             <button
-              className={`inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full transition ${
+              className={`inline-flex shrink-0 items-center justify-center rounded-full transition ${
                 isRecording
                   ? "bg-[#d1242f] text-white"
                   : "text-[#7a7a7a] hover:bg-[#f4f4f4] disabled:cursor-not-allowed disabled:opacity-35 disabled:hover:bg-transparent"
-              }`}
+              } ${isTight ? "h-9 w-9" : "h-10 w-10"}`}
               title={canTranscribe ? (isRecording ? "停止录音" : "语音输入") : "语音输入暂不可用"}
               onClick={onToggleVoice}
               disabled={!canTranscribe || isTranscribing}
               aria-label={isRecording ? "停止录音" : "语音输入"}
             >
-              {isRecording ? <Square className="h-4 w-4 fill-current" /> : <Mic className="h-5 w-5" />}
+              {isRecording ? <Square className="h-4 w-4 fill-current" /> : <Mic className={isTight ? "h-4 w-4" : "h-5 w-5"} />}
             </button>
 
             <button
-              className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#111111] text-white transition hover:bg-[#303030] disabled:cursor-not-allowed disabled:bg-[#d7d7d7] disabled:text-white"
+              className={`inline-flex shrink-0 items-center justify-center rounded-full bg-[#111111] text-white transition hover:bg-[#303030] disabled:cursor-not-allowed disabled:bg-[#d7d7d7] disabled:text-white ${
+                isTight ? "h-9 w-9" : "h-10 w-10"
+              }`}
               onClick={() => void onSubmit()}
               disabled={!canSend}
               aria-label="发送"
             >
-              {isSending ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowUp className="h-5 w-5" />}
+              {isSending ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowUp className={isTight ? "h-4 w-4" : "h-5 w-5"} />}
             </button>
           </div>
           <VoiceMeter isRecording={isRecording} isTranscribing={isTranscribing} voiceLevel={voiceLevel} compact />
@@ -1350,19 +1483,34 @@ function VoiceMeter({
   )
 }
 
-function MobileQuickActions({ onQuickPrompt, labelClass }: { onQuickPrompt: (prompt: string) => void; labelClass: string }) {
+function MobileQuickActions({
+  onQuickPrompt,
+  labelClass,
+  density = "regular",
+}: {
+  onQuickPrompt: (prompt: string) => void
+  labelClass: string
+  density?: LayoutDensity
+}) {
+  const isTight = density === "tight"
   return (
-    <div className="space-y-2">
+    <div className={isTight ? "space-y-1.5" : "space-y-2"}>
       {mobileShortcuts.map(({ icon: Icon, label, prompt }) => (
         <button
           key={label}
-          className="flex w-full items-center gap-4 rounded-2xl px-1 py-3 text-left transition hover:bg-black/[0.03]"
+          className={`flex w-full items-center text-left transition hover:bg-black/[0.03] ${
+            isTight ? "gap-3 rounded-[1.25rem] px-1 py-2.5" : "gap-4 rounded-2xl px-1 py-3"
+          }`}
           onClick={() => onQuickPrompt(prompt)}
         >
-          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-black/[0.08] bg-white text-[#111111] shadow-[0_2px_10px_rgba(0,0,0,0.04)]">
-            <Icon className="h-5 w-5" />
+          <span
+            className={`flex shrink-0 items-center justify-center border border-black/[0.08] bg-white text-[#111111] shadow-[0_2px_10px_rgba(0,0,0,0.04)] ${
+              isTight ? "h-10 w-10 rounded-xl" : "h-11 w-11 rounded-2xl"
+            }`}
+          >
+            <Icon className={isTight ? "h-4 w-4" : "h-5 w-5"} />
           </span>
-          <span className={`font-medium tracking-normal text-[#111111] ${labelClass}`}>{label}</span>
+          <span className={`min-w-0 flex-1 font-medium tracking-normal text-[#111111] ${labelClass}`}>{label}</span>
         </button>
       ))}
     </div>
