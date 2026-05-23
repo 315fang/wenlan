@@ -329,6 +329,49 @@ const fontSizeStyles: Record<
   },
 }
 
+const desktopBaseStyles = {
+  body: "text-[15px] leading-7",
+  title: "text-[2.35rem] leading-tight",
+  prompt: "text-[14px]",
+  input: "text-[15px]",
+  meta: "text-[12px]",
+  headerHeight: "h-16",
+  headerTitle: "text-[17px]",
+  headerSubtitle: "text-xs",
+  headerNewChatBtn: "h-10 px-4 text-sm gap-2",
+  sidebarWidth: "w-[18rem]",
+  sidebarNewChatBtn: "h-11 text-sm gap-2 rounded-2xl",
+  sidebarGuideBtn: "h-10 text-sm gap-2 rounded-2xl",
+  sidebarHeading: "text-xs",
+  sidebarItemTitle: "text-sm",
+  sidebarItemDate: "text-xs",
+  sidebarItemBtn: "px-3 py-2",
+  sidebarPrefBtn: "h-8 text-xs rounded-lg",
+  messageSpacing: "space-y-7 py-6 pb-10",
+  userBubble: "px-5 py-3 rounded-[1.35rem] max-w-[75%] bg-[#f4f4f4]",
+  copyBtn: "h-8 px-2 text-xs gap-1.5",
+  welcomeShell: "rounded-[2rem] px-5 py-5 sm:px-6 sm:py-6",
+  welcomeLogoBox: "h-12 w-12 rounded-xl p-1.5",
+  welcomeLogoSize: 44,
+  welcomeSubtitleChip: "text-xs gap-2 mt-2.5",
+  welcomeTitleMargin: "mt-3",
+  welcomeCopyMargin: "mt-3",
+  welcomeChipMargin: "mt-4",
+  welcomeFeatureChip: "rounded-full border border-[#e5e5e5] bg-[#fafafa] px-3 py-1.5 text-xs font-medium text-[#555]",
+  qaSpacing: "space-y-2",
+  qaPadding: "gap-4 rounded-2xl px-1 py-3",
+  qaIconBox: "h-11 w-11 rounded-2xl",
+  qaIcon: "h-5 w-5",
+  qaTitle: "text-[14.5px]",
+  qaSubtitle: "text-[12px] mt-1",
+} satisfies (typeof fontSizeStyles)["md"]
+
+const desktopFontSizeStyles: typeof fontSizeStyles = {
+  sm: desktopBaseStyles,
+  md: desktopBaseStyles,
+  lg: desktopBaseStyles,
+}
+
 const preferredRecorderMimeTypes = [
   "audio/mp4",
   "audio/mp4;codecs=mp4a.40.2",
@@ -451,7 +494,8 @@ export function AssistantApp({ initialConfig }: AssistantAppProps) {
   const [copiedMessageId, setCopiedMessageId] = useState("")
   const [serverStatus, setServerStatus] = useState<ServerStatus>(initialServerStatus)
 
-  const streamAnchorRef = useRef<HTMLDivElement | null>(null)
+  const desktopStreamAnchorRef = useRef<HTMLDivElement | null>(null)
+  const mobileStreamAnchorRef = useRef<HTMLDivElement | null>(null)
   const textareaRef = useRef<HTMLTextAreaElement | null>(null)
   const recorderRef = useRef<MediaRecorder | null>(null)
   const recorderStreamRef = useRef<MediaStream | null>(null)
@@ -547,7 +591,8 @@ export function AssistantApp({ initialConfig }: AssistantAppProps) {
   }, [initialConfig.appName])
 
   useEffect(() => {
-    scrollElementIntoView(streamAnchorRef)
+    scrollElementIntoView(desktopStreamAnchorRef)
+    scrollElementIntoView(mobileStreamAnchorRef)
   }, [conversations, activeConversationId, isSending])
 
   useEffect(() => {
@@ -572,7 +617,9 @@ export function AssistantApp({ initialConfig }: AssistantAppProps) {
   const sortedConversations = useMemo(() => sortConversations(conversations), [conversations])
   const activeMessages = activeConversation?.messages ?? []
   const hasMessages = activeMessages.length > 0
-  const fontClasses = fontSizeStyles[fontSize]
+  const mobileFontClasses = fontSizeStyles[fontSize]
+  const desktopFontSize: FontSizeMode = "md"
+  const desktopFontClasses = desktopFontSizeStyles[desktopFontSize]
   const layoutDensity = useLayoutDensity()
 
   function patchConversation(conversationId: string, updater: (conversation: ChatConversation) => ChatConversation) {
@@ -919,34 +966,40 @@ export function AssistantApp({ initialConfig }: AssistantAppProps) {
       onSubmit={handleSubmit}
       onNewChat={startNewChat}
       onToggleVoice={toggleVoiceRecording}
-      fontSizeClass={fontClasses.input}
+      desktopFontSizeClass={desktopFontClasses.input}
+      mobileFontSizeClass={mobileFontClasses.input}
       density={layoutDensity}
-      fontSizeMode={fontSize}
+      mobileFontSizeMode={fontSize}
     />
   )
 
-  const sidebarBody = (
+  function renderSidebarBody(
+    uiClasses: (typeof fontSizeStyles)["md"],
+    uiFontSize: FontSizeMode,
+    showPreferences: boolean
+  ) {
+    return (
     <div className="flex h-full flex-col gap-3 px-3 pb-3 pt-1">
       <button
-        className={`inline-flex items-center justify-center font-medium text-white transition hover:bg-[#2f2f2f] ${fontClasses.sidebarNewChatBtn}`}
+        className={`inline-flex items-center justify-center bg-[#111111] font-medium text-white transition hover:bg-[#2f2f2f] ${uiClasses.sidebarNewChatBtn}`}
         onClick={startNewChat}
         type="button"
       >
-        <CircleDashed className={fontSize === "lg" ? "h-5 w-5" : "h-4 w-4"} />
+        <CircleDashed className={uiFontSize === "lg" ? "h-5 w-5" : "h-4 w-4"} />
         新对话
       </button>
 
       <button
-        className={`inline-flex items-center justify-center font-medium text-[#222222] border border-black/[0.08] bg-white transition hover:bg-[#f7f7f7] ${fontClasses.sidebarGuideBtn}`}
+        className={`inline-flex items-center justify-center border border-black/[0.08] bg-white font-medium text-[#222222] transition hover:bg-[#f7f7f7] ${uiClasses.sidebarGuideBtn}`}
         onClick={openGuideModal}
         type="button"
       >
-        <Sparkles className={fontSize === "lg" ? "h-5 w-5" : "h-4 w-4"} />
+        <Sparkles className={uiFontSize === "lg" ? "h-5 w-5" : "h-4 w-4"} />
         新手指导
       </button>
 
       <div className="min-h-0 flex-1 overflow-y-auto pr-1">
-        <div className={`px-2 pb-2 font-medium uppercase tracking-[0.18em] text-[#888888] ${fontClasses.sidebarHeading}`}>最近对话</div>
+        <div className={`px-2 pb-2 font-medium uppercase tracking-[0.18em] text-[#888888] ${uiClasses.sidebarHeading}`}>最近对话</div>
         <div className="space-y-1">
           {sortedConversations.map((conversation) => {
             const isActive = conversation.id === activeConversationId
@@ -958,23 +1011,23 @@ export function AssistantApp({ initialConfig }: AssistantAppProps) {
                 }`}
               >
                 <button
-                  className={`min-w-0 flex-1 rounded-[1rem] text-left transition group-hover:bg-black/[0.02] ${fontClasses.sidebarItemBtn}`}
+                  className={`min-w-0 flex-1 rounded-[1rem] text-left transition group-hover:bg-black/[0.02] ${uiClasses.sidebarItemBtn}`}
                   onClick={() => selectConversation(conversation.id)}
                   type="button"
                 >
-                  <div className={`truncate font-medium text-[#111111] ${fontClasses.sidebarItemTitle}`}>{conversation.title}</div>
-                  <div className={`mt-1 truncate text-[#878787] ${fontClasses.sidebarItemDate}`}>{formatClock(conversation.updatedAt)}</div>
+                  <div className={`truncate font-medium text-[#111111] ${uiClasses.sidebarItemTitle}`}>{conversation.title}</div>
+                  <div className={`mt-1 truncate text-[#878787] ${uiClasses.sidebarItemDate}`}>{formatClock(conversation.updatedAt)}</div>
                 </button>
 
                 <button
                   className={`mt-1 inline-flex shrink-0 items-center justify-center rounded-full text-[#777777] opacity-100 transition hover:bg-red-50 hover:text-red-600 md:opacity-0 md:group-hover:opacity-100 ${
-                    fontSize === "sm" ? "h-9 w-9" : fontSize === "md" ? "h-11 w-11" : "h-13 w-13"
+                    uiFontSize === "sm" ? "h-9 w-9" : uiFontSize === "md" ? "h-11 w-11" : "h-13 w-13"
                   }`}
                   onClick={() => deleteConversation(conversation.id)}
                   type="button"
                   aria-label={`删除对话：${conversation.title}`}
                 >
-                  <Trash2 className={fontSize === "lg" ? "h-5 w-5" : "h-4 w-4"} />
+                  <Trash2 className={uiFontSize === "lg" ? "h-5 w-5" : "h-4 w-4"} />
                 </button>
               </div>
             )
@@ -982,9 +1035,10 @@ export function AssistantApp({ initialConfig }: AssistantAppProps) {
         </div>
       </div>
 
-      <div className="mt-auto border-t border-black/[0.05] pt-3 px-1 space-y-3 shrink-0">
+      {showPreferences ? (
+      <div className="mt-auto shrink-0 space-y-3 border-t border-black/[0.05] px-1 pt-3">
         <div className="flex flex-col gap-1.5">
-          <div className={`font-medium uppercase tracking-[0.12em] text-[#888888] px-1 ${fontClasses.sidebarHeading}`}>界面模式</div>
+          <div className={`px-1 font-medium uppercase tracking-[0.12em] text-[#888888] ${uiClasses.sidebarHeading}`}>界面模式</div>
           <div className="grid grid-cols-2 gap-1 rounded-xl bg-black/[0.04] p-1">
             {displayModeOptions.map((option) => (
               <button
@@ -993,7 +1047,7 @@ export function AssistantApp({ initialConfig }: AssistantAppProps) {
                   option.value === displayMode
                     ? "bg-white text-[#111111] shadow-sm"
                     : "text-[#5f5f5f] hover:text-[#111111] hover:bg-black/[0.02]"
-                } ${fontClasses.sidebarPrefBtn}`}
+                } ${uiClasses.sidebarPrefBtn}`}
                 onClick={() => changeDisplayMode(option.value)}
                 type="button"
               >
@@ -1004,7 +1058,7 @@ export function AssistantApp({ initialConfig }: AssistantAppProps) {
         </div>
 
         <div className="flex flex-col gap-1.5">
-          <div className={`font-medium uppercase tracking-[0.12em] text-[#888888] px-1 ${fontClasses.sidebarHeading}`}>字体大小</div>
+          <div className={`px-1 font-medium uppercase tracking-[0.12em] text-[#888888] ${uiClasses.sidebarHeading}`}>字体大小</div>
           <div className="grid grid-cols-3 gap-1 rounded-xl bg-black/[0.04] p-1">
             {fontSizeOptions.map((option) => (
               <button
@@ -1013,7 +1067,7 @@ export function AssistantApp({ initialConfig }: AssistantAppProps) {
                   option.value === fontSize
                     ? "bg-white text-[#111111] shadow-sm"
                     : "text-[#5f5f5f] hover:text-[#111111] hover:bg-black/[0.02]"
-                } ${fontClasses.sidebarPrefBtn}`}
+                } ${uiClasses.sidebarPrefBtn}`}
                 onClick={() => {
                   setFontSize(option.value)
                   setDisplayMode(option.value === "lg" ? "care" : "youth")
@@ -1026,14 +1080,19 @@ export function AssistantApp({ initialConfig }: AssistantAppProps) {
           </div>
         </div>
       </div>
+      ) : null}
     </div>
   )
+  }
+
+  const desktopSidebarBody = renderSidebarBody(desktopFontClasses, desktopFontSize, false)
+  const mobileSidebarBody = renderSidebarBody(mobileFontClasses, fontSize, true)
 
   return (
     <div className="flex h-dvh overflow-hidden bg-[#f6f6f4] text-[#0d0d0d]">
-      <aside className={`hidden shrink-0 lg:block ${fontClasses.sidebarWidth}`}>
-        <AppSidebar active="chat" sections={["chat"]} fontSizeMode={fontSize}>
-          {sidebarBody}
+      <aside className={`hidden shrink-0 lg:block ${desktopFontClasses.sidebarWidth}`}>
+        <AppSidebar active="chat" sections={["chat"]} fontSizeMode={desktopFontSize}>
+          {desktopSidebarBody}
         </AppSidebar>
       </aside>
 
@@ -1044,14 +1103,14 @@ export function AssistantApp({ initialConfig }: AssistantAppProps) {
         onClose={() => setMobileSidebarOpen(false)}
         fontSizeMode={fontSize}
       >
-        {sidebarBody}
+        {mobileSidebarBody}
       </MobileAppSidebar>
 
       <GuideModal open={guideModalOpen} onClose={() => setGuideModalOpen(false)} />
 
       <main className="flex min-w-0 flex-1 flex-col bg-[#f6f6f4]">
-        <header className={`shrink-0 border-b border-black/[0.05] bg-white/[0.96] flex items-center ${fontClasses.headerHeight}`}>
-          <div className="flex w-full items-center justify-between px-4 sm:px-6 lg:px-8">
+        <header className="shrink-0 border-b border-black/[0.05] bg-white/[0.96]">
+          <div className={`flex w-full items-center justify-between px-[5vw] lg:hidden ${mobileFontClasses.headerHeight}`}>
             <div className="flex min-w-0 items-center gap-3">
               <button
                 className={`inline-flex shrink-0 items-center justify-center rounded-full text-[#5b5b5b] transition hover:bg-[#f4f4f4] lg:hidden ${
@@ -1065,16 +1124,16 @@ export function AssistantApp({ initialConfig }: AssistantAppProps) {
               </button>
 
               <div className="min-w-0">
-                <div className={`truncate font-semibold tracking-tight text-[#111] ${fontClasses.headerTitle}`}>
+                <div className={`truncate font-semibold tracking-tight text-[#111] ${mobileFontClasses.headerTitle}`}>
                   {hasMessages ? activeConversation?.title || "智能问答" : "问兰智能体"}
                 </div>
-                <div className={`truncate text-[#7a7a7a] ${fontClasses.headerSubtitle}`}>{initialConfig.headline}</div>
+                <div className={`truncate text-[#7a7a7a] ${mobileFontClasses.headerSubtitle}`}>{initialConfig.headline}</div>
               </div>
             </div>
 
-            <div className="flex items-center gap-2 lg:hidden">
+            <div className="flex items-center gap-2">
               <button
-                className={`inline-flex items-center rounded-full bg-[#111111] text-white transition hover:bg-[#2f2f2f] ${fontClasses.headerNewChatBtn}`}
+                className={`inline-flex items-center rounded-full bg-[#111111] text-white transition hover:bg-[#2f2f2f] ${mobileFontClasses.headerNewChatBtn}`}
                 onClick={startNewChat}
                 type="button"
                 aria-label="新对话"
@@ -1083,64 +1142,26 @@ export function AssistantApp({ initialConfig }: AssistantAppProps) {
                 <span>新对话</span>
               </button>
             </div>
+          </div>
 
-            <div className="hidden items-center gap-2 sm:gap-3 lg:flex">
-              <div className="inline-flex items-center rounded-full bg-[#f2f2f2] p-1 shadow-[0_1px_8px_rgba(0,0,0,0.04)]">
-                {displayModeOptions.map((option) => (
-                  <button
-                    key={option.value}
-                    className={`rounded-full transition ${
-                      fontSize === "sm"
-                        ? "h-8 min-w-12 px-3 text-sm"
-                        : fontSize === "md"
-                          ? "h-10 min-w-16 px-4.5 text-[15px]"
-                          : "h-12 min-w-20 px-6 text-[18px]"
-                    } ${
-                      option.value === displayMode ? "bg-white text-[#111] shadow-sm" : "text-[#666] hover:text-[#111]"
-                    }`}
-                    onClick={() => changeDisplayMode(option.value)}
-                    type="button"
-                    aria-label={`切换到${option.label}`}
-                  >
-                    <span className="sm:hidden">{option.value === "youth" ? "青年" : "关爱"}</span>
-                    <span className="hidden sm:inline">{option.label}</span>
-                  </button>
-                ))}
+          <div className={`hidden w-full items-center justify-between px-8 lg:flex ${desktopFontClasses.headerHeight}`}>
+            <div className="flex min-w-0 items-center gap-3">
+              <div className="min-w-0">
+                <div className={`truncate font-semibold tracking-tight text-[#111] ${desktopFontClasses.headerTitle}`}>
+                  {hasMessages ? activeConversation?.title || "智能问答" : "问兰智能体"}
+                </div>
+                <div className={`truncate text-[#7a7a7a] ${desktopFontClasses.headerSubtitle}`}>{initialConfig.headline}</div>
               </div>
-              <div className="inline-flex items-center rounded-full bg-[#f2f2f2] p-1 shadow-[0_1px_8px_rgba(0,0,0,0.04)]">
-                {fontSizeOptions.map((option) => (
-                  <button
-                    key={option.value}
-                    className={`rounded-full transition ${
-                      fontSize === "sm"
-                        ? "h-8 min-w-10 px-3 text-sm"
-                        : fontSize === "md"
-                          ? "h-10 min-w-14 px-4.5 text-[15px]"
-                          : "h-12 min-w-18 px-5.5 text-[18px]"
-                    } ${
-                      option.value === fontSize ? "bg-white text-[#111] shadow-sm" : "text-[#666] hover:text-[#111]"
-                    }`}
-                    onClick={() => {
-                      setFontSize(option.value)
-                      setDisplayMode(option.value === "lg" ? "care" : "youth")
-                    }}
-                    type="button"
-                    aria-label={`切换到${option.label}字号`}
-                  >
-                    {option.label}
-                  </button>
-                ))}
-              </div>
-
-              <button
-                className={`inline-flex items-center rounded-full bg-[#111111] text-white transition hover:bg-[#2f2f2f] ${fontClasses.headerNewChatBtn}`}
-                onClick={startNewChat}
-                type="button"
-              >
-                <CircleDashed className={fontSize === "lg" ? "h-5 w-5" : "h-4 w-4"} />
-                <span className="hidden sm:inline">新对话</span>
-              </button>
             </div>
+
+            <button
+              className={`inline-flex items-center rounded-full bg-[#111111] text-white transition hover:bg-[#2f2f2f] ${desktopFontClasses.headerNewChatBtn}`}
+              onClick={startNewChat}
+              type="button"
+            >
+              <CircleDashed className="h-4 w-4" />
+              <span>新对话</span>
+            </button>
           </div>
         </header>
 
@@ -1151,29 +1172,24 @@ export function AssistantApp({ initialConfig }: AssistantAppProps) {
                 prompts={initialConfig.starterPrompts}
                 composer={composer}
                 onQuickPrompt={handleQuickPrompt}
-                promptClass={fontClasses.prompt}
-                fontSizeMode={fontSize}
+                promptClass={desktopFontClasses.prompt}
+                fontSizeMode={desktopFontSize}
+                uiClasses={desktopFontClasses}
               />
             </section>
 
-            <section className="flex min-h-0 flex-1 flex-col overflow-hidden lg:hidden w-full">
-              <div className="flex-1 overflow-y-auto px-4 py-4 min-h-0 w-full">
-                <div className="mx-auto w-full max-w-[600px] min-h-full flex flex-col justify-center items-stretch gap-6 sm:gap-8 py-4">
-                  <WelcomePanel
-                    framed={false}
-                    fontSizeMode={fontSize}
-                  />
-                  <MobileQuickActions
-                    onQuickPrompt={handleQuickPrompt}
-                    fontSizeMode={fontSize}
-                  />
+            <section className="flex min-h-0 w-full flex-1 flex-col overflow-hidden lg:hidden">
+              <div className="min-h-0 w-full flex-1 overflow-y-auto px-[5vw] py-4">
+                <div className="mx-auto flex min-h-full w-full flex-col items-stretch justify-center gap-6 py-4 sm:gap-8">
+                  <WelcomePanel framed={false} fontSizeMode={fontSize} uiClasses={mobileFontClasses} />
+                  <MobileQuickActions onQuickPrompt={handleQuickPrompt} fontSizeMode={fontSize} />
                 </div>
               </div>
 
-              <div className="bg-[#f6f6f4] px-4 pb-4 pt-2 border-t border-black/[0.03] shrink-0 w-full">
-                <div className="mx-auto w-full max-w-[600px]">
+              <div className="w-full shrink-0 border-t border-black/[0.03] bg-[#f6f6f4] px-[5vw] pb-4 pt-2">
+                <div className="mx-auto w-full">
                   {composer}
-                  <p className="mx-auto mt-2 text-center text-[0.65em] text-[#7d7d7d] leading-normal opacity-75 max-w-[600px]">
+                  <p className="mx-auto mt-2 text-center text-[0.65em] leading-normal text-[#7d7d7d] opacity-75">
                     回答来自AI生成，请自行诊断真假
                   </p>
                 </div>
@@ -1181,30 +1197,59 @@ export function AssistantApp({ initialConfig }: AssistantAppProps) {
             </section>
           </>
         ) : (
-          <section className="grid min-h-0 flex-1 grid-rows-[minmax(0,1fr)_auto]">
-            <div className="min-h-0 overflow-y-auto px-2 sm:px-4">
-              <div className={`mx-auto max-w-[600px] ${fontClasses.messageSpacing}`}>
-                {activeMessages.map((message) => (
-                  <MessageRow
-                    key={message.id}
-                    message={message}
-                    onCopy={copyMessage}
-                    copiedMessageId={copiedMessageId}
-                    fontSizeClass={fontClasses.body}
-                    fontSizeMode={fontSize}
-                  />
-                ))}
-                <div ref={streamAnchorRef} />
+          <>
+            <section className="hidden min-h-0 flex-1 grid-rows-[minmax(0,1fr)_auto] lg:grid">
+              <div className="min-h-0 overflow-y-auto px-4">
+                <div className={`mx-auto max-w-3xl ${desktopFontClasses.messageSpacing}`}>
+                  {activeMessages.map((message) => (
+                    <MessageRow
+                      key={message.id}
+                      message={message}
+                      onCopy={copyMessage}
+                      copiedMessageId={copiedMessageId}
+                      fontSizeClass={desktopFontClasses.body}
+                      fontSizeMode={desktopFontSize}
+                      uiClasses={desktopFontClasses}
+                    />
+                  ))}
+                  <div ref={desktopStreamAnchorRef} />
+                </div>
               </div>
-            </div>
 
-            <div className="bg-white px-2 pb-4 pt-2 sm:px-4">
-              {composer}
-              <p className="mx-auto mt-2 text-center text-[0.65em] text-[#7d7d7d] leading-normal opacity-75 max-w-[600px]">
-                回答来自AI生成，请自行诊断真假
-              </p>
-            </div>
-          </section>
+              <div className="bg-white px-4 pb-4 pt-2">
+                {composer}
+                <p className="mx-auto mt-2 max-w-3xl text-center text-xs leading-5 text-[#7d7d7d]">
+                  回答来自AI生成，请自行诊断真假
+                </p>
+              </div>
+            </section>
+
+            <section className="grid min-h-0 flex-1 grid-rows-[minmax(0,1fr)_auto] lg:hidden">
+              <div className="min-h-0 overflow-y-auto px-[5vw]">
+                <div className={`mx-auto w-full ${mobileFontClasses.messageSpacing}`}>
+                  {activeMessages.map((message) => (
+                    <MessageRow
+                      key={message.id}
+                      message={message}
+                      onCopy={copyMessage}
+                      copiedMessageId={copiedMessageId}
+                      fontSizeClass={mobileFontClasses.body}
+                      fontSizeMode={fontSize}
+                      uiClasses={mobileFontClasses}
+                    />
+                  ))}
+                  <div ref={mobileStreamAnchorRef} />
+                </div>
+              </div>
+
+              <div className="bg-white px-[5vw] pb-4 pt-2">
+                {composer}
+                <p className="mx-auto mt-2 text-center text-[0.65em] leading-normal text-[#7d7d7d] opacity-75">
+                  回答来自AI生成，请自行诊断真假
+                </p>
+              </div>
+            </section>
+          </>
         )}
       </main>
     </div>
@@ -1217,12 +1262,13 @@ type MessageRowProps = {
   onCopy: (content: string, messageId: string) => void
   fontSizeClass: string
   fontSizeMode?: FontSizeMode
+  uiClasses?: (typeof fontSizeStyles)["md"]
 }
 
-function MessageRow({ message, copiedMessageId, onCopy, fontSizeClass, fontSizeMode = "md" }: MessageRowProps) {
+function MessageRow({ message, copiedMessageId, onCopy, fontSizeClass, fontSizeMode = "md", uiClasses }: MessageRowProps) {
   const isUser = message.role === "user"
   const isPending = message.status === "pending" && !message.content
-  const fontClasses = fontSizeStyles[fontSizeMode]
+  const fontClasses = uiClasses ?? fontSizeStyles[fontSizeMode]
 
   if (isUser) {
     return (
@@ -1267,11 +1313,13 @@ function MessageRow({ message, copiedMessageId, onCopy, fontSizeClass, fontSizeM
 function WelcomePanel({
   framed = true,
   fontSizeMode = "md",
+  uiClasses,
 }: {
   framed?: boolean
   fontSizeMode?: FontSizeMode
+  uiClasses?: (typeof fontSizeStyles)["md"]
 }) {
-  const fontClasses = fontSizeStyles[fontSizeMode]
+  const fontClasses = uiClasses ?? fontSizeStyles[fontSizeMode]
   
   const titleStyle = fontClasses.title
   const copyStyle = fontClasses.meta
@@ -1328,22 +1376,27 @@ function EmptyState({
   onQuickPrompt,
   promptClass,
   fontSizeMode = "md",
+  uiClasses,
 }: {
   prompts: string[]
   composer: ReactNode
   onQuickPrompt: (prompt: string) => void
   promptClass: string
   fontSizeMode?: FontSizeMode
+  uiClasses?: (typeof fontSizeStyles)["md"]
 }) {
-  const promptBtnClass = fontSizeMode === "sm"
-    ? "px-3 py-2"
-    : fontSizeMode === "md"
-      ? "px-4.5 py-2.5 text-[18px]"
-      : "px-6 py-3.5 text-[22px]"
+  const promptBtnClass =
+    uiClasses === desktopBaseStyles
+      ? "px-3 py-2"
+      : fontSizeMode === "sm"
+        ? "px-3 py-2"
+        : fontSizeMode === "md"
+          ? "px-4.5 py-2.5 text-[18px]"
+          : "px-6 py-3.5 text-[22px]"
 
   return (
     <div className="w-full max-w-[600px]">
-      <WelcomePanel fontSizeMode={fontSizeMode} />
+      <WelcomePanel fontSizeMode={fontSizeMode} uiClasses={uiClasses} />
 
       <div className="mt-7">{composer}</div>
 
@@ -1460,9 +1513,10 @@ function Composer({
   onSubmit,
   onNewChat,
   onToggleVoice,
-  fontSizeClass,
   density = "regular",
-  fontSizeMode = "md",
+  desktopFontSizeClass,
+  mobileFontSizeClass,
+  mobileFontSizeMode = "md",
 }: {
   draft: string
   textareaRef: RefObject<HTMLTextAreaElement | null>
@@ -1476,9 +1530,10 @@ function Composer({
   onSubmit: () => void
   onNewChat: () => void
   onToggleVoice: () => void
-  fontSizeClass: string
   density?: LayoutDensity
-  fontSizeMode?: FontSizeMode
+  desktopFontSizeClass: string
+  mobileFontSizeClass: string
+  mobileFontSizeMode?: FontSizeMode
 }) {
   const canSend = draft.trim().length > 0 && !isSending && !isTranscribing
   const isCompact = density !== "regular"
@@ -1487,81 +1542,46 @@ function Composer({
     : isCompact
       ? "输入问题，回车发送"
       : "输入问题、产品名或关键词，按回车发送"
+  const desktopBtnSize = "h-9 w-9"
+  const desktopIconSize = "h-4 w-4"
+  const desktopContainerPadding = "rounded-[1.65rem] p-2"
+  const desktopTextareaPadding = "px-3 py-3"
+  const desktopTextareaMinHeight = "min-h-14"
 
-  // Dynamic Scale Variables
-  const btnSize = fontSizeMode === "sm"
-    ? "h-[4.5rem] w-[4.5rem]"
-    : fontSizeMode === "md"
-      ? "h-20 w-20"
-      : "h-25 w-25"
-  const iconSize = fontSizeMode === "sm"
-    ? "h-7.5 w-7.5"
-    : fontSizeMode === "md"
-      ? "h-[2.5rem] w-[2.5rem]"
-      : "h-14 w-14"
-
-  const containerPadding = fontSizeMode === "sm"
-    ? "p-5 rounded-[2.8rem]"
-    : fontSizeMode === "md"
-      ? "p-7 rounded-[3.2rem]"
-      : "p-9 rounded-[4rem]"
-  const mobileContainerPadding = fontSizeMode === "sm"
-    ? "px-3.5 py-2.5 rounded-2xl"
-    : fontSizeMode === "md"
-      ? "px-4.5 py-3 rounded-[1.4rem]"
-      : "px-6 py-4 rounded-[1.8rem]"
-  const textareaPadding = fontSizeMode === "sm"
-    ? "px-6 py-5"
-    : fontSizeMode === "md"
-      ? "px-[1.8rem] py-[1.3rem]"
-      : "px-9.5 py-6.5"
-  const textareaMinHeight = fontSizeMode === "sm"
-    ? "min-h-[4.5rem]"
-    : fontSizeMode === "md"
-      ? "min-h-20"
-      : "min-h-24"
-
-  // Mobile specific variables to make input "宽长" (wide and long)
-  const mobileBtnSize = fontSizeMode === "sm"
-    ? "h-11 w-11"
-    : fontSizeMode === "md"
-      ? "h-14 w-14"
-      : "h-17 w-17"
-  const mobileIconSize = fontSizeMode === "sm"
-    ? "h-5.5 w-5.5"
-    : fontSizeMode === "md"
-      ? "h-7 w-7"
-      : "h-8.5 w-8.5"
-  const mobileTextareaMinHeight = fontSizeMode === "sm"
-    ? "min-h-12"
-    : fontSizeMode === "md"
-      ? "min-h-14"
-      : "min-h-17"
+  const mobileBtnSize =
+    mobileFontSizeMode === "sm" ? "h-11 w-11" : mobileFontSizeMode === "md" ? "h-14 w-14" : "h-16 w-16"
+  const mobileIconSize =
+    mobileFontSizeMode === "sm" ? "h-5 w-5" : mobileFontSizeMode === "md" ? "h-7 w-7" : "h-8 w-8"
+  const mobileContainerPadding =
+    mobileFontSizeMode === "sm"
+      ? "px-3.5 py-2.5 rounded-2xl"
+      : mobileFontSizeMode === "md"
+        ? "px-4 py-3 rounded-[1.4rem]"
+        : "px-4.5 py-3.5 rounded-[1.6rem]"
+  const mobileTextareaPadding = mobileFontSizeMode === "sm" ? "px-2 py-1" : "px-2 py-1"
+  const mobileTextareaMinHeight =
+    mobileFontSizeMode === "sm" ? "min-h-12" : mobileFontSizeMode === "md" ? "min-h-14" : "min-h-16"
 
   useEffect(() => {
     const textarea = textareaRef.current
     if (!textarea) return
 
-    const maxHeight = fontSizeMode === "sm"
-      ? 195
-      : fontSizeMode === "md"
-        ? 260
-        : 340
+    const maxHeight = mobileFontSizeMode === "sm" ? 190 : mobileFontSizeMode === "md" ? 230 : 260
     textarea.style.height = "auto"
     textarea.style.height = `${Math.min(textarea.scrollHeight, maxHeight)}px`
     textarea.style.overflowY = textarea.scrollHeight > maxHeight ? "auto" : "hidden"
-  }, [draft, fontSizeMode, textareaRef])
+  }, [draft, mobileFontSizeMode, textareaRef])
 
   return (
-    <div className="mx-auto w-full max-w-[600px]">
-      <div className={`hidden border border-[#d9d9d9] bg-white shadow-[0_2px_16px_rgba(0,0,0,0.08)] lg:block ${containerPadding}`}>
+    <div className="mx-auto w-full lg:max-w-[600px]">
+      <div className={`hidden border border-[#d9d9d9] bg-white shadow-[0_2px_16px_rgba(0,0,0,0.08)] lg:block ${desktopContainerPadding}`}>
         <textarea
           ref={textareaRef}
           value={draft}
           onChange={(event) => onChange(event.target.value)}
           onKeyDown={onKeyDown}
           placeholder={placeholder}
-          className={`max-h-48 w-full resize-none bg-transparent text-[#0d0d0d] outline-none placeholder:text-[#8f8f8f] ${textareaMinHeight} ${textareaPadding} ${fontSizeClass}`}
+          className={`max-h-48 w-full resize-none bg-transparent text-[#0d0d0d] outline-none placeholder:text-[#8f8f8f] ${desktopTextareaMinHeight} ${desktopTextareaPadding} ${desktopFontSizeClass}`}
           rows={1}
         />
 
@@ -1569,7 +1589,7 @@ function Composer({
 
         <div className="flex items-center justify-between px-1 pb-1">
           <button
-            className={`inline-flex items-center justify-center rounded-full transition ${btnSize} ${
+            className={`inline-flex items-center justify-center rounded-full transition ${desktopBtnSize} ${
               isRecording
                 ? "bg-[#d1242f] text-white"
                 : "text-[#5f5f5f] hover:bg-[#f4f4f4] disabled:cursor-not-allowed disabled:opacity-35 disabled:hover:bg-transparent"
@@ -1579,16 +1599,16 @@ function Composer({
             disabled={!canTranscribe || isTranscribing}
             aria-label={isRecording ? "停止录音" : "语音输入"}
           >
-            {isRecording ? <Square className={iconSize} /> : <Mic className={iconSize} />}
+            {isRecording ? <Square className={desktopIconSize} /> : <Mic className={desktopIconSize} />}
           </button>
 
           <button
-            className={`inline-flex items-center justify-center rounded-full bg-[#111111] text-white transition hover:bg-[#303030] disabled:cursor-not-allowed disabled:bg-[#d7d7d7] disabled:text-white ${btnSize}`}
+            className={`inline-flex items-center justify-center rounded-full bg-[#111111] text-white transition hover:bg-[#303030] disabled:cursor-not-allowed disabled:bg-[#d7d7d7] disabled:text-white ${desktopBtnSize}`}
             onClick={() => void onSubmit()}
             disabled={!canSend}
             aria-label="发送"
           >
-            {isSending ? <Loader2 className={`${iconSize} animate-spin`} /> : <ArrowUp className={iconSize} />}
+            {isSending ? <Loader2 className={`${desktopIconSize} animate-spin`} /> : <ArrowUp className={desktopIconSize} />}
           </button>
         </div>
       </div>
@@ -1611,7 +1631,7 @@ function Composer({
               onChange={(event) => onChange(event.target.value)}
               onKeyDown={onKeyDown}
               placeholder={placeholder}
-              className={`flex-1 resize-none bg-transparent px-2 py-1 text-[#0d0d0d] outline-none placeholder:text-[#8f8f8f] placeholder:text-[0.8em] leading-normal ${mobileTextareaMinHeight} ${fontSizeClass}`}
+              className={`flex-1 resize-none bg-transparent ${mobileTextareaPadding} text-[#0d0d0d] outline-none placeholder:text-[#8f8f8f] placeholder:text-[0.8em] leading-normal ${mobileTextareaMinHeight} ${mobileFontSizeClass}`}
               rows={1}
             />
 
