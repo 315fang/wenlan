@@ -919,7 +919,7 @@ export function AssistantApp({ initialConfig }: AssistantAppProps) {
 
       <GuideModal open={guideModalOpen} onClose={() => setGuideModalOpen(false)} />
 
-      <main className="flex min-w-0 flex-1 flex-col">
+      <main className="flex min-w-0 flex-1 flex-col max-w-[480px] mx-auto w-full bg-[#f6f6f4] shadow-[0_0_30px_rgba(0,0,0,0.05)] border-x border-black/[0.04]">
         <header className="shrink-0 border-b border-black/[0.05] bg-white/[0.96] h-14 sm:h-16 flex items-center">
           <div className="flex w-full items-center justify-between px-4 sm:px-6 lg:px-8">
             <div className="flex min-w-0 items-center gap-3">
@@ -1013,9 +1013,9 @@ export function AssistantApp({ initialConfig }: AssistantAppProps) {
               />
             </section>
 
-            <section className="flex min-h-0 flex-1 flex-col overflow-hidden lg:hidden">
-              <div className="flex-1 overflow-y-auto px-4 py-4 min-h-0">
-                <div className="mx-auto w-full max-w-md min-h-full flex flex-col justify-center items-stretch gap-6 sm:gap-8 py-4">
+            <section className="flex min-h-0 flex-1 flex-col overflow-hidden lg:hidden w-full">
+              <div className="flex-1 overflow-y-auto px-4 py-4 min-h-0 w-full">
+                <div className="w-full min-h-full flex flex-col justify-center items-stretch gap-6 sm:gap-8 py-4">
                   <WelcomePanel
                     compact
                     framed={false}
@@ -1030,8 +1030,8 @@ export function AssistantApp({ initialConfig }: AssistantAppProps) {
                 </div>
               </div>
 
-              <div className="bg-[#f6f6f4] px-3 pb-4 pt-2 border-t border-black/[0.03] shrink-0">
-                <div className="mx-auto max-w-md">
+              <div className="bg-[#f6f6f4] px-4 pb-4 pt-2 border-t border-black/[0.03] shrink-0 w-full">
+                <div className="w-full">
                   {composer}
                   <p className={`mx-auto mt-2 text-center leading-5 text-[#7d7d7d] ${fontClasses.meta}`}>
                     重要操作请以后台实际状态为准，涉及权限、资金、删除等动作需人工复核。
