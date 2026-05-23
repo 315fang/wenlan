@@ -1272,8 +1272,8 @@ function MessageRow({ message, copiedMessageId, onCopy, fontSizeClass, fontSizeM
 
   if (isUser) {
     return (
-      <article className="flex justify-end">
-        <div className={`text-[#0d0d0d] ${fontClasses.userBubble} ${fontSizeClass}`}>
+      <article className="flex w-full justify-end">
+        <div className={`min-w-0 break-words text-[#0d0d0d] ${fontClasses.userBubble} ${fontSizeClass}`}>
           {message.content}
         </div>
       </article>
@@ -1281,8 +1281,10 @@ function MessageRow({ message, copiedMessageId, onCopy, fontSizeClass, fontSizeM
   }
 
   return (
-    <article className="group">
-      <div className={`${fontSizeClass} ${message.status === "error" ? "text-[#d1242f]" : "text-[#0d0d0d]"}`}>
+    <article className="group w-full min-w-0">
+      <div
+        className={`min-w-0 overflow-x-hidden ${fontSizeClass} ${message.status === "error" ? "text-[#d1242f]" : "text-[#0d0d0d]"}`}
+      >
         {isPending ? (
           <div className="flex items-center gap-2 text-sm text-[#6f6f6f]">
             <Loader2 className="h-4 w-4 animate-spin" />
