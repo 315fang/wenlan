@@ -1,36 +1,32 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 问兰 AI Portal
 
-## Getting Started
+一个给 Vercel 用的深色 AI 工作台前端，负责承接问兰后台操作助手的聊天、语音转文字和配置状态展示。
 
-First, run the development server:
+## 本地启动
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+打开 `http://localhost:3000`
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## 部署到 Vercel
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+1. 把这个目录推到 Git 仓库。
+2. 在 Vercel 创建项目并导入仓库。
+3. 填环境变量，至少二选一：
+   - 直连 Dify：`DIFY_BASE_URL` + `DIFY_API_KEY`
+   - 走你自己的后端：`ASSISTANT_BACKEND_URL`，可选再配 `ASSISTANT_BACKEND_API_KEY`
+4. 语音转文字需要：`MIMO_API_KEY`
 
-## Learn More
+## 关键接口
 
-To learn more about Next.js, take a look at the following resources:
+- `POST /api/chat`
+- `POST /api/transcribe`
+- `GET /api/config`
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## 环境变量
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+复制 `.env.example` 填写即可。
 
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.

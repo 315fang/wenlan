@@ -1,0 +1,102 @@
+import { assistantHeadline, assistantName, assistantSubtitle, appName, starterPrompts } from "@/lib/prompts"
+import { joinUrl, normalizeDifyChatEndpoint, safeBaseLabel } from "@/lib/url"
+import type { PortalConfig, ServerStatus } from "@/types/chat"
+
+function readEnv(name: string) {
+  return process.env[name]?.trim() || ""
+}
+
+export function getPortalConfig(): PortalConfig {
+  return {
+    appName: readEnv("PORTAL_APP_NAME") || appName,
+    assistantName: readEnv("PORTAL_ASSISTANT_NAME") || assistantName,
+    subtitle: readEnv("PORTAL_ASSISTANT_SUBTITLE") || assistantSubtitle,
+    headline: readEnv("PORTAL_HEADLINE") || assistantHeadline,
+    starterPrompts,
+  }
+}
+
+export function getRuntimeStatus(): ServerStatus {
+  const customChatUrl = readEnv("ASSISTANT_BACKEND_URL")
+  const difyChatEndpoint = readEnv("DIFY_CHAT_ENDPOINT")
+  const difyBaseUrl = readEnv("DIFY_BASE_URL")
+  const difyApiKey = readEnv("DIFY_API_KEY")
+  const transcribeApiKey = readEnv("MIMO_API_KEY")
+
+  const chatBaseUrl = customChatUrl || difyChatEndpoint || difyBaseUrl
+  const provider = customChatUrl ? "custom" : chatBaseUrl ? "dify" : "unconfigured"
+
+  return {
+    chatReady: customChatUrl ? true : Boolean(difyBaseUrl && difyApiKey),
+    transcribeReady: Boolean(transcribeApiKey),
+    provider,
+    baseUrl: chatBaseUrl ? safeBaseLabel(chatBaseUrl) : "",
+    assistantName: getPortalConfig().assistantName,
+    assistantLabel: customChatUrl ? "自定义后端" : "Dify",
+  }
+}
+
+export type ChatTarget =
+  | {
+      kind: "custom"
+      url: string
+      apiKey: string
+    }
+  | {
+      kind: "dify"
+      url: string
+      apiKey: string
+    }
+  | null
+
+export function getChatTarget(): ChatTarget {
+  const customChatUrl = readEnv("ASSISTANT_BACKEND_URL")
+  if (customChatUrl) {
+    return {
+      kind: "custom",
+      url: customChatUrl,
+      apiKey: readEnv("ASSISTANT_BACKEND_API_KEY") || readEnv("ASSISTANT_BACKEND_TOKEN"),
+    }
+  }
+
+  const difyChatEndpoint = readEnv("DIFY_CHAT_ENDPOINT")
+  if (difyChatEndpoint) {
+    return {
+      kind: "dify",
+      url: difyChatEndpoint,
+      apiKey: readEnv("DIFY_API_KEY"),
+    }
+  }
+
+  const difyBaseUrl = readEnv("DIFY_BASE_URL")
+  if (difyBaseUrl) {
+    return {
+      kind: "dify",
+      url: normalizeDifyChatEndpoint(difyBaseUrl),
+      apiKey: readEnv("DIFY_API_KEY"),
+    }
+  }
+
+  return null
+}
+
+export type TranscribeTarget = {
+  url: string
+  apiKey: string
+  model: string
+} | null
+
+export function getTranscribeTarget(): TranscribeTarget {
+  const apiKey = readEnv("MIMO_API_KEY")
+  if (!apiKey) return null
+
+  const directUrl = readEnv("MIMO_TRANSCRIBE_URL")
+  const baseUrl = readEnv("MIMO_BASE_URL") || "https://api.xiaomimimo.com/v1"
+
+  return {
+    url: directUrl || joinUrl(baseUrl, "audio/transcriptions"),
+    apiKey,
+    model: readEnv("MIMO_ASR_MODEL") || "MiMo-V2.5-ASR",
+  }
+}
+
