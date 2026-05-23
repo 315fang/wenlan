@@ -2,7 +2,23 @@
 
 import type { KeyboardEvent, ReactNode, RefObject } from "react"
 import { useEffect, useMemo, useRef, useState } from "react"
-import { ArrowUp, Check, Copy, Loader2, Menu, Mic, PanelLeftClose, Plus, Square, Trash2 } from "lucide-react"
+import Image from "next/image"
+import {
+  ArrowUp,
+  Check,
+  CircleDashed,
+  Copy,
+  FileText,
+  Loader2,
+  Menu,
+  Mic,
+  PanelLeftClose,
+  Plus,
+  Search,
+  ShieldAlert,
+  Square,
+  Trash2,
+} from "lucide-react"
 
 import { MarkdownRenderer } from "@/components/markdown-renderer"
 import { assistantName } from "@/lib/prompts"
@@ -36,6 +52,24 @@ const initialServerStatus: ServerStatus = {
   assistantName,
   assistantLabel: "Dify",
 }
+
+const mobileShortcuts = [
+  {
+    icon: FileText,
+    label: "新人上手",
+    prompt: "新人第一次使用后台，应该先熟悉哪些模块？",
+  },
+  {
+    icon: Search,
+    label: "后台查询",
+    prompt: "我想查询一个代理商状态，应该怎么操作？",
+  },
+  {
+    icon: ShieldAlert,
+    label: "异常排查",
+    prompt: "代理商说看不到素材，后台应该排查哪些地方？",
+  },
+]
 
 function parseSseBlock(block: string) {
   const lines = block.split(/\r?\n/)
@@ -442,6 +476,7 @@ export function AssistantApp({ initialConfig }: AssistantAppProps) {
       onChange={setDraft}
       onKeyDown={handleTextareaKeyDown}
       onSubmit={handleSubmit}
+      onNewChat={startNewChat}
       onToggleVoice={toggleVoiceRecording}
     />
   )
@@ -473,29 +508,57 @@ export function AssistantApp({ initialConfig }: AssistantAppProps) {
       ) : null}
 
       <main className="flex min-w-0 flex-1 flex-col bg-white">
-        <header className="flex h-14 shrink-0 items-center justify-between px-3 sm:px-4">
-          <div className="flex min-w-0 items-center gap-2">
+        <header className="shrink-0 border-b border-black/[0.04] bg-white/95">
+          <div className="flex h-16 items-center justify-between px-3 sm:px-4 lg:hidden">
             <button
-              className="inline-flex h-10 w-10 items-center justify-center rounded-lg text-[#5d5d5d] transition hover:bg-[#f4f4f4] lg:hidden"
+              className="inline-flex h-11 w-11 items-center justify-center rounded-full bg-white text-[#121212] shadow-[0_8px_28px_rgba(0,0,0,0.08)] ring-1 ring-black/[0.06] transition hover:bg-[#f7f7f7]"
               onClick={() => setSidebarOpen(true)}
               aria-label="打开侧栏"
             >
               <Menu className="h-5 w-5" />
             </button>
-            <button className="truncate rounded-lg px-2 py-1.5 text-lg font-medium text-[#303030] transition hover:bg-[#f7f7f7]">
-              {initialConfig.assistantName}
+
+            <button className="inline-flex items-center gap-2 rounded-full bg-white px-4 py-2.5 text-[15px] font-medium text-[#2a2a2a] shadow-[0_10px_30px_rgba(0,0,0,0.06)] ring-1 ring-black/[0.05]">
+              <Image src="/wenlan-yizhantong.ico" alt="" width={20} height={20} unoptimized className="h-5 w-5 rounded-sm" />
+              <span>问兰</span>
             </button>
+
+            <button
+              className="inline-flex h-11 w-11 items-center justify-center rounded-full bg-white text-[#121212] shadow-[0_8px_28px_rgba(0,0,0,0.08)] ring-1 ring-black/[0.06] transition hover:bg-[#f7f7f7]"
+              onClick={startNewChat}
+              aria-label="新建对话"
+            >
+              <CircleDashed className="h-5 w-5" />
+            </button>
+          </div>
+
+          <div className="hidden h-14 items-center justify-between px-3 sm:px-4 lg:flex">
+            <div className="flex min-w-0 items-center gap-2">
+              <button className="truncate rounded-lg px-2 py-1.5 text-lg font-medium text-[#303030] transition hover:bg-[#f7f7f7]">
+                {initialConfig.assistantName}
+              </button>
+            </div>
           </div>
         </header>
 
         {!hasMessages ? (
-          <section className="flex min-h-0 flex-1 items-center justify-center px-4 pb-20 pt-4">
-            <EmptyState
-              prompts={initialConfig.starterPrompts}
-              composer={composer}
-              onQuickPrompt={handleQuickPrompt}
-            />
-          </section>
+          <>
+            <section className="hidden min-h-0 flex-1 items-center justify-center px-4 pb-20 pt-4 lg:flex">
+              <EmptyState
+                prompts={initialConfig.starterPrompts}
+                composer={composer}
+                onQuickPrompt={handleQuickPrompt}
+              />
+            </section>
+
+            <section className="flex min-h-0 flex-1 flex-col px-4 pb-4 pt-5 lg:hidden">
+              <div className="flex-1" />
+              <div className="mx-auto flex w-full max-w-md flex-col gap-6">
+                <MobileQuickActions onQuickPrompt={handleQuickPrompt} />
+                {composer}
+              </div>
+            </section>
+          </>
         ) : (
           <section className="grid min-h-0 flex-1 grid-rows-[minmax(0,1fr)_auto]">
             <div className="min-h-0 overflow-y-auto px-4">
@@ -702,6 +765,7 @@ function Composer({
   onChange,
   onKeyDown,
   onSubmit,
+  onNewChat,
   onToggleVoice,
 }: {
   draft: string
@@ -713,13 +777,14 @@ function Composer({
   onChange: (value: string) => void
   onKeyDown: (event: KeyboardEvent<HTMLTextAreaElement>) => void
   onSubmit: () => void
+  onNewChat: () => void
   onToggleVoice: () => void
 }) {
   const canSend = draft.trim().length > 0 && !isSending && !isTranscribing
 
   return (
     <div className="mx-auto w-full max-w-3xl">
-      <div className="rounded-[1.65rem] border border-[#d9d9d9] bg-white p-2 shadow-[0_2px_16px_rgba(0,0,0,0.08)]">
+      <div className="hidden rounded-[1.65rem] border border-[#d9d9d9] bg-white p-2 shadow-[0_2px_16px_rgba(0,0,0,0.08)] lg:block">
         <textarea
           ref={textareaRef}
           value={draft}
@@ -755,6 +820,73 @@ function Composer({
           </button>
         </div>
       </div>
+
+      <div className="lg:hidden">
+        <div className="rounded-[1.9rem] border border-[#e0e0e0] bg-white p-3 shadow-[0_4px_24px_rgba(0,0,0,0.08)]">
+          <div className="flex items-end gap-2">
+            <button
+              className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-[#1a1a1a] transition hover:bg-[#f4f4f4]"
+              onClick={onNewChat}
+              aria-label="新建对话"
+              title="新建对话"
+            >
+              <Plus className="h-6 w-6" />
+            </button>
+
+            <textarea
+              ref={textareaRef}
+              value={draft}
+              onChange={(event) => onChange(event.target.value)}
+              onKeyDown={onKeyDown}
+              placeholder={isTranscribing ? "正在识别语音..." : "问问 问兰"}
+              className="min-h-11 flex-1 resize-none bg-transparent px-1 py-2 text-[16px] leading-6 text-[#0d0d0d] outline-none placeholder:text-[#8f8f8f]"
+              rows={1}
+            />
+
+            <button
+              className={`inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full transition ${
+                isRecording
+                  ? "bg-[#d1242f] text-white"
+                  : "text-[#7a7a7a] hover:bg-[#f4f4f4] disabled:cursor-not-allowed disabled:opacity-35 disabled:hover:bg-transparent"
+              }`}
+              title={canTranscribe ? (isRecording ? "停止录音" : "语音输入") : "语音输入暂不可用"}
+              onClick={onToggleVoice}
+              disabled={!canTranscribe || isTranscribing}
+              aria-label={isRecording ? "停止录音" : "语音输入"}
+            >
+              {isRecording ? <Square className="h-4 w-4 fill-current" /> : <Mic className="h-5 w-5" />}
+            </button>
+
+            <button
+              className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#111111] text-white transition hover:bg-[#303030] disabled:cursor-not-allowed disabled:bg-[#d7d7d7] disabled:text-white"
+              onClick={() => void onSubmit()}
+              disabled={!canSend}
+              aria-label="发送"
+            >
+              {isSending ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowUp className="h-5 w-5" />}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function MobileQuickActions({ onQuickPrompt }: { onQuickPrompt: (prompt: string) => void }) {
+  return (
+    <div className="space-y-2">
+      {mobileShortcuts.map(({ icon: Icon, label, prompt }) => (
+        <button
+          key={label}
+          className="flex w-full items-center gap-4 rounded-2xl px-1 py-3 text-left transition hover:bg-black/[0.03]"
+          onClick={() => onQuickPrompt(prompt)}
+        >
+          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-black/[0.08] bg-white text-[#111111] shadow-[0_2px_10px_rgba(0,0,0,0.04)]">
+            <Icon className="h-5 w-5" />
+          </span>
+          <span className="text-[17px] font-medium tracking-normal text-[#111111]">{label}</span>
+        </button>
+      ))}
     </div>
   )
 }

@@ -6,6 +6,9 @@ import "./globals.css"
 export const metadata: Metadata = {
   title: "问兰 AI Portal",
   description: "面向后台操作、培训和答疑的内部 AI 工作台",
+  icons: {
+    icon: "/wenlan-yizhantong.ico",
+  },
 }
 
 export default function RootLayout({ children }: Readonly<{ children: ReactNode }>) {
