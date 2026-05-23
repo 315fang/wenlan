@@ -1,6 +1,7 @@
 "use client"
 
 import type { KeyboardEvent, ReactNode, RefObject } from "react"
+import Image from "next/image"
 import { useEffect, useMemo, useRef, useState } from "react"
 import {
   ArrowUp,
@@ -1013,8 +1014,8 @@ export function AssistantApp({ initialConfig }: AssistantAppProps) {
             </section>
 
             <section className="flex min-h-0 flex-1 flex-col overflow-hidden lg:hidden">
-              <div className="flex-1 overflow-y-auto px-4 py-4 flex flex-col justify-between">
-                <div className="flex-1 flex flex-col justify-center py-2">
+              <div className="flex-1 overflow-y-auto px-4 py-4 min-h-0">
+                <div className="mx-auto w-full max-w-md min-h-full flex flex-col justify-center gap-6 sm:gap-8 py-4">
                   <WelcomePanel
                     compact
                     framed={false}
@@ -1022,11 +1023,8 @@ export function AssistantApp({ initialConfig }: AssistantAppProps) {
                     metaClass={fontClasses.meta}
                     density={layoutDensity}
                   />
-                </div>
-                <div className="w-full max-w-md mx-auto mt-auto pb-2">
                   <MobileQuickActions
                     onQuickPrompt={handleQuickPrompt}
-                    labelClass={layoutDensity === "tight" ? "text-[14px] leading-6" : fontClasses.body}
                     density={layoutDensity}
                   />
                 </div>
@@ -1133,8 +1131,17 @@ function WelcomePanel({
   density?: LayoutDensity
 }) {
   const titleStyle =
-    density === "tight" ? "text-[1.7rem] leading-[1.1] sm:text-[2.1rem]" : compact ? "text-[1.85rem] sm:text-[2.1rem]" : titleClass
-  const copyStyle = density === "tight" ? "text-[12px] leading-5" : compact ? "text-[13px]" : metaClass
+    density === "tight"
+      ? "text-[2.0rem] leading-[1.1] sm:text-[2.4rem]"
+      : compact
+        ? "text-[2.25rem] leading-[1.15] sm:text-[2.5rem]"
+        : titleClass
+  const copyStyle =
+    density === "tight"
+      ? "text-[13px] leading-6"
+      : compact
+        ? "text-[14.5px] leading-[1.65]"
+        : metaClass
   const shellClass = framed
     ? density === "tight"
       ? "rounded-[1.45rem] px-3 py-3"
@@ -1149,25 +1156,37 @@ function WelcomePanel({
       ? "rounded-full border border-[#e5e5e5] bg-[#fafafa] px-2.5 py-1 text-[11px] font-medium text-[#555]"
       : "rounded-full border border-[#e5e5e5] bg-[#fafafa] px-3 py-1.5 text-xs font-medium text-[#555]"
   const titleMargin =
-    density === "tight" ? "mt-1.5" : compact ? "mt-2" : "mt-3"
+    density === "tight" ? "mt-2" : compact ? "mt-3" : "mt-4"
   const copyMargin =
-    density === "tight" ? "mt-1.5" : compact ? "mt-2" : "mt-3"
+    density === "tight" ? "mt-2" : compact ? "mt-3.5" : "mt-4"
   const chipMargin =
-    density === "tight" ? "mt-2" : compact ? "mt-2.5" : "mt-4"
+    density === "tight" ? "mt-2.5" : compact ? "mt-4" : "mt-5"
   const shellStyle = framed
     ? "border border-black/[0.08] bg-white shadow-[0_1px_12px_rgba(0,0,0,0.03)]"
     : "bg-transparent shadow-none"
 
   return (
     <section className={`${shellStyle} ${shellClass}`}>
-      <div className={`flex items-center justify-center gap-2 text-xs font-medium uppercase tracking-[0.18em] text-[#8a8a8a] ${framed ? "" : "sm:justify-center"}`}>
-        <Sparkles className="h-4 w-4" />
-        问兰智能体
+      <div className="flex flex-col items-center justify-center gap-3">
+        <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white shadow-[0_4px_16px_rgba(0,0,0,0.05)] border border-black/[0.04] p-2 shrink-0">
+          <Image
+            src="/wenlan-yizhantong.ico"
+            alt="问兰"
+            width={40}
+            height={40}
+            unoptimized
+            className="h-full w-full rounded-md object-contain"
+          />
+        </div>
+        <div className="text-xs font-semibold uppercase tracking-[0.18em] text-[#8a8a8a] flex items-center gap-1.5 mt-1">
+          <Sparkles className="h-3.5 w-3.5 text-amber-500 fill-amber-500" />
+          问兰智能体
+        </div>
       </div>
 
-      <h1 className={`${titleMargin} text-center font-medium tracking-normal text-[#2f2f2f] ${titleStyle}`}>{launchTitle}</h1>
+      <h1 className={`${titleMargin} text-center font-bold tracking-tight bg-gradient-to-r from-[#111111] via-[#484848] to-[#111111] bg-clip-text text-transparent ${titleStyle}`}>{launchTitle}</h1>
 
-      <p className={`mx-auto ${copyMargin} max-w-2xl text-center leading-6 text-[#777] ${copyStyle}`}>{emptyStateCopy}</p>
+      <p className={`mx-auto ${copyMargin} max-w-2xl text-center text-[#555] ${copyStyle}`}>{emptyStateCopy}</p>
 
       <div className={`${chipMargin} flex flex-wrap justify-center gap-2 ${framed ? "" : "px-0"}`}>
         {launchFeatureLabels.map((label) => (
@@ -1517,32 +1536,38 @@ function VoiceMeter({
 
 function MobileQuickActions({
   onQuickPrompt,
-  labelClass,
   density = "regular",
 }: {
   onQuickPrompt: (prompt: string) => void
-  labelClass: string
   density?: LayoutDensity
 }) {
   const isTight = density === "tight"
   return (
-    <div className={isTight ? "space-y-1.5" : "space-y-2"}>
+    <div className={isTight ? "space-y-2.5" : "space-y-3"}>
       {mobileShortcuts.map(({ icon: Icon, label, prompt }) => (
         <button
           key={label}
-          className={`flex w-full items-center text-left transition hover:bg-black/[0.03] ${
-            isTight ? "gap-3 rounded-[1.25rem] px-1 py-2.5" : "gap-4 rounded-2xl px-1 py-3"
+          className={`flex w-full items-center text-left transition bg-white border border-black/[0.06] shadow-[0_2px_8px_rgba(0,0,0,0.03)] hover:bg-[#fafafa] hover:border-black/[0.1] active:scale-[0.99] active:shadow-[0_1px_4px_rgba(0,0,0,0.02)] ${
+            isTight ? "gap-3 rounded-2xl p-3" : "gap-4 rounded-2xl p-3.5"
           }`}
           onClick={() => onQuickPrompt(prompt)}
+          type="button"
         >
           <span
-            className={`flex shrink-0 items-center justify-center border border-black/[0.08] bg-white text-[#111111] shadow-[0_2px_10px_rgba(0,0,0,0.04)] ${
-              isTight ? "h-10 w-10 rounded-xl" : "h-11 w-11 rounded-2xl"
+            className={`flex shrink-0 items-center justify-center bg-[#f4f4f4] text-[#111111] ${
+              isTight ? "h-11 w-11 rounded-xl" : "h-12 w-12 rounded-2xl"
             }`}
           >
-            <Icon className={isTight ? "h-4 w-4" : "h-5 w-5"} />
+            <Icon className={isTight ? "h-4.5 w-4.5" : "h-5 w-5"} />
           </span>
-          <span className={`min-w-0 flex-1 font-medium tracking-normal text-[#111111] ${labelClass}`}>{label}</span>
+          <div className="min-w-0 flex-1 ml-0.5">
+            <span className={`block font-semibold tracking-tight text-[#111111] ${isTight ? "text-[14px]" : "text-[15px]"}`}>
+              {label}
+            </span>
+            <span className="block truncate text-xs text-[#777777] mt-0.5 font-normal">
+              {prompt}
+            </span>
+          </div>
         </button>
       ))}
     </div>
