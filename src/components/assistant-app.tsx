@@ -2,7 +2,6 @@
 
 import type { KeyboardEvent, ReactNode, RefObject } from "react"
 import { useEffect, useMemo, useRef, useState } from "react"
-import Image from "next/image"
 import {
   ArrowUp,
   Check,
@@ -10,16 +9,28 @@ import {
   Copy,
   FileText,
   Loader2,
+  Menu,
   Mic,
   Plus,
   Search,
   ShieldAlert,
   Square,
+  Trash2,
 } from "lucide-react"
 
+import { AppSidebar, MobileAppSidebar } from "@/components/app-sidebar"
 import { MarkdownRenderer } from "@/components/markdown-renderer"
 import { assistantName } from "@/lib/prompts"
-import { createId, ensureUserId, readStoredJson, trimText, writeStoredJson } from "@/lib/storage"
+import {
+  STORAGE_KEYS,
+  createId,
+  ensureUserId,
+  formatClock,
+  readStoredJson,
+  sortConversations,
+  trimText,
+  writeStoredJson,
+} from "@/lib/storage"
 import type { ChatConversation, ChatMessage, PortalConfig, ServerStatus } from "@/types/chat"
 
 type AssistantAppProps = {
@@ -47,7 +58,7 @@ const initialServerStatus: ServerStatus = {
   provider: "dify",
   baseUrl: "",
   assistantName,
-  assistantLabel: "Dify",
+  assistantLabel: "Dify 服务",
 }
 
 const mobileShortcuts = [
@@ -246,9 +257,13 @@ export function AssistantApp({ initialConfig }: AssistantAppProps) {
   const [isSending, setIsSending] = useState(false)
   const [isRecording, setIsRecording] = useState(false)
   const [isTranscribing, setIsTranscribing] = useState(false)
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false)
   const [fontSize, setFontSize] = useState<FontSizeMode>(() => {
     if (typeof window === "undefined") return "md"
-    const stored = window.localStorage.getItem(`${initialConfig.appName}:fontSize`)
+    const stored =
+      window.localStorage.getItem(STORAGE_KEYS.fontSize) ||
+      window.localStorage.getItem(`${initialConfig.appName}:fontSize`) ||
+      window.localStorage.getItem("问兰 AI Portal:fontSize")
     return stored === "sm" || stored === "md" || stored === "lg" ? stored : "md"
   })
   const [copiedMessageId, setCopiedMessageId] = useState("")
@@ -263,19 +278,19 @@ export function AssistantApp({ initialConfig }: AssistantAppProps) {
 
   useEffect(() => {
     userIdRef.current = ensureUserId()
-  }, [initialConfig.appName])
+  }, [])
 
   useEffect(() => {
     if (conversations.length > 0) {
-      writeStoredJson(`${initialConfig.appName}:conversations`, conversations)
+      writeStoredJson(STORAGE_KEYS.conversations, conversations)
     }
-  }, [conversations, initialConfig.appName])
+  }, [conversations])
 
   useEffect(() => {
     if (activeConversationId) {
-      writeStoredJson(`${initialConfig.appName}:activeConversationId`, activeConversationId)
+      writeStoredJson(STORAGE_KEYS.activeConversationId, activeConversationId)
     }
-  }, [activeConversationId, initialConfig.appName])
+  }, [activeConversationId])
 
   useEffect(() => {
     let alive = true
@@ -302,8 +317,16 @@ export function AssistantApp({ initialConfig }: AssistantAppProps) {
     let alive = true
     queueMicrotask(() => {
       if (!alive) return
-      const storedConversations = readStoredJson<ChatConversation[]>(`${initialConfig.appName}:conversations`, [])
-      const storedActiveId = readStoredJson<string>(`${initialConfig.appName}:activeConversationId`, "")
+      const legacyConversations = readStoredJson<ChatConversation[]>(
+        `${initialConfig.appName}:conversations`,
+        readStoredJson<ChatConversation[]>("问兰 AI Portal:conversations", [])
+      )
+      const legacyActiveId = readStoredJson<string>(
+        `${initialConfig.appName}:activeConversationId`,
+        readStoredJson<string>("问兰 AI Portal:activeConversationId", "")
+      )
+      const storedConversations = readStoredJson<ChatConversation[]>(STORAGE_KEYS.conversations, legacyConversations)
+      const storedActiveId = readStoredJson<string>(STORAGE_KEYS.activeConversationId, legacyActiveId)
 
       if (storedConversations.length > 0) {
         setConversations(storedConversations)
@@ -325,13 +348,14 @@ export function AssistantApp({ initialConfig }: AssistantAppProps) {
   }, [conversations, activeConversationId, isSending])
 
   useEffect(() => {
-    window.localStorage.setItem(`${initialConfig.appName}:fontSize`, fontSize)
-  }, [fontSize, initialConfig.appName])
+    window.localStorage.setItem(STORAGE_KEYS.fontSize, fontSize)
+  }, [fontSize])
 
   const activeConversation = useMemo(
     () => conversations.find((item) => item.id === activeConversationId) || conversations[0],
     [conversations, activeConversationId]
   )
+  const sortedConversations = useMemo(() => sortConversations(conversations), [conversations])
   const activeMessages = activeConversation?.messages ?? []
   const hasMessages = activeMessages.length > 0
   const fontClasses = fontSizeStyles[fontSize]
@@ -347,6 +371,32 @@ export function AssistantApp({ initialConfig }: AssistantAppProps) {
     setConversations((current) => [conversation, ...current])
     setActiveConversationId(conversation.id)
     setDraft("")
+    setMobileSidebarOpen(false)
+  }
+
+  function selectConversation(conversationId: string) {
+    setActiveConversationId(conversationId)
+    setMobileSidebarOpen(false)
+  }
+
+  function deleteConversation(conversationId: string) {
+    const remaining = conversations.filter((conversation) => conversation.id !== conversationId)
+    if (remaining.length === 0) {
+      const replacement = emptyConversation()
+      setConversations([replacement])
+      setActiveConversationId(replacement.id)
+      setMobileSidebarOpen(false)
+      return
+    }
+
+    setConversations(remaining)
+    if (activeConversationId === conversationId) {
+      const nextActive = sortConversations(remaining)[0]
+      if (nextActive) {
+        setActiveConversationId(nextActive.id)
+      }
+    }
+    setMobileSidebarOpen(false)
   }
 
   function appendMessage(conversationId: string, message: ChatMessage) {
@@ -429,7 +479,7 @@ export function AssistantApp({ initialConfig }: AssistantAppProps) {
 
       if (!response.ok || !response.body) {
         const errorPayload = await response.json().catch(() => ({}))
-        throw new Error((errorPayload as { error?: string }).error || "AI 服务暂时不可用")
+        throw new Error((errorPayload as { error?: string }).error || "模型服务暂时不可用")
       }
 
       const reader = response.body.getReader()
@@ -465,7 +515,7 @@ export function AssistantApp({ initialConfig }: AssistantAppProps) {
         }
       }
 
-      updateMessage(conversationId, assistantMessageId, assistantText || "AI 暂时没有返回正文。", "done")
+      updateMessage(conversationId, assistantMessageId, assistantText || "模型暂时没有返回正文。", "done")
       if (latestConversationId) {
         patchConversation(conversationId, (item) => ({
           ...item,
@@ -474,7 +524,7 @@ export function AssistantApp({ initialConfig }: AssistantAppProps) {
         }))
       }
     } catch (error) {
-      const message = error instanceof Error ? error.message : "AI 助手暂时无法回复"
+      const message = error instanceof Error ? error.message : "助手暂时无法回复"
       updateMessage(conversationId, assistantMessageId, message, "error")
     } finally {
       setIsSending(false)
@@ -593,24 +643,85 @@ export function AssistantApp({ initialConfig }: AssistantAppProps) {
     />
   )
 
+  const sidebarBody = (
+    <div className="flex h-full flex-col gap-3 px-3 pb-3 pt-1">
+      <button
+        className="inline-flex h-11 items-center justify-center gap-2 rounded-2xl bg-[#111111] px-4 text-sm font-medium text-white transition hover:bg-[#2f2f2f]"
+        onClick={startNewChat}
+        type="button"
+      >
+        <CircleDashed className="h-4 w-4" />
+        新对话
+      </button>
+
+      <div className="min-h-0 flex-1 overflow-y-auto pr-1">
+        <div className="px-2 pb-2 text-xs font-medium uppercase tracking-[0.18em] text-[#888888]">最近对话</div>
+        <div className="space-y-1">
+          {sortedConversations.map((conversation) => {
+            const isActive = conversation.id === activeConversationId
+            return (
+              <div
+                key={conversation.id}
+                className={`group flex items-stretch gap-1 rounded-2xl border px-1 py-1 transition ${
+                  isActive ? "border-white bg-white shadow-[0_1px_10px_rgba(0,0,0,0.05)]" : "border-transparent bg-transparent"
+                }`}
+              >
+                <button
+                  className="min-w-0 flex-1 rounded-[1rem] px-3 py-2 text-left transition group-hover:bg-black/[0.02]"
+                  onClick={() => selectConversation(conversation.id)}
+                  type="button"
+                >
+                  <div className="truncate text-sm font-medium text-[#111111]">{conversation.title}</div>
+                  <div className="mt-1 truncate text-xs text-[#878787]">{formatClock(conversation.updatedAt)}</div>
+                </button>
+
+                <button
+                  className="mt-1 inline-flex h-9 w-9 items-center justify-center rounded-full text-[#777777] opacity-100 transition hover:bg-red-50 hover:text-red-600 md:opacity-0 md:group-hover:opacity-100"
+                  onClick={() => deleteConversation(conversation.id)}
+                  type="button"
+                  aria-label={`删除对话：${conversation.title}`}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
+              </div>
+            )
+          })}
+        </div>
+      </div>
+    </div>
+  )
+
   return (
     <div className="flex h-dvh overflow-hidden bg-[#f6f6f4] text-[#0d0d0d]">
+      <aside className="hidden w-[18rem] shrink-0 lg:block">
+        <AppSidebar active="chat">{sidebarBody}</AppSidebar>
+      </aside>
+
+      <MobileAppSidebar
+        active="chat"
+        open={mobileSidebarOpen}
+        onClose={() => setMobileSidebarOpen(false)}
+      >
+        {sidebarBody}
+      </MobileAppSidebar>
+
       <main className="flex min-w-0 flex-1 flex-col">
         <header className="shrink-0 border-b border-black/[0.05] bg-white/[0.96]">
           <div className="flex h-16 items-center justify-between gap-3 px-4 sm:px-6 lg:px-8">
             <div className="flex min-w-0 items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#111111] text-white">
-                <Image
-                  src="/wenlan-yizhantong.ico"
-                  alt=""
-                  width={22}
-                  height={22}
-                  unoptimized
-                  className="h-6 w-6 rounded-sm"
-                />
-              </div>
+              <button
+                className="inline-flex h-10 w-10 items-center justify-center rounded-full text-[#5b5b5b] transition hover:bg-[#f4f4f4] lg:hidden"
+                onClick={() => setMobileSidebarOpen(true)}
+                type="button"
+                aria-label="打开侧边菜单"
+              >
+                <Menu className="h-5 w-5" />
+              </button>
+
               <div className="min-w-0">
-                <div className="truncate text-[17px] font-semibold tracking-tight text-[#111]">问兰</div>
+                <div className="truncate text-[17px] font-semibold tracking-tight text-[#111]">
+                  {activeConversation?.title || "智能问答"}
+                </div>
                 <div className="truncate text-xs text-[#7a7a7a]">{initialConfig.headline}</div>
               </div>
             </div>

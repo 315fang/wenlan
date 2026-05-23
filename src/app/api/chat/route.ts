@@ -124,7 +124,7 @@ export async function POST(request: Request) {
   if (!target) {
     return Response.json(
       {
-        error: "请先配置 DIFY_BASE_URL 和 DIFY_API_KEY，或者配置 ASSISTANT_BACKEND_URL。",
+        error: "请先配置大模型接口地址和密钥，或者配置自定义后端地址。",
       },
       { status: 503 }
     )
@@ -133,7 +133,7 @@ export async function POST(request: Request) {
   const body = (await request.json().catch(() => ({}))) as ChatBody
   const message = (body.message || "").trim()
   if (!message) {
-    return Response.json({ error: "message 不能为空" }, { status: 400 })
+    return Response.json({ error: "消息不能为空" }, { status: 400 })
   }
 
   if (target.kind === "dify") {

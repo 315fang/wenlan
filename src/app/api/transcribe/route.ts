@@ -84,7 +84,7 @@ function normalizeErrorMessage(detail: string, status: number) {
     return `语音转文字失败 (${status})`
   }
   if (isHtmlLike(trimmed)) {
-    return `MiMo 转写接口暂不可用 (${status})`
+    return `语音转写接口暂不可用 (${status})`
   }
   return trimmed.length > 220 ? `${trimmed.slice(0, 220)}…` : trimmed
 }
@@ -113,7 +113,7 @@ async function fileToDataUrl(file: File) {
 export async function POST(request: Request) {
   const target = getTranscribeTarget()
   if (!target) {
-    return Response.json({ error: "请先配置 MIMO_API_KEY" }, { status: 503 })
+    return Response.json({ error: "请先配置语音接口密钥" }, { status: 503 })
   }
 
   const formData = await request.formData()
@@ -198,7 +198,7 @@ export async function POST(request: Request) {
 
   const text = extractText(payload)
   if (!text.trim()) {
-    return Response.json({ error: "MiMo 没有返回可用的转写文本" }, { status: 502 })
+    return Response.json({ error: "语音转写服务没有返回可用文本" }, { status: 502 })
   }
 
   return Response.json({ text })

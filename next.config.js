@@ -1,5 +1,7 @@
 /** @type {import('next').NextConfig} */
-const nextConfig = {}
+const nextConfig = {
+  devIndicators: false,
+}
 nextConfig.outputFileTracingRoot = process.cwd()
 
 module.exports = nextConfig

@@ -23,7 +23,7 @@ export async function DELETE(_request: Request, { params }: { params: Promise<{ 
     const { documentId } = await params
     const target = getKnowledgeTarget()
     if (!target) {
-      return Response.json({ error: "请先配置 DIFY_KB_DATASET_ID 和 DIFY_KB_API_KEY" }, { status: 503 })
+      return Response.json({ error: "请先配置知识库资料集编号和接口密钥" }, { status: 503 })
     }
 
     const response = await fetch(joinUrl(target.baseUrl, `datasets/${target.datasetId}/documents/${documentId}`), {

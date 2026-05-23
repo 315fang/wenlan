@@ -1,4 +1,4 @@
-export const appName = "问兰 AI Portal"
+export const appName = "问兰大模型系统"
 export const assistantName = "问兰后台操作助手"
 export const assistantSubtitle = "面向运营、客服和管理后台使用人员的问兰智能体系统"
 export const assistantHeadline = "企业级知识增强大模型系统"

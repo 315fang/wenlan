@@ -116,7 +116,7 @@ async function createDifyTextDocument(params: {
 }) {
   const target = getKnowledgeTarget()
   if (!target) {
-    throw new Error("请先配置 DIFY_KB_DATASET_ID 和 DIFY_KB_API_KEY")
+    throw new Error("请先配置知识库资料集编号和接口密钥")
   }
 
   const response = await fetch(joinUrl(target.baseUrl, `datasets/${target.datasetId}/document/create-by-text`), {
@@ -149,7 +149,7 @@ async function createDifyFileDocument(params: {
 }) {
   const target = getKnowledgeTarget()
   if (!target) {
-    throw new Error("请先配置 DIFY_KB_DATASET_ID 和 DIFY_KB_API_KEY")
+    throw new Error("请先配置知识库资料集编号和接口密钥")
   }
 
   const renamedFile = new File([await params.file.arrayBuffer()], params.name, {
@@ -245,7 +245,7 @@ function buildKnowledgeText(params: {
     `版本：v${params.version}`,
     params.sourceUrl ? `来源链接：${params.sourceUrl}` : "",
     params.fileName ? `文件名：${params.fileName}` : "",
-    params.fileId ? `文件ID：${params.fileId}` : "",
+    params.fileId ? `文件编号：${params.fileId}` : "",
     params.description ? `说明：${params.description}` : "",
     "",
     "正文：",
@@ -291,13 +291,13 @@ export async function POST(request: Request) {
   try {
     const target = getKnowledgeTarget()
     if (!target) {
-      return Response.json({ error: "请先配置 DIFY_KB_DATASET_ID 和 DIFY_KB_API_KEY" }, { status: 503 })
+      return Response.json({ error: "请先配置知识库资料集编号和接口密钥" }, { status: 503 })
     }
 
     const formData = await request.formData()
     const kind = asString(formData.get("kind")) as KnowledgeKind
     if (!allowedKinds.includes(kind)) {
-      return Response.json({ error: "资料类型只能是 article、table 或 image" }, { status: 400 })
+      return Response.json({ error: "资料类型只能是文章、表格或图片" }, { status: 400 })
     }
 
     const sourceUrl = asString(formData.get("sourceUrl"))
@@ -373,7 +373,7 @@ export async function POST(request: Request) {
           fileId,
           body:
             description ||
-            "图片素材已上传。建议补充图片用途、画面内容、适用场景或 OCR 文本，方便问兰大模型系统准确引用。",
+            "图片素材已上传。建议补充图片用途、画面内容、适用场景或图片识别文字，方便问兰大模型系统准确引用。",
         }),
       })
     }

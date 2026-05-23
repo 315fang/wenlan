@@ -4,6 +4,7 @@ export const STORAGE_KEYS = {
   conversations: "wenlan-ai-portal:conversations",
   activeConversationId: "wenlan-ai-portal:active-conversation-id",
   userId: "wenlan-ai-portal:user-id",
+  fontSize: "wenlan-ai-portal:font-size",
 } as const
 
 function browserAvailable() {

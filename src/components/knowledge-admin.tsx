@@ -7,6 +7,7 @@ import {
   FileText,
   Image as ImageIcon,
   Loader2,
+  Menu,
   Plus,
   RefreshCw,
   Search,
@@ -15,6 +16,7 @@ import {
   Upload,
 } from "lucide-react"
 
+import { AppSidebar, MobileAppSidebar } from "@/components/app-sidebar"
 import { normalizeKnowledgeKey } from "@/lib/knowledge"
 import type { KnowledgeItem, KnowledgeKind } from "@/types/knowledge"
 
@@ -26,7 +28,7 @@ const kindTabs: Array<{ kind: KnowledgeKind; label: string; icon: typeof FileTex
 
 const kindDescriptions: Record<KnowledgeKind, string> = {
   article: "填写文章链接或粘贴正文，系统会抓取正文快照并写入知识库。",
-  table: "上传 xlsx / csv 等表格文件，作为结构化知识进入资料库。",
+  table: "上传常见电子表格文件，作为结构化知识进入资料库。",
   image: "上传图片素材并补充用途说明，让问兰大模型系统能引用这类素材。",
 }
 
@@ -55,6 +57,7 @@ export function KnowledgeAdminPanel() {
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
   const [submitting, setSubmitting] = useState(false)
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false)
   const [configured, setConfigured] = useState(true)
   const [error, setError] = useState("")
   const [message, setMessage] = useState("")
@@ -178,14 +181,40 @@ export function KnowledgeAdminPanel() {
   const filteredCount = items.length
 
   return (
-    <div className="min-h-dvh bg-[#f6f6f4] text-[#111111]">
-      <div className="mx-auto flex min-h-dvh w-full max-w-[1600px] flex-col px-4 py-4 sm:px-6 lg:px-8">
+    <div className="flex min-h-dvh bg-[#f6f6f4] text-[#111111]">
+      <aside className="hidden w-[18rem] shrink-0 lg:block">
+        <AppSidebar active="knowledge" />
+      </aside>
+
+      <MobileAppSidebar
+        active="knowledge"
+        open={mobileSidebarOpen}
+        onClose={() => setMobileSidebarOpen(false)}
+      />
+
+      <main className="min-w-0 flex-1 overflow-y-auto">
+        <div className="mx-auto flex min-h-dvh w-full max-w-[1600px] flex-col px-4 py-4 sm:px-6 lg:px-8">
         <header className="mb-4 flex items-center justify-between border-b border-black/10 pb-4">
-          <div className="flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#111111] text-white">
-              <Image src="/wenlan-yizhantong.ico" alt="" width={22} height={22} unoptimized className="h-6 w-6 rounded-sm" />
+          <div className="flex min-w-0 items-center gap-3">
+            <button
+              className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-[#5b5b5b] transition hover:bg-white lg:hidden"
+              onClick={() => setMobileSidebarOpen(true)}
+              type="button"
+              aria-label="打开侧边菜单"
+            >
+              <Menu className="h-5 w-5" />
+            </button>
+            <div className="hidden h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#111111] text-white sm:flex lg:hidden">
+              <Image
+                src="/wenlan-yizhantong.ico"
+                alt=""
+                width={22}
+                height={22}
+                unoptimized
+                className="h-6 w-6 rounded-sm"
+              />
             </div>
-            <div>
+            <div className="min-w-0">
               <div className="text-[18px] font-semibold tracking-tight">问兰知识库</div>
               <div className="text-sm text-[#666]">后台上传文章、表格和图片素材，系统按最新版本覆盖旧答案。</div>
             </div>
@@ -227,11 +256,11 @@ export function KnowledgeAdminPanel() {
               <div className="flex items-center justify-between">
                 <div>
                   <h2 className="text-base font-semibold text-[#121212]">上传资料</h2>
-                  <p className="mt-1 text-sm text-[#6b6b6b]">同主题新版本会自动覆盖旧版本。</p>
+                  <p className="mt-1 text-sm text-[#6b6b6b]">同主题的新版本会自动覆盖旧版本。</p>
                 </div>
                 <div className="inline-flex items-center gap-1 rounded-full bg-[#f4f4f4] px-3 py-1 text-xs text-[#666]">
                   <Plus className="h-3.5 w-3.5" />
-                  v{nextVersion}
+                  第 {nextVersion} 版
                 </div>
               </div>
 
@@ -247,7 +276,7 @@ export function KnowledgeAdminPanel() {
                 </label>
 
                 <label className="grid gap-1.5 text-sm">
-                  <span className="text-[#444]">主题 Key</span>
+                  <span className="text-[#444]">资料主题</span>
                   <input
                     value={form.knowledgeKey}
                     onChange={(event) => setForm((current) => ({ ...current, knowledgeKey: event.target.value }))}
@@ -308,14 +337,14 @@ export function KnowledgeAdminPanel() {
                         />
                         <p className="mt-2 text-xs leading-5 text-[#777]">
                           {kind === "image"
-                            ? "建议同时填写用途说明或 OCR 文本，方便模型引用图片素材。"
-                            : "支持 xlsx / csv 等常见表格文件。"}
+                            ? "建议同时填写用途说明或图片识别文字，方便模型引用图片素材。"
+                            : "支持常见电子表格文件。"}
                         </p>
                       </div>
                     </label>
 
                     <label className="grid gap-1.5 text-sm">
-                      <span className="text-[#444]">{kind === "image" ? "图片说明 / OCR 文本" : "补充说明"}</span>
+                      <span className="text-[#444]">{kind === "image" ? "图片说明 / 识别文字" : "补充说明"}</span>
                       <textarea
                         value={form.description}
                         onChange={(event) => setForm((current) => ({ ...current, description: event.target.value }))}
@@ -335,7 +364,7 @@ export function KnowledgeAdminPanel() {
               {message ? <p className="mt-3 rounded-xl bg-emerald-50 px-3 py-2 text-sm text-emerald-700">{message}</p> : null}
               {!configured ? (
                 <p className="mt-3 rounded-xl bg-amber-50 px-3 py-2 text-sm text-amber-700">
-                  还没有配置 DIFY_KB_BASE_URL / DIFY_KB_DATASET_ID / DIFY_KB_API_KEY，当前只是管理界面外壳。
+                  当前还没有配置知识库接口地址、资料集编号或接口密钥，所以这里只能查看管理界面，不能真正写入知识库。
                 </p>
               ) : null}
 
@@ -372,7 +401,7 @@ export function KnowledgeAdminPanel() {
               <div className="mt-4 overflow-hidden rounded-2xl border border-black/10">
                 <div className="grid grid-cols-[1.8fr_1.2fr_0.7fr_0.8fr_0.9fr_0.5fr] gap-3 border-b border-black/10 bg-[#f8f8f8] px-4 py-3 text-xs font-medium uppercase tracking-wide text-[#666]">
                   <span>标题</span>
-                  <span>主题 / 来源</span>
+                  <span>资料主题 / 来源</span>
                   <span>版本</span>
                   <span>状态</span>
                   <span>更新时间</span>
@@ -398,7 +427,7 @@ export function KnowledgeAdminPanel() {
                         <div className="min-w-0">
                           <div className="truncate text-sm font-medium text-[#111]">{item.title}</div>
                           <div className="mt-1 truncate text-xs text-[#777]">
-                            {item.kind} · {item.documentId}
+                            {item.kind === "article" ? "文章" : item.kind === "table" ? "表格" : "图片"} · {item.documentId}
                           </div>
                         </div>
 
@@ -407,7 +436,7 @@ export function KnowledgeAdminPanel() {
                           {item.sourceUrl ? <div className="mt-1 truncate text-xs text-[#777]">{item.sourceUrl}</div> : null}
                         </div>
 
-                        <div className="text-sm text-[#333]">v{item.version}</div>
+                        <div className="text-sm text-[#333]">第 {item.version} 版</div>
 
                         <div>
                           <span
@@ -443,13 +472,14 @@ export function KnowledgeAdminPanel() {
               </div>
 
               <div className="mt-3 flex items-center justify-between text-xs text-[#777]">
-                <span>已连接到知识库 API 后，将直接显示真实资料状态。</span>
+                <span>连接知识库接口后，将直接显示真实资料状态。</span>
                 <span>{refreshing ? "正在刷新..." : "就绪"}</span>
               </div>
             </section>
           </section>
         </div>
-      </div>
+        </div>
+      </main>
     </div>
   )
 }
