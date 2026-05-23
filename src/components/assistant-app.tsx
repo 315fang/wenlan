@@ -1015,7 +1015,7 @@ export function AssistantApp({ initialConfig }: AssistantAppProps) {
 
             <section className="flex min-h-0 flex-1 flex-col overflow-hidden lg:hidden">
               <div className="flex-1 overflow-y-auto px-4 py-4 min-h-0">
-                <div className="mx-auto w-full max-w-md min-h-full flex flex-col justify-center gap-6 sm:gap-8 py-4">
+                <div className="mx-auto w-full max-w-md min-h-full flex flex-col justify-center items-stretch gap-6 sm:gap-8 py-4">
                   <WelcomePanel
                     compact
                     framed={false}
@@ -1166,7 +1166,7 @@ function WelcomePanel({
     : "bg-transparent shadow-none"
 
   return (
-    <section className={`${shellStyle} ${shellClass}`}>
+    <section className={`w-full ${shellStyle} ${shellClass}`}>
       <div className="flex flex-col items-center justify-center gap-3">
         <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white shadow-[0_4px_16px_rgba(0,0,0,0.05)] border border-black/[0.04] p-2 shrink-0">
           <Image
@@ -1543,7 +1543,7 @@ function MobileQuickActions({
 }) {
   const isTight = density === "tight"
   return (
-    <div className={isTight ? "space-y-2.5" : "space-y-3"}>
+    <div className={`w-full ${isTight ? "space-y-2.5" : "space-y-3"}`}>
       {mobileShortcuts.map(({ icon: Icon, label, prompt }) => (
         <button
           key={label}
