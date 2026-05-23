@@ -4,8 +4,8 @@ import type { Metadata } from "next"
 import "./globals.css"
 
 export const metadata: Metadata = {
-  title: "问兰大模型系统",
-  description: "面向后台操作、培训和答疑的问兰大模型系统",
+  title: "问兰智能体系统",
+  description: "面向咨询、素材检索和培训的问兰智能体系统",
   icons: {
     icon: "/wenlan-yizhantong.ico",
   },

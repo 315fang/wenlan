@@ -1,7 +1,7 @@
-export const appName = "问兰大模型系统"
+export const appName = "问兰智能体系统"
 export const assistantName = "问兰智能客服"
-export const assistantSubtitle = "面向客户咨询、官方素材搜索和宣传文案取用的问兰智能体系统"
-export const assistantHeadline = "企业级知识增强大模型系统"
+export const assistantSubtitle = "面向客户咨询、官方素材搜索和宣传文案取用的问兰智能体平台"
+export const assistantHeadline = "企业级知识增强智能体系统"
 
 export const starterPrompts = [
   "帮我找适合发朋友圈的官方图片素材",
@@ -12,19 +12,23 @@ export const starterPrompts = [
 
 export const onboardingGuide = [
   {
-    title: "咨询问题",
+    title: "先问一个问题",
     description: "直接输入产品、政策、活动或使用问题，问兰会优先依据后台最新资料回答。",
   },
   {
     title: "搜索官方图片",
-    description: "说清楚产品、场景或用途，例如朋友圈、社群、客户私聊，系统会按资料库匹配素材。",
+    description: "说明产品、场景或用途，例如朋友圈、社群、客户私聊，系统会按资料库匹配素材。",
+  },
+  {
+    title: "试试语音输入",
+    description: "点麦克风后说话，出现声纹和“已检测到声音”后，系统会把内容转成文字。",
   },
   {
     title: "复制宣传文案",
     description: "告诉问兰要朋友圈文案、社群文案还是客户沟通话术，回答内容可以直接复制粘贴。",
   },
   {
-    title: "切换显示模式",
+    title: "切换阅读模式",
     description: "青年版更清爽，关爱版字号更大、按钮更醒目，适合长时间手机查看。",
   },
 ] as const
@@ -82,5 +86,5 @@ export const defaultSystemPrompt = [
 
 export const emptyStateCopy = [
   "你好，我是问兰智能客服。",
-  "你可以问我产品资料、政策活动、官方图片和宣传文案，涉及高风险信息我会提醒人工复核。",
+  "你可以直接提问，也可以找官方图片、复制宣传文案或用语音输入，涉及高风险信息我会提醒人工复核。",
 ].join(" ")

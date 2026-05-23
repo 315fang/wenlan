@@ -388,7 +388,7 @@ export async function POST(request: Request) {
           fileId,
           body:
             description ||
-            "图片素材已上传。建议补充图片用途、画面内容、适用场景或图片识别文字，方便问兰大模型系统准确引用。",
+            "图片素材已上传。建议补充图片用途、画面内容、适用场景或图片识别文字，方便问兰智能体系统准确引用。",
         }),
       })
     }

@@ -14,13 +14,14 @@ import {
   Plus,
   Search,
   ShieldAlert,
+  Sparkles,
   Square,
   Trash2,
 } from "lucide-react"
 
 import { AppSidebar, MobileAppSidebar } from "@/components/app-sidebar"
 import { MarkdownRenderer } from "@/components/markdown-renderer"
-import { assistantName, onboardingGuide } from "@/lib/prompts"
+import { assistantName, emptyStateCopy, onboardingGuide } from "@/lib/prompts"
 import {
   STORAGE_KEYS,
   createId,
@@ -78,6 +79,8 @@ const mobileShortcuts = [
     prompt: "根据最新资料，帮我整理一下产品卖点。",
   },
 ]
+
+const launchFeatureLabels = ["文章资料", "官方图片", "宣传文案", "语音输入", "字号切换"]
 
 function parseSseBlock(block: string) {
   const lines = block.split(/\r?\n/)
@@ -883,8 +886,9 @@ export function AssistantApp({ initialConfig }: AssistantAppProps) {
               />
             </section>
 
-            <section className="flex min-h-0 flex-1 flex-col px-4 pb-4 pt-5 lg:hidden">
+            <section className="flex min-h-0 flex-1 flex-col overflow-y-auto px-4 pb-4 pt-5 lg:hidden">
               <div className="mx-auto flex w-full max-w-md flex-col gap-5">
+                <WelcomePanel compact titleClass={fontClasses.title} metaClass={fontClasses.meta} />
                 <UsageGuide compact />
                 <MobileQuickActions onQuickPrompt={handleQuickPrompt} labelClass={fontClasses.body} />
                 {composer}
@@ -968,6 +972,44 @@ function MessageRow({ message, copiedMessageId, onCopy, fontSizeClass }: Message
   )
 }
 
+function WelcomePanel({
+  compact = false,
+  titleClass,
+  metaClass,
+}: {
+  compact?: boolean
+  titleClass: string
+  metaClass: string
+}) {
+  const titleStyle = compact ? "text-[1.85rem] sm:text-[2.1rem]" : titleClass
+  const copyStyle = compact ? "text-[13px]" : metaClass
+
+  return (
+    <section
+      className={`rounded-[2rem] border border-black/[0.08] bg-white shadow-[0_1px_12px_rgba(0,0,0,0.03)] ${
+        compact ? "px-4 py-4" : "px-5 py-5 sm:px-6 sm:py-6"
+      }`}
+    >
+      <div className="flex items-center justify-center gap-2 text-xs font-medium uppercase tracking-[0.18em] text-[#8a8a8a]">
+        <Sparkles className="h-4 w-4" />
+        初次使用
+      </div>
+
+      <h1 className={`mt-3 text-center font-medium tracking-normal text-[#2f2f2f] ${titleStyle}`}>今天你要问什么？</h1>
+
+      <p className={`mx-auto mt-3 max-w-2xl text-center leading-6 text-[#777] ${copyStyle}`}>{emptyStateCopy}</p>
+
+      <div className="mt-4 flex flex-wrap justify-center gap-2">
+        {launchFeatureLabels.map((label) => (
+          <span key={label} className="rounded-full border border-[#e5e5e5] bg-[#fafafa] px-3 py-1.5 text-xs font-medium text-[#555]">
+            {label}
+          </span>
+        ))}
+      </div>
+    </section>
+  )
+}
+
 function EmptyState({
   prompts,
   composer,
@@ -985,12 +1027,7 @@ function EmptyState({
 }) {
   return (
     <div className="w-full max-w-3xl">
-      <h1 className={`text-center font-medium tracking-normal text-[#2f2f2f] ${titleClass}`}>
-        今天你要问什么？
-      </h1>
-      <p className={`mt-3 text-center leading-6 text-[#777] ${metaClass}`}>
-        可以咨询资料、搜索官方图片，也可以生成可直接复制的宣传文案。
-      </p>
+      <WelcomePanel titleClass={titleClass} metaClass={metaClass} />
 
       <UsageGuide />
 
@@ -1012,8 +1049,8 @@ function EmptyState({
 }
 
 function UsageGuide({ compact = false }: { compact?: boolean }) {
-  return (
-    <div className={compact ? "grid gap-2" : "mt-7 grid gap-3 sm:grid-cols-2"}>
+  const content = (
+    <div className={compact ? "grid gap-2" : "grid gap-3 sm:grid-cols-2"}>
       {onboardingGuide.map((step, index) => (
         <div
           key={step.title}
@@ -1033,6 +1070,20 @@ function UsageGuide({ compact = false }: { compact?: boolean }) {
         </div>
       ))}
     </div>
+  )
+
+  if (compact) {
+    return content
+  }
+
+  return (
+    <section className="mt-7 rounded-[2rem] border border-black/[0.08] bg-white p-4 shadow-[0_1px_12px_rgba(0,0,0,0.03)] sm:p-5">
+      <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-[0.18em] text-[#8a8a8a]">
+        <Sparkles className="h-4 w-4" />
+        初次使用引导
+      </div>
+      <div className="mt-4">{content}</div>
+    </section>
   )
 }
 
@@ -1075,7 +1126,7 @@ function Composer({
           value={draft}
           onChange={(event) => onChange(event.target.value)}
           onKeyDown={onKeyDown}
-          placeholder={isTranscribing ? "正在识别语音..." : "今天你要问什么？"}
+          placeholder={isTranscribing ? "正在识别语音..." : "输入问题、产品名或关键词，按回车发送"}
           className={`max-h-48 min-h-14 w-full resize-none bg-transparent px-3 py-3 text-[#0d0d0d] outline-none placeholder:text-[#8f8f8f] ${fontSizeClass}`}
           rows={1}
         />
@@ -1125,7 +1176,7 @@ function Composer({
               value={draft}
               onChange={(event) => onChange(event.target.value)}
               onKeyDown={onKeyDown}
-              placeholder={isTranscribing ? "正在识别语音..." : "今天你要问什么？"}
+              placeholder={isTranscribing ? "正在识别语音..." : "输入问题、产品名或关键词，按回车发送"}
               className={`min-h-11 flex-1 resize-none bg-transparent px-1 py-2 text-[#0d0d0d] outline-none placeholder:text-[#8f8f8f] ${fontSizeClass}`}
               rows={1}
             />
@@ -1180,22 +1231,42 @@ function VoiceMeter({
     return { height, opacity: active }
   })
 
+  const statusText = isTranscribing ? "正在识别语音..." : voiceLevel > 0.08 ? "已检测到声音" : "正在录音，请开始说话"
+  const helperText = isRecording ? "点击麦克风结束录音" : "录音结束后自动转写"
+  const toneClass = isTranscribing ? "text-amber-800" : isRecording ? "text-rose-700" : "text-[#666]"
+  const dotClass = isTranscribing ? "bg-amber-500" : voiceLevel > 0.08 || isRecording ? "bg-rose-500" : "bg-[#111111]"
+  const containerClass = isTranscribing
+    ? "border-amber-200 bg-amber-50/70"
+    : isRecording
+      ? "border-rose-200 bg-rose-50/70"
+      : "border-black/[0.06] bg-[#fafafa]"
+  const barClass = isTranscribing ? "bg-amber-500" : isRecording ? "bg-rose-500" : "bg-[#111111]"
+
   return (
-    <div className={`flex items-center gap-3 px-3 ${compact ? "pb-2 pt-1" : "pb-3 pt-2"}`}>
-      <div className="flex items-center gap-1.5">
-        {bars.map((bar, index) => (
-          <span
-            key={index}
-            className="w-1 rounded-full bg-[#111111] transition-all duration-150"
-            style={{
-              height: `${bar.height}px`,
-              opacity: bar.opacity,
-            }}
-          />
-        ))}
-      </div>
-      <div className="min-w-0 text-xs leading-5 text-[#666666]">
-        {isTranscribing ? "正在识别语音..." : voiceLevel > 0.08 ? "已检测到声音" : "正在录音，请开始说话"}
+    <div className={`px-3 ${compact ? "pb-2 pt-1" : "pb-3 pt-2"}`} aria-live="polite">
+      <div className={`rounded-2xl border px-3 py-2.5 ${containerClass}`}>
+        <div className="flex items-center justify-between gap-3">
+          <div className={`flex items-center gap-2 text-xs font-medium ${toneClass}`}>
+            <span className={`h-2.5 w-2.5 rounded-full ${dotClass} ${isRecording || isTranscribing ? "animate-pulse" : ""}`} />
+            <span>{statusText}</span>
+          </div>
+          <span className={`text-[11px] ${isTranscribing ? "text-amber-800/80" : isRecording ? "text-rose-700/80" : "text-[#8a8a8a]"}`}>
+            {helperText}
+          </span>
+        </div>
+
+        <div className="mt-3 flex h-9 items-end gap-1.5">
+          {bars.map((bar, index) => (
+            <span
+              key={index}
+              className={`w-1.5 rounded-full transition-all duration-150 ${barClass}`}
+              style={{
+                height: `${bar.height}px`,
+                opacity: bar.opacity,
+              }}
+            />
+          ))}
+        </div>
       </div>
     </div>
   )

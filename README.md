@@ -1,4 +1,4 @@
-# 问兰大模型系统
+# 问兰智能体系统
 
 一个给 Vercel 用的问兰前台工作台，负责承接客户咨询、官方素材搜索、宣传文案取用、语音转文字和后台知识库管理。
 
@@ -15,8 +15,9 @@ npm run dev
 
 1. 把这个目录推到 Git 仓库。
 2. 在 Vercel 创建项目并导入仓库。
-3. 填环境变量，至少二选一：
-   - 直连 Dify：`DIFY_BASE_URL` + `DIFY_API_KEY`
+3. 填环境变量，前台聊天建议直接接“新开”的问兰智能体：
+   - 新智能体优先：`DIFY_AGENT_BASE_URL` + `DIFY_AGENT_API_KEY`
+   - 兼容旧写法：`DIFY_BASE_URL` + `DIFY_API_KEY`
    - 走你自己的后端：`ASSISTANT_BACKEND_URL`，可选再配 `ASSISTANT_BACKEND_API_KEY`
 4. 如果要启用后台知识库管理，再配：`DIFY_KB_BASE_URL`、`DIFY_KB_DATASET_ID`、`DIFY_KB_API_KEY`
 5. 后台知识库管理必须配置管理密码：`ADMIN_PASSWORD` 或 `KNOWLEDGE_ADMIN_PASSWORD`

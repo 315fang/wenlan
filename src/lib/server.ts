@@ -6,6 +6,14 @@ function readEnv(name: string) {
   return process.env[name]?.trim() || ""
 }
 
+function readFirstEnv(...names: string[]) {
+  for (const name of names) {
+    const value = readEnv(name)
+    if (value) return value
+  }
+  return ""
+}
+
 export function getPortalConfig(): PortalConfig {
   return {
     appName: readEnv("PORTAL_APP_NAME") || appName,
@@ -18,9 +26,9 @@ export function getPortalConfig(): PortalConfig {
 
 export function getRuntimeStatus(): ServerStatus {
   const customChatUrl = readEnv("ASSISTANT_BACKEND_URL")
-  const difyChatEndpoint = readEnv("DIFY_CHAT_ENDPOINT")
-  const difyBaseUrl = readEnv("DIFY_BASE_URL")
-  const difyApiKey = readEnv("DIFY_API_KEY")
+  const difyChatEndpoint = readFirstEnv("DIFY_AGENT_CHAT_ENDPOINT", "DIFY_CHAT_ENDPOINT")
+  const difyBaseUrl = readFirstEnv("DIFY_AGENT_BASE_URL", "DIFY_BASE_URL")
+  const difyApiKey = readFirstEnv("DIFY_AGENT_API_KEY", "DIFY_API_KEY")
   const transcribeApiKey = readEnv("MIMO_API_KEY")
 
   const chatBaseUrl = customChatUrl || difyChatEndpoint || difyBaseUrl
@@ -59,21 +67,21 @@ export function getChatTarget(): ChatTarget {
     }
   }
 
-  const difyChatEndpoint = readEnv("DIFY_CHAT_ENDPOINT")
+  const difyChatEndpoint = readFirstEnv("DIFY_AGENT_CHAT_ENDPOINT", "DIFY_CHAT_ENDPOINT")
   if (difyChatEndpoint) {
     return {
       kind: "dify",
       url: difyChatEndpoint,
-      apiKey: readEnv("DIFY_API_KEY"),
+      apiKey: readFirstEnv("DIFY_AGENT_API_KEY", "DIFY_API_KEY"),
     }
   }
 
-  const difyBaseUrl = readEnv("DIFY_BASE_URL")
+  const difyBaseUrl = readFirstEnv("DIFY_AGENT_BASE_URL", "DIFY_BASE_URL")
   if (difyBaseUrl) {
     return {
       kind: "dify",
       url: normalizeDifyChatEndpoint(difyBaseUrl),
-      apiKey: readEnv("DIFY_API_KEY"),
+      apiKey: readFirstEnv("DIFY_AGENT_API_KEY", "DIFY_API_KEY"),
     }
   }
 

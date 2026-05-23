@@ -29,7 +29,7 @@ const kindTabs: Array<{ kind: KnowledgeKind; label: string; icon: typeof FileTex
 const kindDescriptions: Record<KnowledgeKind, string> = {
   article: "填写文章链接或粘贴正文，系统会抓取正文快照并写入知识库。",
   table: "上传常见电子表格文件，作为结构化知识进入资料库。",
-  image: "上传图片素材并补充用途说明，让问兰大模型系统能引用这类素材。",
+  image: "上传图片素材并补充用途说明，让问兰智能体系统能引用这类素材。",
 }
 
 type FormState = {
@@ -417,7 +417,7 @@ export function KnowledgeAdminPanel() {
                     </div>
                   ) : items.length === 0 ? (
                     <div className="flex min-h-60 items-center justify-center px-6 text-center text-sm leading-6 text-[#666]">
-                      当前没有资料。你可以先上传一篇文章、一张图片或一个表格，作为问兰大模型系统的知识来源。
+                      当前没有资料。你可以先上传一篇文章、一张图片或一个表格，作为问兰智能体系统的知识来源。
                     </div>
                   ) : (
                     items.map((item) => (
