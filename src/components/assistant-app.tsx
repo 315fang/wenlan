@@ -1009,7 +1009,7 @@ export function AssistantApp({ initialConfig }: AssistantAppProps) {
             >
               <div
                 className={`mx-auto flex w-full max-w-md flex-col ${
-                  layoutDensity === "tight" ? "gap-3" : layoutDensity === "compact" ? "gap-4" : "gap-5"
+                  layoutDensity === "tight" ? "gap-2.5" : layoutDensity === "compact" ? "gap-3" : "gap-5"
                 }`}
               >
                 <WelcomePanel
@@ -1134,6 +1134,12 @@ function WelcomePanel({
     density === "tight"
       ? "rounded-full border border-[#e5e5e5] bg-[#fafafa] px-2.5 py-1 text-[11px] font-medium text-[#555]"
       : "rounded-full border border-[#e5e5e5] bg-[#fafafa] px-3 py-1.5 text-xs font-medium text-[#555]"
+  const titleMargin =
+    density === "tight" ? "mt-1.5" : compact ? "mt-2" : "mt-3"
+  const copyMargin =
+    density === "tight" ? "mt-1.5" : compact ? "mt-2" : "mt-3"
+  const chipMargin =
+    density === "tight" ? "mt-2" : compact ? "mt-2.5" : "mt-4"
   const shellStyle = framed
     ? "border border-black/[0.08] bg-white shadow-[0_1px_12px_rgba(0,0,0,0.03)]"
     : "bg-transparent shadow-none"
@@ -1145,11 +1151,11 @@ function WelcomePanel({
         问兰智能体
       </div>
 
-      <h1 className={`mt-3 text-center font-medium tracking-normal text-[#2f2f2f] ${titleStyle}`}>{launchTitle}</h1>
+      <h1 className={`${titleMargin} text-center font-medium tracking-normal text-[#2f2f2f] ${titleStyle}`}>{launchTitle}</h1>
 
-      <p className={`mx-auto mt-3 max-w-2xl text-center leading-6 text-[#777] ${copyStyle}`}>{emptyStateCopy}</p>
+      <p className={`mx-auto ${copyMargin} max-w-2xl text-center leading-6 text-[#777] ${copyStyle}`}>{emptyStateCopy}</p>
 
-      <div className={`mt-4 flex flex-wrap justify-center gap-2 ${framed ? "" : "px-0"}`}>
+      <div className={`${chipMargin} flex flex-wrap justify-center gap-2 ${framed ? "" : "px-0"}`}>
         {launchFeatureLabels.map((label) => (
           <span key={label} className={chipClass}>
             {label}
