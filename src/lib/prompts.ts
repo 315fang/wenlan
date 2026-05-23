@@ -10,6 +10,25 @@ export const starterPrompts = [
   "哪些后台操作必须人工复核？"
 ]
 
+export const onboardingGuide = [
+  {
+    title: "先看左侧菜单",
+    description: "在“智能问答”和“知识库管理”之间切换。前台负责提问，后台负责上传资料。",
+  },
+  {
+    title: "在底部直接提问",
+    description: "把问题输入到对话框里，按回车发送；需要换行时，按 Shift + Enter。",
+  },
+  {
+    title: "需要语音时就点麦克风",
+    description: "按住或点击录音，说完后系统会自动转成文字，补到输入框里。",
+  },
+  {
+    title: "要重新开始就点新对话",
+    description: "当你要切换主题时，点“新对话”即可清空上下文，重新开始一轮咨询。",
+  },
+] as const
+
 export const insightCards = [
   {
     title: "操作路径",

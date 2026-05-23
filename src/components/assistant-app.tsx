@@ -20,7 +20,7 @@ import {
 
 import { AppSidebar, MobileAppSidebar } from "@/components/app-sidebar"
 import { MarkdownRenderer } from "@/components/markdown-renderer"
-import { assistantName } from "@/lib/prompts"
+import { assistantName, onboardingGuide } from "@/lib/prompts"
 import {
   STORAGE_KEYS,
   createId,
@@ -769,8 +769,8 @@ export function AssistantApp({ initialConfig }: AssistantAppProps) {
             </section>
 
             <section className="flex min-h-0 flex-1 flex-col px-4 pb-4 pt-5 lg:hidden">
-              <div className="flex-1" />
-              <div className="mx-auto flex w-full max-w-md flex-col gap-6">
+              <div className="mx-auto flex w-full max-w-md flex-col gap-5">
+                <UsageGuide compact />
                 <MobileQuickActions onQuickPrompt={handleQuickPrompt} labelClass={fontClasses.body} />
                 {composer}
               </div>
@@ -873,7 +873,9 @@ function EmptyState({
       <h1 className={`text-center font-medium tracking-normal text-[#2f2f2f] ${titleClass}`}>
         有什么可以帮忙的？
       </h1>
-      <p className={`mt-3 text-center leading-6 text-[#777] ${metaClass}`}>问兰 · 企业级知识增强大模型系统</p>
+      <p className={`mt-3 text-center leading-6 text-[#777] ${metaClass}`}>先看下面的使用引导，再开始提问或上传资料。</p>
+
+      <UsageGuide />
 
       <div className="mt-8">{composer}</div>
 
@@ -888,6 +890,31 @@ function EmptyState({
           </button>
         ))}
       </div>
+    </div>
+  )
+}
+
+function UsageGuide({ compact = false }: { compact?: boolean }) {
+  return (
+    <div className={compact ? "grid gap-2" : "mt-7 grid gap-3 sm:grid-cols-2"}>
+      {onboardingGuide.map((step, index) => (
+        <div
+          key={step.title}
+          className={`rounded-2xl border border-black/[0.08] bg-white px-4 py-3 shadow-[0_1px_12px_rgba(0,0,0,0.03)] ${
+            compact ? "px-3 py-3" : ""
+          }`}
+        >
+          <div className="flex items-start gap-3">
+            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#111111] text-[11px] font-semibold text-white">
+              {String(index + 1).padStart(2, "0")}
+            </span>
+            <div className="min-w-0">
+              <div className="text-sm font-semibold tracking-normal text-[#111111]">{step.title}</div>
+              <p className="mt-1 text-sm leading-6 text-[#666666]">{step.description}</p>
+            </div>
+          </div>
+        </div>
+      ))}
     </div>
   )
 }
