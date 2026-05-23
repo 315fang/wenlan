@@ -17,6 +17,7 @@ import {
   Sparkles,
   Square,
   Trash2,
+  X,
 } from "lucide-react"
 
 import { AppSidebar, MobileAppSidebar } from "@/components/app-sidebar"
@@ -80,6 +81,7 @@ const mobileShortcuts = [
   },
 ]
 
+const launchTitle = "今天你“问”了吗？"
 const launchFeatureLabels = ["文章资料", "官方图片", "宣传文案", "语音输入", "字号切换"]
 
 function parseSseBlock(block: string) {
@@ -267,6 +269,7 @@ export function AssistantApp({ initialConfig }: AssistantAppProps) {
   const [isRecording, setIsRecording] = useState(false)
   const [isTranscribing, setIsTranscribing] = useState(false)
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false)
+  const [guideModalOpen, setGuideModalOpen] = useState(false)
   const [displayMode, setDisplayMode] = useState<DisplayMode>(() => {
     if (typeof window === "undefined") return "youth"
     const stored = window.localStorage.getItem(STORAGE_KEYS.displayMode)
@@ -302,6 +305,22 @@ export function AssistantApp({ initialConfig }: AssistantAppProps) {
 
   useEffect(() => {
     userIdRef.current = ensureUserId()
+  }, [])
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      try {
+        const hasSeenGuide = window.localStorage.getItem(STORAGE_KEYS.onboardingGuideSeen)
+        if (!hasSeenGuide) {
+          setGuideModalOpen(true)
+          window.localStorage.setItem(STORAGE_KEYS.onboardingGuideSeen, "1")
+        }
+      } catch {
+        setGuideModalOpen(true)
+      }
+    }, 0)
+
+    return () => window.clearTimeout(timer)
   }, [])
 
   useEffect(() => {
@@ -431,6 +450,11 @@ export function AssistantApp({ initialConfig }: AssistantAppProps) {
         setActiveConversationId(nextActive.id)
       }
     }
+    setMobileSidebarOpen(false)
+  }
+
+  function openGuideModal() {
+    setGuideModalOpen(true)
     setMobileSidebarOpen(false)
   }
 
@@ -749,6 +773,15 @@ export function AssistantApp({ initialConfig }: AssistantAppProps) {
         新对话
       </button>
 
+      <button
+        className="inline-flex h-10 items-center justify-center gap-2 rounded-2xl border border-black/[0.08] bg-white px-3 text-sm font-medium text-[#222222] transition hover:bg-[#f7f7f7]"
+        onClick={openGuideModal}
+        type="button"
+      >
+        <Sparkles className="h-4 w-4" />
+        新手指导
+      </button>
+
       <div className="min-h-0 flex-1 overflow-y-auto pr-1">
         <div className="px-2 pb-2 text-xs font-medium uppercase tracking-[0.18em] text-[#888888]">最近对话</div>
         <div className="space-y-1">
@@ -803,6 +836,8 @@ export function AssistantApp({ initialConfig }: AssistantAppProps) {
         {sidebarBody}
       </MobileAppSidebar>
 
+      <GuideModal open={guideModalOpen} onClose={() => setGuideModalOpen(false)} />
+
       <main className="flex min-w-0 flex-1 flex-col">
         <header className="shrink-0 border-b border-black/[0.05] bg-white/[0.96]">
           <div className="flex h-16 items-center justify-between gap-3 px-4 sm:px-6 lg:px-8">
@@ -818,7 +853,7 @@ export function AssistantApp({ initialConfig }: AssistantAppProps) {
 
               <div className="min-w-0">
                 <div className="truncate text-[17px] font-semibold tracking-tight text-[#111]">
-                  {hasMessages ? activeConversation?.title || "智能问答" : "今天你要问什么？"}
+                  {hasMessages ? activeConversation?.title || "智能问答" : launchTitle}
                 </div>
                 <div className="truncate text-xs text-[#7a7a7a]">{initialConfig.headline}</div>
               </div>
@@ -889,7 +924,6 @@ export function AssistantApp({ initialConfig }: AssistantAppProps) {
             <section className="flex min-h-0 flex-1 flex-col overflow-y-auto px-4 pb-4 pt-5 lg:hidden">
               <div className="mx-auto flex w-full max-w-md flex-col gap-5">
                 <WelcomePanel compact titleClass={fontClasses.title} metaClass={fontClasses.meta} />
-                <UsageGuide compact />
                 <MobileQuickActions onQuickPrompt={handleQuickPrompt} labelClass={fontClasses.body} />
                 {composer}
               </div>
@@ -992,10 +1026,10 @@ function WelcomePanel({
     >
       <div className="flex items-center justify-center gap-2 text-xs font-medium uppercase tracking-[0.18em] text-[#8a8a8a]">
         <Sparkles className="h-4 w-4" />
-        初次使用
+        问兰智能体
       </div>
 
-      <h1 className={`mt-3 text-center font-medium tracking-normal text-[#2f2f2f] ${titleStyle}`}>今天你要问什么？</h1>
+      <h1 className={`mt-3 text-center font-medium tracking-normal text-[#2f2f2f] ${titleStyle}`}>{launchTitle}</h1>
 
       <p className={`mx-auto mt-3 max-w-2xl text-center leading-6 text-[#777] ${copyStyle}`}>{emptyStateCopy}</p>
 
@@ -1029,9 +1063,7 @@ function EmptyState({
     <div className="w-full max-w-3xl">
       <WelcomePanel titleClass={titleClass} metaClass={metaClass} />
 
-      <UsageGuide />
-
-      <div className="mt-8">{composer}</div>
+      <div className="mt-7">{composer}</div>
 
       <div className="mt-4 flex flex-wrap justify-center gap-2">
         {prompts.slice(0, 4).map((prompt) => (
@@ -1084,6 +1116,52 @@ function UsageGuide({ compact = false }: { compact?: boolean }) {
       </div>
       <div className="mt-4">{content}</div>
     </section>
+  )
+}
+
+function GuideModal({ open, onClose }: { open: boolean; onClose: () => void }) {
+  if (!open) return null
+
+  return (
+    <div className="fixed inset-0 z-[70] flex items-center justify-center px-4 py-6">
+      <button className="absolute inset-0 bg-black/35" onClick={onClose} type="button" aria-label="关闭新手指导" />
+
+      <section className="relative max-h-[88dvh] w-full max-w-2xl overflow-y-auto rounded-[2rem] border border-black/[0.08] bg-white p-5 text-[#111111] shadow-[0_18px_60px_rgba(0,0,0,0.22)] sm:p-6">
+        <header className="flex items-start justify-between gap-4">
+          <div>
+            <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-[0.18em] text-[#8a8a8a]">
+              <Sparkles className="h-4 w-4" />
+              新手指导
+            </div>
+            <h2 className="mt-2 text-[24px] font-semibold tracking-normal text-[#202020]">第一次使用可以这样开始</h2>
+            <p className="mt-2 text-sm leading-6 text-[#666666]">
+              前台只负责提问、找官方图片、复制宣传文案和语音输入；上传和删除资料请进入受保护的后台知识库。
+            </p>
+          </div>
+
+          <button
+            className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-[#666666] transition hover:bg-[#f4f4f4] hover:text-[#111111]"
+            onClick={onClose}
+            type="button"
+            aria-label="关闭新手指导"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </header>
+
+        <div className="mt-5">
+          <UsageGuide compact />
+        </div>
+
+        <button
+          className="mt-5 inline-flex h-11 w-full items-center justify-center rounded-full bg-[#111111] px-4 text-sm font-medium text-white transition hover:bg-[#2f2f2f]"
+          onClick={onClose}
+          type="button"
+        >
+          我知道了
+        </button>
+      </section>
+    </div>
   )
 }
 

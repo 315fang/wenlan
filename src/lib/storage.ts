@@ -6,6 +6,7 @@ export const STORAGE_KEYS = {
   userId: "wenlan-ai-portal:user-id",
   fontSize: "wenlan-ai-portal:font-size",
   displayMode: "wenlan-ai-portal:display-mode",
+  onboardingGuideSeen: "wenlan-ai-portal:onboarding-guide-seen",
 } as const
 
 function browserAvailable() {
