@@ -1,9 +1,13 @@
 @import "tailwindcss";
 
+@source "./";
+@source "../components";
+@source "../lib";
+
 :root {
-  color-scheme: dark;
-  --background: #0b0d10;
-  --foreground: #f5f5f5;
+  color-scheme: light;
+  --background: #ffffff;
+  --foreground: #0d0d0d;
 }
 
 @theme inline {
@@ -37,7 +41,6 @@ select {
 }
 
 ::selection {
-  background: rgba(34, 211, 238, 0.25);
-  color: #ffffff;
+  background: rgba(13, 13, 13, 0.12);
+  color: #0d0d0d;
 }
-

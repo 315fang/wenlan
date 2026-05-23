@@ -1,29 +1,11 @@
 "use client"
 
+import type { KeyboardEvent, ReactNode, RefObject } from "react"
 import { useEffect, useMemo, useRef, useState } from "react"
-import {
-  AlertTriangle,
-  ArrowUpRight,
-  Bot,
-  Check,
-  ChevronDown,
-  Copy,
-  Layers3,
-  Menu,
-  Mic,
-  MessageSquareText,
-  Plus,
-  RefreshCcw,
-  Send,
-  Settings,
-  ShieldAlert,
-  Square,
-  Sparkles,
-  Trash2,
-} from "lucide-react"
+import { ArrowUp, Check, Copy, Loader2, Menu, Mic, PanelLeftClose, Plus, Square, Trash2 } from "lucide-react"
 
 import { MarkdownRenderer } from "@/components/markdown-renderer"
-import { assistantHeadline, assistantName, assistantSubtitle, emptyStateCopy, insightCards, knowledgeOutline, starterPrompts } from "@/lib/prompts"
+import { assistantName } from "@/lib/prompts"
 import { createId, ensureUserId, formatClock, readStoredJson, sortConversations, trimText, writeStoredJson } from "@/lib/storage"
 import type { ChatConversation, ChatMessage, PortalConfig, ServerStatus } from "@/types/chat"
 
@@ -87,7 +69,7 @@ function buildConversationTitle(prompt: string) {
   return trimText(prompt.replace(/[？?。，、:：]/g, " "), 16)
 }
 
-function scrollElementIntoView(ref: React.RefObject<HTMLDivElement | null>) {
+function scrollElementIntoView(ref: RefObject<HTMLDivElement | null>) {
   requestAnimationFrame(() => {
     ref.current?.scrollIntoView({ block: "end", behavior: "smooth" })
   })
@@ -101,10 +83,8 @@ export function AssistantApp({ initialConfig }: AssistantAppProps) {
   const [isRecording, setIsRecording] = useState(false)
   const [isTranscribing, setIsTranscribing] = useState(false)
   const [sidebarOpen, setSidebarOpen] = useState(false)
-  const [settingsOpen, setSettingsOpen] = useState(false)
   const [copiedMessageId, setCopiedMessageId] = useState("")
   const [serverStatus, setServerStatus] = useState<ServerStatus>(initialServerStatus)
-  const [statusLoading, setStatusLoading] = useState(true)
 
   const streamAnchorRef = useRef<HTMLDivElement | null>(null)
   const textareaRef = useRef<HTMLTextAreaElement | null>(null)
@@ -143,8 +123,6 @@ export function AssistantApp({ initialConfig }: AssistantAppProps) {
         if (alive) {
           setServerStatus(initialServerStatus)
         }
-      } finally {
-        if (alive) setStatusLoading(false)
       }
     })()
     return () => {
@@ -194,10 +172,6 @@ export function AssistantApp({ initialConfig }: AssistantAppProps) {
   )
   const activeMessages = activeConversation?.messages ?? []
   const hasMessages = activeMessages.length > 0
-  const configStatus = serverStatus.chatReady ? "已连接后端" : "等待部署配置"
-  const configTone = serverStatus.chatReady
-    ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-200"
-    : "border-amber-500/30 bg-amber-500/10 text-amber-100"
 
   function patchConversation(conversationId: string, updater: (conversation: ChatConversation) => ChatConversation) {
     setConversations((current) =>
@@ -363,23 +337,18 @@ export function AssistantApp({ initialConfig }: AssistantAppProps) {
       setCopiedMessageId(messageId)
       window.setTimeout(() => setCopiedMessageId(""), 1200)
     } catch {
-      // ignore clipboard failures
+      // Clipboard can be unavailable in restricted browser contexts.
     }
   }
 
   async function toggleVoiceRecording() {
-    if (isTranscribing) return
+    if (isTranscribing || !serverStatus.transcribeReady) return
     if (isRecording) {
       recorderRef.current?.stop()
       recorderRef.current = null
       setIsRecording(false)
       recorderStreamRef.current?.getTracks().forEach((track) => track.stop())
       recorderStreamRef.current = null
-      return
-    }
-
-    if (!serverStatus.transcribeReady) {
-      setSettingsOpen(true)
       return
     }
 
@@ -418,7 +387,15 @@ export function AssistantApp({ initialConfig }: AssistantAppProps) {
           }
         } catch (error) {
           const message = error instanceof Error ? error.message : "语音转文字失败"
-          updateMessage(activeConversation.id, createId("voice"), message, "error")
+          if (activeConversation?.id) {
+            appendMessage(activeConversation.id, {
+              id: createId("msg"),
+              role: "assistant",
+              content: message,
+              createdAt: new Date().toISOString(),
+              status: "error",
+            })
+          }
         } finally {
           setIsTranscribing(false)
         }
@@ -427,7 +404,7 @@ export function AssistantApp({ initialConfig }: AssistantAppProps) {
       recorder.start()
       setIsRecording(true)
     } catch {
-      // ignore permission denial
+      // Permission denial is handled by the browser prompt.
     }
   }
 
@@ -446,7 +423,7 @@ export function AssistantApp({ initialConfig }: AssistantAppProps) {
     })
   }
 
-  function handleTextareaKeyDown(event: React.KeyboardEvent<HTMLTextAreaElement>) {
+  function handleTextareaKeyDown(event: KeyboardEvent<HTMLTextAreaElement>) {
     if (event.key !== "Enter" || event.shiftKey || event.nativeEvent.isComposing) return
     event.preventDefault()
     if (!isSending) {
@@ -454,304 +431,184 @@ export function AssistantApp({ initialConfig }: AssistantAppProps) {
     }
   }
 
+  const composer = (
+    <Composer
+      draft={draft}
+      textareaRef={textareaRef}
+      isSending={isSending}
+      isRecording={isRecording}
+      isTranscribing={isTranscribing}
+      canTranscribe={serverStatus.transcribeReady}
+      onChange={setDraft}
+      onKeyDown={handleTextareaKeyDown}
+      onSubmit={handleSubmit}
+      onToggleVoice={toggleVoiceRecording}
+    />
+  )
+
   return (
-    <div className="min-h-screen bg-[#06101d] text-slate-100">
-      <div className="mx-auto flex min-h-screen max-w-[1600px] gap-4 p-4 lg:p-5">
-        <aside className={`fixed inset-y-0 left-0 z-40 w-[min(88vw,21rem)] border-r border-white/10 bg-[#07111c]/95 backdrop-blur-xl transition-transform duration-200 lg:static lg:z-auto lg:w-[20.5rem] lg:translate-x-0 ${sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}`}>
-          <Sidebar
-            appName={initialConfig.appName}
-            assistantName={initialConfig.assistantName}
-            assistantSubtitle={initialConfig.subtitle}
-            configTone={configTone}
-            configStatus={configStatus}
-            statusLoading={statusLoading}
-            serverStatus={serverStatus}
-            conversations={sortedConversations}
-            activeConversationId={activeConversationId}
-            onNewChat={startNewChat}
-            onSelectConversation={setActiveConversation}
-            onDeleteConversation={removeConversation}
-            onQuickPrompt={handleQuickPrompt}
-            onOpenSettings={() => setSettingsOpen(true)}
-            onCloseMobile={() => setSidebarOpen(false)}
-          />
-        </aside>
+    <div className="flex h-dvh overflow-hidden bg-white text-[#0d0d0d]">
+      <aside
+        className={`fixed inset-y-0 left-0 z-40 w-[min(86vw,17rem)] bg-[#f9f9f9] transition-transform duration-200 lg:static lg:z-auto lg:w-[16.5rem] lg:translate-x-0 ${
+          sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
+        }`}
+      >
+        <Sidebar
+          appName={initialConfig.appName}
+          conversations={sortedConversations}
+          activeConversationId={activeConversationId}
+          onNewChat={startNewChat}
+          onSelectConversation={setActiveConversation}
+          onDeleteConversation={removeConversation}
+          onCloseMobile={() => setSidebarOpen(false)}
+        />
+      </aside>
 
-        {sidebarOpen ? (
-          <button
-            aria-label="关闭侧栏"
-            className="fixed inset-0 z-30 bg-slate-950/55 lg:hidden"
-            onClick={() => setSidebarOpen(false)}
-          />
-        ) : null}
+      {sidebarOpen ? (
+        <button
+          aria-label="关闭侧栏"
+          className="fixed inset-0 z-30 bg-black/25 lg:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
+      ) : null}
 
-        <main className="relative flex min-w-0 flex-1 flex-col overflow-hidden rounded-xl border border-white/10 bg-white/[0.02] shadow-[0_18px_80px_rgba(0,0,0,0.28)] backdrop-blur-xl">
-          <header className="flex items-center justify-between gap-3 border-b border-white/10 px-4 py-3 sm:px-5">
-            <div className="flex min-w-0 items-center gap-3">
-              <button
-                className="inline-flex h-11 w-11 items-center justify-center rounded-lg border border-white/10 bg-white/5 text-slate-100 transition hover:bg-white/10 lg:hidden"
-                onClick={() => setSidebarOpen(true)}
-                aria-label="打开侧栏"
-              >
-                <Menu className="h-5 w-5" />
-              </button>
-              <div className="min-w-0">
-                <div className="flex flex-wrap items-center gap-2">
-                  <h1 className="truncate text-[15px] font-semibold tracking-tight text-white sm:text-base">
-                    {initialConfig.assistantName}
-                  </h1>
-                  <span className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs ${configTone}`}>
-                    <span className={`h-1.5 w-1.5 rounded-full ${serverStatus.chatReady ? "bg-emerald-300" : "bg-amber-200"}`} />
-                    {configStatus}
-                  </span>
-                </div>
-                <p className="mt-1 truncate text-xs text-slate-400">
-                  {assistantHeadline} · {assistantSubtitle}
-                </p>
+      <main className="flex min-w-0 flex-1 flex-col bg-white">
+        <header className="flex h-14 shrink-0 items-center justify-between px-3 sm:px-4">
+          <div className="flex min-w-0 items-center gap-2">
+            <button
+              className="inline-flex h-10 w-10 items-center justify-center rounded-lg text-[#5d5d5d] transition hover:bg-[#f4f4f4] lg:hidden"
+              onClick={() => setSidebarOpen(true)}
+              aria-label="打开侧栏"
+            >
+              <Menu className="h-5 w-5" />
+            </button>
+            <button className="truncate rounded-lg px-2 py-1.5 text-lg font-medium text-[#303030] transition hover:bg-[#f7f7f7]">
+              {initialConfig.assistantName}
+            </button>
+          </div>
+        </header>
+
+        {!hasMessages ? (
+          <section className="flex min-h-0 flex-1 items-center justify-center px-4 pb-20 pt-4">
+            <EmptyState
+              prompts={initialConfig.starterPrompts}
+              composer={composer}
+              onQuickPrompt={handleQuickPrompt}
+            />
+          </section>
+        ) : (
+          <section className="grid min-h-0 flex-1 grid-rows-[minmax(0,1fr)_auto]">
+            <div className="min-h-0 overflow-y-auto px-4">
+              <div className="mx-auto max-w-3xl space-y-7 py-6 pb-10">
+                {activeMessages.map((message) => (
+                  <MessageRow
+                    key={message.id}
+                    message={message}
+                    onCopy={copyMessage}
+                    copiedMessageId={copiedMessageId}
+                  />
+                ))}
+                <div ref={streamAnchorRef} />
               </div>
             </div>
 
-            <div className="flex items-center gap-2">
-              <button
-                className="hidden items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-slate-100 transition hover:bg-white/10 md:inline-flex"
-                onClick={startNewChat}
-              >
-                <Plus className="h-4 w-4" />
-                新对话
-              </button>
-              <button
-                className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-slate-100 transition hover:bg-white/10"
-                onClick={() => setSettingsOpen(true)}
-                aria-label="打开设置"
-              >
-                <Settings className="h-4 w-4" />
-              </button>
+            <div className="bg-white px-3 pb-4 pt-2 sm:px-4">
+              {composer}
+              <p className="mx-auto mt-2 max-w-3xl text-center text-xs leading-5 text-[#7d7d7d]">
+                重要操作请以后台实际状态为准，涉及权限、资金、删除等动作需人工复核。
+              </p>
             </div>
-          </header>
-
-          <section className="grid min-h-0 flex-1 grid-rows-[minmax(0,1fr)_auto]">
-            <div className="relative min-h-0 overflow-y-auto px-4 py-5 sm:px-6">
-              {!hasMessages ? (
-                <EmptyState
-                  appName={initialConfig.appName}
-                  assistantName={initialConfig.assistantName}
-                  subtitle={initialConfig.subtitle}
-                  prompts={initialConfig.starterPrompts}
-                  onQuickPrompt={handleQuickPrompt}
-                />
-              ) : (
-                <div className="space-y-4 pb-8">
-                  {activeMessages.map((message) => (
-                    <MessageRow
-                      key={message.id}
-                      message={message}
-                      assistantName={initialConfig.assistantName}
-                      onCopy={copyMessage}
-                      copiedMessageId={copiedMessageId}
-                    />
-                  ))}
-                </div>
-              )}
-              <div ref={streamAnchorRef} />
-            </div>
-
-            <Composer
-              draft={draft}
-              textareaRef={textareaRef}
-              isSending={isSending}
-              isRecording={isRecording}
-              isTranscribing={isTranscribing}
-              canTranscribe={serverStatus.transcribeReady}
-              onChange={setDraft}
-              onKeyDown={handleTextareaKeyDown}
-              onSubmit={handleSubmit}
-              onQuickPrompt={handleQuickPrompt}
-              onToggleVoice={toggleVoiceRecording}
-            />
           </section>
-        </main>
-      </div>
-
-      {settingsOpen ? (
-        <SettingsDrawer
-          onClose={() => setSettingsOpen(false)}
-          serverStatus={serverStatus}
-          initialConfig={initialConfig}
-        />
-      ) : null}
+        )}
+      </main>
     </div>
   )
 }
 
 type SidebarProps = {
   appName: string
-  assistantName: string
-  assistantSubtitle: string
-  configTone: string
-  configStatus: string
-  statusLoading: boolean
-  serverStatus: ServerStatus
   conversations: ChatConversation[]
   activeConversationId: string
   onNewChat: () => void
   onSelectConversation: (conversation: ChatConversation) => void
   onDeleteConversation: (conversationId: string) => void
-  onQuickPrompt: (prompt: string) => void
-  onOpenSettings: () => void
   onCloseMobile: () => void
 }
 
 function Sidebar({
   appName,
-  assistantName,
-  assistantSubtitle,
-  configTone,
-  configStatus,
-  statusLoading,
-  serverStatus,
   conversations,
   activeConversationId,
   onNewChat,
   onSelectConversation,
   onDeleteConversation,
-  onQuickPrompt,
-  onOpenSettings,
   onCloseMobile,
 }: SidebarProps) {
-  const providerLabel = serverStatus.provider === "custom" ? "自定义后端" : serverStatus.provider === "dify" ? "Dify" : "未配置"
-
   return (
-    <div className="flex h-full flex-col">
-      <div className="flex items-start justify-between gap-3 border-b border-white/10 px-4 py-4 sm:px-5">
-        <div className="min-w-0">
-          <div className="flex items-center gap-2">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-cyan-500/15 text-cyan-200">
-              <Bot className="h-5 w-5" />
-            </div>
-            <div className="min-w-0">
-              <div className="truncate text-sm font-semibold text-white">{appName}</div>
-              <div className="truncate text-xs text-slate-400">{assistantName}</div>
-            </div>
-          </div>
-          <p className="mt-3 text-xs leading-5 text-slate-400">{assistantSubtitle}</p>
-        </div>
+    <div className="flex h-full flex-col border-r border-black/[0.04]">
+      <div className="flex h-14 shrink-0 items-center justify-between px-2">
         <button
-          className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-slate-200 transition hover:bg-white/10 lg:hidden"
+          className="inline-flex h-10 w-10 items-center justify-center rounded-lg text-[#5d5d5d] transition hover:bg-black/[0.06] lg:hidden"
           onClick={onCloseMobile}
           aria-label="关闭侧栏"
         >
-          <ChevronDown className="h-4 w-4" />
+          <PanelLeftClose className="h-5 w-5" />
+        </button>
+        <button
+          className="ml-auto inline-flex h-10 w-10 items-center justify-center rounded-lg text-[#5d5d5d] transition hover:bg-black/[0.06]"
+          onClick={onNewChat}
+          aria-label="新建对话"
+        >
+          <Plus className="h-5 w-5" />
         </button>
       </div>
 
-      <div className="space-y-3 border-b border-white/10 p-4 sm:p-5">
+      <div className="px-2">
         <button
-          className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-cyan-500 px-4 py-3 text-sm font-medium text-slate-950 transition hover:bg-cyan-400"
+          className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-sm text-[#171717] transition hover:bg-black/[0.06]"
           onClick={onNewChat}
         >
-          <Plus className="h-4 w-4" />
-          新建对话
-        </button>
-        <button
-          className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-white/10 bg-white/5 px-4 py-3 text-sm text-slate-100 transition hover:bg-white/10"
-          onClick={onOpenSettings}
-        >
-          <Settings className="h-4 w-4" />
-          部署与连接
+          <span className="flex h-6 w-6 items-center justify-center rounded-full bg-[#111111] text-xs font-semibold text-white">
+            问
+          </span>
+          <span className="truncate">新对话</span>
         </button>
       </div>
 
-      <div className="min-h-0 flex-1 overflow-y-auto px-3 py-4 sm:px-4">
-        <SectionTitle icon={<MessageSquareIcon />} title="最近会话" />
-        <div className="mt-3 space-y-2">
-          {conversations.length === 0 ? (
-            <EmptySidebarBlock title="暂无会话" description="创建一个新对话开始。">
-              <button className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-slate-100" onClick={onNewChat}>
-                立即开始
-              </button>
-            </EmptySidebarBlock>
-          ) : (
-            conversations.map((conversation) => (
-              <div
-                key={conversation.id}
-                className={`group rounded-lg border px-3 py-3 transition ${
-                  conversation.id === activeConversationId
-                    ? "border-cyan-500/40 bg-cyan-500/10"
-                    : "border-white/10 bg-white/[0.03] hover:bg-white/[0.06]"
-                }`}
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <button className="min-w-0 flex-1 text-left" onClick={() => onSelectConversation(conversation)}>
-                    <div className="truncate text-sm font-medium text-white">{conversation.title}</div>
-                    <div className="mt-1 line-clamp-2 text-xs leading-5 text-slate-400">
-                      {conversation.messages.length > 0
-                        ? conversation.messages[conversation.messages.length - 1].content
-                        : "等待开始"}
-                    </div>
-                  </button>
-                  <button
-                    className="rounded-full p-1 text-slate-400 opacity-0 transition group-hover:opacity-100 hover:text-rose-300"
-                    onClick={(event) => {
-                      event.stopPropagation()
-                      onDeleteConversation(conversation.id)
-                    }}
-                    aria-label="删除会话"
-                  >
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </button>
-                </div>
-              </div>
-            ))
-          )}
-        </div>
-
-        <SectionTitle icon={<Sparkles className="h-4 w-4" />} title="快捷提问" />
-        <div className="mt-3 grid gap-2">
-          {starterPrompts.map((prompt) => (
-            <button
-              key={prompt}
-              className="rounded-lg border border-white/10 bg-white/[0.03] px-3 py-3 text-left text-sm leading-6 text-slate-100 transition hover:border-cyan-500/30 hover:bg-cyan-500/10"
-              onClick={() => onQuickPrompt(prompt)}
+      <div className="min-h-0 flex-1 overflow-y-auto px-2 py-4">
+        <div className="px-3 pb-2 text-xs font-medium text-[#8a8a8a]">最近</div>
+        <div className="space-y-0.5">
+          {conversations.map((conversation) => (
+            <div
+              key={conversation.id}
+              className={`group flex items-center gap-1 rounded-lg pr-1 transition ${
+                conversation.id === activeConversationId ? "bg-black/[0.06]" : "hover:bg-black/[0.05]"
+              }`}
             >
-              {prompt}
-            </button>
-          ))}
-        </div>
-
-        <SectionTitle icon={<ShieldAlert className="h-4 w-4" />} title="知识边界" />
-        <div className="mt-3 space-y-2">
-          {knowledgeOutline.map((item) => (
-            <div key={item} className="rounded-lg border border-white/10 bg-white/[0.03] px-3 py-3 text-sm text-slate-200">
-              {item}
-            </div>
-          ))}
-        </div>
-
-        <SectionTitle icon={<LayersIcon />} title="写作风格" />
-        <div className="mt-3 space-y-2">
-          {insightCards.map((card) => (
-            <div key={card.title} className="rounded-lg border border-white/10 bg-white/[0.03] px-3 py-3">
-              <div className="text-sm font-medium text-white">{card.title}</div>
-              <p className="mt-1 text-xs leading-5 text-slate-400">{card.description}</p>
+              <button
+                className="min-w-0 flex-1 px-3 py-2.5 text-left"
+                onClick={() => onSelectConversation(conversation)}
+              >
+                <div className="truncate text-sm text-[#2f2f2f]">{conversation.title}</div>
+                <div className="mt-0.5 truncate text-[11px] text-[#8a8a8a]">{formatClock(conversation.updatedAt)}</div>
+              </button>
+              <button
+                className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-[#8a8a8a] opacity-0 transition hover:bg-black/[0.08] hover:text-[#d1242f] group-hover:opacity-100"
+                onClick={(event) => {
+                  event.stopPropagation()
+                  onDeleteConversation(conversation.id)
+                }}
+                aria-label="删除会话"
+              >
+                <Trash2 className="h-4 w-4" />
+              </button>
             </div>
           ))}
         </div>
       </div>
 
-      <div className="border-t border-white/10 p-4 sm:p-5">
-        <div className={`rounded-lg border px-3 py-3 ${configTone}`}>
-          <div className="flex items-center justify-between gap-2">
-            <div className="text-sm font-medium text-white">{configStatus}</div>
-            <span className="text-[11px] uppercase tracking-[0.22em] text-slate-300">
-              {statusLoading ? "检查中" : providerLabel}
-            </span>
-          </div>
-          <p className="mt-2 text-xs leading-5 text-slate-300/90">
-            {serverStatus.chatReady
-              ? `聊天与转写已启用 · ${serverStatus.baseUrl || "已配置"}`
-              : "请在 Vercel 环境变量中配置 Dify 连接信息。"}
-          </p>
-        </div>
+      <div className="shrink-0 px-3 py-3 text-xs text-[#8a8a8a]">
+        <div className="truncate">{appName}</div>
       </div>
     </div>
   )
@@ -759,106 +616,77 @@ function Sidebar({
 
 type MessageRowProps = {
   message: ChatMessage
-  assistantName: string
   copiedMessageId: string
   onCopy: (content: string, messageId: string) => void
 }
 
-function MessageRow({ message, assistantName, copiedMessageId, onCopy }: MessageRowProps) {
+function MessageRow({ message, copiedMessageId, onCopy }: MessageRowProps) {
   const isUser = message.role === "user"
-  return (
-    <article className={`flex ${isUser ? "justify-end" : "justify-start"}`}>
-      <div className={`max-w-[min(46rem,100%)] ${isUser ? "ml-12" : "mr-12"} w-full`}>
-        <div
-          className={`rounded-xl border px-4 py-4 shadow-[0_10px_30px_rgba(0,0,0,0.16)] sm:px-5 ${
-            isUser
-              ? "border-cyan-500/20 bg-cyan-500/15 text-white"
-              : "border-white/10 bg-[#0b1321]/92 text-slate-100"
-          }`}
-        >
-          <div className="mb-3 flex items-center justify-between gap-3 text-xs text-slate-300/80">
-            <div className="flex items-center gap-2">
-              <span className={`inline-flex h-6 w-6 items-center justify-center rounded-full ${isUser ? "bg-cyan-400/15 text-cyan-200" : "bg-white/10 text-white"}`}>
-                {isUser ? "我" : assistantName.slice(0, 1)}
-              </span>
-              <span className="font-medium text-slate-100">{isUser ? "我" : assistantName}</span>
-              {message.status === "pending" ? <span className="text-cyan-200">回复中</span> : null}
-              {message.status === "error" ? <span className="text-rose-300">异常</span> : null}
-            </div>
-            <div className="flex items-center gap-2">
-              <span>{formatClock(message.createdAt)}</span>
-              {!isUser ? (
-                <button
-                  className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[11px] text-slate-200 transition hover:bg-white/10"
-                  onClick={() => onCopy(message.content, message.id)}
-                >
-                  {copiedMessageId === message.id ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
-                  {copiedMessageId === message.id ? "已复制" : "复制"}
-                </button>
-              ) : null}
-            </div>
-          </div>
-          <MarkdownRenderer content={message.content || (message.status === "pending" ? " " : "暂未生成内容。")} />
+  const isPending = message.status === "pending" && !message.content
+
+  if (isUser) {
+    return (
+      <article className="flex justify-end">
+        <div className="max-w-[min(75%,42rem)] rounded-[1.35rem] bg-[#f4f4f4] px-5 py-3 text-[15px] leading-7 text-[#0d0d0d]">
+          {message.content}
         </div>
+      </article>
+    )
+  }
+
+  return (
+    <article className="group">
+      <div className={`text-[15px] leading-7 ${message.status === "error" ? "text-[#d1242f]" : "text-[#0d0d0d]"}`}>
+        {isPending ? (
+          <div className="flex items-center gap-2 text-sm text-[#6f6f6f]">
+            <Loader2 className="h-4 w-4 animate-spin" />
+            正在回复
+          </div>
+        ) : (
+          <MarkdownRenderer content={message.content || "暂未生成内容。"} />
+        )}
       </div>
+
+      {message.content ? (
+        <button
+          className="mt-2 inline-flex h-8 items-center gap-1.5 rounded-lg px-2 text-xs text-[#6f6f6f] opacity-100 transition hover:bg-[#f4f4f4] hover:text-[#171717] md:opacity-0 md:group-hover:opacity-100"
+          onClick={() => onCopy(message.content, message.id)}
+        >
+          {copiedMessageId === message.id ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+          {copiedMessageId === message.id ? "已复制" : "复制"}
+        </button>
+      ) : null}
     </article>
   )
 }
 
 function EmptyState({
-  appName,
-  assistantName,
-  subtitle,
   prompts,
+  composer,
   onQuickPrompt,
 }: {
-  appName: string
-  assistantName: string
-  subtitle: string
   prompts: string[]
+  composer: ReactNode
   onQuickPrompt: (prompt: string) => void
 }) {
   return (
-    <div className="flex min-h-[calc(100vh-24rem)] flex-col justify-center py-4">
-      <div className="grid gap-6 xl:grid-cols-[1.05fr_0.95fr]">
-        <div className="space-y-5">
-          <div className="inline-flex items-center gap-2 rounded-full border border-cyan-400/20 bg-cyan-400/10 px-3 py-1.5 text-xs text-cyan-200">
-            <Sparkles className="h-3.5 w-3.5" />
-            {appName}
-          </div>
-          <div>
-            <h2 className="max-w-3xl text-3xl font-semibold tracking-tight text-white sm:text-4xl">{assistantName}</h2>
-            <p className="mt-4 max-w-2xl text-base leading-8 text-slate-300">{emptyStateCopy}</p>
-            <p className="mt-4 max-w-2xl text-sm leading-7 text-slate-400">{subtitle}</p>
-          </div>
+    <div className="w-full max-w-3xl">
+      <h1 className="text-center text-3xl font-medium tracking-normal text-[#2f2f2f] sm:text-[2rem]">
+        有什么可以帮忙的？
+      </h1>
 
-          <div className="grid gap-3 sm:grid-cols-3">
-            {insightCards.map((card) => (
-              <div key={card.title} className="rounded-lg border border-white/10 bg-white/[0.03] p-4">
-                <div className="text-sm font-medium text-white">{card.title}</div>
-                <p className="mt-2 text-sm leading-6 text-slate-400">{card.description}</p>
-              </div>
-            ))}
-          </div>
-        </div>
+      <div className="mt-8">{composer}</div>
 
-        <div className="rounded-xl border border-white/10 bg-[#0b1321]/90 p-4 sm:p-5">
-          <div className="text-sm font-medium text-white">快捷问题</div>
-          <div className="mt-4 grid gap-3">
-            {prompts.map((prompt) => (
-              <button
-                key={prompt}
-                className="rounded-lg border border-white/10 bg-white/[0.03] px-4 py-4 text-left text-sm leading-6 text-slate-100 transition hover:border-cyan-500/30 hover:bg-cyan-500/10"
-                onClick={() => onQuickPrompt(prompt)}
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <span>{prompt}</span>
-                  <ArrowUpRight className="mt-0.5 h-4 w-4 shrink-0 text-cyan-300" />
-                </div>
-              </button>
-            ))}
-          </div>
-        </div>
+      <div className="mt-4 flex flex-wrap justify-center gap-2">
+        {prompts.slice(0, 4).map((prompt) => (
+          <button
+            key={prompt}
+            className="max-w-full rounded-full border border-[#e3e3e3] bg-white px-3 py-2 text-sm text-[#4f4f4f] transition hover:bg-[#f7f7f7]"
+            onClick={() => onQuickPrompt(prompt)}
+          >
+            <span className="block max-w-[24rem] truncate">{prompt}</span>
+          </button>
+        ))}
       </div>
     </div>
   )
@@ -874,204 +702,59 @@ function Composer({
   onChange,
   onKeyDown,
   onSubmit,
-  onQuickPrompt,
   onToggleVoice,
 }: {
   draft: string
-  textareaRef: React.RefObject<HTMLTextAreaElement | null>
+  textareaRef: RefObject<HTMLTextAreaElement | null>
   isSending: boolean
   isRecording: boolean
   isTranscribing: boolean
   canTranscribe: boolean
   onChange: (value: string) => void
-  onKeyDown: (event: React.KeyboardEvent<HTMLTextAreaElement>) => void
+  onKeyDown: (event: KeyboardEvent<HTMLTextAreaElement>) => void
   onSubmit: () => void
-  onQuickPrompt: (prompt: string) => void
   onToggleVoice: () => void
 }) {
+  const canSend = draft.trim().length > 0 && !isSending && !isTranscribing
+
   return (
-    <div className="border-t border-white/10 bg-[#07111e]/96 px-4 py-4 backdrop-blur-xl sm:px-6">
-      <div className="mx-auto max-w-5xl space-y-3">
-        <div className="flex flex-wrap items-center gap-2">
-          {starterPrompts.slice(0, 3).map((prompt) => (
-            <button
-              key={prompt}
-              className="rounded-full border border-white/10 bg-white/[0.03] px-3 py-1.5 text-xs text-slate-200 transition hover:bg-white/10"
-              onClick={() => onQuickPrompt(prompt)}
-            >
-              {prompt}
-            </button>
-          ))}
-        </div>
+    <div className="mx-auto w-full max-w-3xl">
+      <div className="rounded-[1.65rem] border border-[#d9d9d9] bg-white p-2 shadow-[0_2px_16px_rgba(0,0,0,0.08)]">
+        <textarea
+          ref={textareaRef}
+          value={draft}
+          onChange={(event) => onChange(event.target.value)}
+          onKeyDown={onKeyDown}
+          placeholder={isTranscribing ? "正在识别语音..." : "给问兰助手发送消息"}
+          className="max-h-48 min-h-14 w-full resize-none bg-transparent px-3 py-3 text-[15px] leading-6 text-[#0d0d0d] outline-none placeholder:text-[#8f8f8f]"
+          rows={1}
+        />
 
-        <div className="rounded-xl border border-white/10 bg-[#0b1321] p-3 shadow-[0_20px_50px_rgba(0,0,0,0.22)]">
-          <textarea
-            ref={textareaRef}
-            value={draft}
-            onChange={(event) => onChange(event.target.value)}
-            onKeyDown={onKeyDown}
-            placeholder="和 问兰后台操作助手 聊天"
-            className="min-h-[5.5rem] w-full resize-none bg-transparent px-2 py-1 text-[15px] leading-7 text-white outline-none placeholder:text-slate-500"
-            rows={3}
-          />
+        <div className="flex items-center justify-between px-1 pb-1">
+          <button
+            className={`inline-flex h-9 w-9 items-center justify-center rounded-full transition ${
+              isRecording
+                ? "bg-[#d1242f] text-white"
+                : "text-[#5f5f5f] hover:bg-[#f4f4f4] disabled:cursor-not-allowed disabled:opacity-35 disabled:hover:bg-transparent"
+            }`}
+            title={canTranscribe ? (isRecording ? "停止录音" : "语音输入") : "语音输入暂不可用"}
+            onClick={onToggleVoice}
+            disabled={!canTranscribe || isTranscribing}
+            aria-label={isRecording ? "停止录音" : "语音输入"}
+          >
+            {isRecording ? <Square className="h-4 w-4 fill-current" /> : <Mic className="h-4 w-4" />}
+          </button>
 
-          <div className="flex flex-wrap items-center justify-between gap-3 border-t border-white/10 px-1 pt-3">
-            <div className="flex items-center gap-2">
-              <button
-                className={`inline-flex h-10 w-10 items-center justify-center rounded-lg border transition ${
-                  isRecording
-                    ? "border-rose-400/40 bg-rose-500/20 text-rose-100"
-                    : "border-white/10 bg-white/[0.03] text-slate-100 hover:bg-white/10"
-                } ${!canTranscribe ? "opacity-60" : ""}`}
-                title={canTranscribe ? (isRecording ? "停止录音" : "语音输入") : "请先配置转写服务"}
-                onClick={onToggleVoice}
-              >
-                {isRecording ? <Square className="h-4 w-4 fill-current" /> : <Mic className="h-4 w-4" />}
-              </button>
-              <button
-                className="inline-flex items-center gap-2 rounded-lg border border-white/10 bg-white/[0.03] px-4 py-2.5 text-sm text-slate-100 transition hover:bg-white/10"
-                onClick={() => onChange("")}
-              >
-                <Trash2 className="h-4 w-4" />
-                清空输入
-              </button>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <button
-                className="inline-flex items-center gap-2 rounded-lg border border-white/10 bg-white/[0.03] px-4 py-2.5 text-sm text-slate-100 transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-50"
-                onClick={onSubmit}
-                disabled={isSending || isTranscribing || !draft.trim()}
-              >
-                {isSending ? <RefreshCcw className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-                {isSending ? "发送中" : isTranscribing ? "转写中" : "发送"}
-              </button>
-            </div>
-          </div>
+          <button
+            className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-[#111111] text-white transition hover:bg-[#303030] disabled:cursor-not-allowed disabled:bg-[#d7d7d7] disabled:text-white"
+            onClick={() => void onSubmit()}
+            disabled={!canSend}
+            aria-label="发送"
+          >
+            {isSending ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowUp className="h-5 w-5" />}
+          </button>
         </div>
       </div>
     </div>
   )
-}
-
-function SettingsDrawer({
-  onClose,
-  serverStatus,
-  initialConfig,
-}: {
-  onClose: () => void
-  serverStatus: ServerStatus
-  initialConfig: PortalConfig
-}) {
-  return (
-    <div className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-sm">
-      <button className="absolute inset-0" aria-label="关闭设置" onClick={onClose} />
-      <aside className="absolute right-0 top-0 h-full w-[min(100vw,32rem)] overflow-y-auto border-l border-white/10 bg-[#07111c] shadow-2xl">
-        <div className="flex items-center justify-between border-b border-white/10 px-5 py-4">
-          <div>
-            <div className="text-base font-semibold text-white">部署与连接</div>
-            <p className="mt-1 text-xs text-slate-400">面向 Vercel 的运行说明</p>
-          </div>
-          <button
-            className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-white/[0.03] text-slate-100 transition hover:bg-white/10"
-            onClick={onClose}
-            aria-label="关闭设置"
-          >
-            <ChevronDown className="h-4 w-4" />
-          </button>
-        </div>
-
-        <div className="space-y-5 p-5">
-          <div className="rounded-lg border border-white/10 bg-white/[0.03] p-4">
-            <div className="flex items-center gap-2 text-sm font-medium text-white">
-              <Bot className="h-4 w-4 text-cyan-300" />
-              当前应用
-            </div>
-            <div className="mt-3 space-y-2 text-sm text-slate-300">
-              <div className="flex justify-between gap-4">
-                <span className="text-slate-400">名称</span>
-                <span className="text-right text-white">{initialConfig.assistantName}</span>
-              </div>
-              <div className="flex justify-between gap-4">
-                <span className="text-slate-400">副标题</span>
-                <span className="text-right text-white">{initialConfig.subtitle}</span>
-              </div>
-              <div className="flex justify-between gap-4">
-                <span className="text-slate-400">状态</span>
-                <span className="text-right text-emerald-200">{serverStatus.chatReady ? "已连接" : "未配置"}</span>
-              </div>
-            </div>
-          </div>
-
-          <div className="rounded-lg border border-white/10 bg-white/[0.03] p-4">
-            <div className="flex items-center gap-2 text-sm font-medium text-white">
-              <ArrowUpRight className="h-4 w-4 text-cyan-300" />
-              Vercel 环境变量
-            </div>
-            <div className="mt-3 space-y-3 text-sm leading-6 text-slate-300">
-              <EnvRow name="CHAT_BACKEND_URL / DIFY_BASE_URL" value={serverStatus.baseUrl || "未配置"} />
-              <EnvRow name="CHAT_BACKEND_KEY / DIFY_API_KEY" value={serverStatus.chatReady ? "已配置" : "未配置"} />
-              <EnvRow name="MIMO_API_KEY" value={serverStatus.transcribeReady ? "已配置" : "未配置"} />
-            </div>
-          </div>
-
-          <div className="rounded-lg border border-white/10 bg-white/[0.03] p-4">
-            <div className="flex items-center gap-2 text-sm font-medium text-white">
-              <AlertTriangle className="h-4 w-4 text-amber-300" />
-              国内访问建议
-            </div>
-            <ul className="mt-3 space-y-2 text-sm leading-6 text-slate-300">
-              <li>Vercel 前端可配自定义域名，移动端会比直接 IP 友好得多。</li>
-              <li>后端接口建议放在你自己的服务器或 CloudBase，再由 Vercel Serverless 代理。</li>
-              <li>如果要追求大陆稳定，香港前端一般比美国更稳一点。</li>
-            </ul>
-          </div>
-        </div>
-      </aside>
-    </div>
-  )
-}
-
-function EnvRow({ name, value }: { name: string; value: string }) {
-  return (
-    <div className="flex items-center justify-between gap-4 rounded-lg border border-white/10 bg-[#09131f] px-3 py-3">
-      <span className="font-mono text-xs tracking-[0.18em] text-cyan-200">{name}</span>
-      <span className="text-right text-sm text-slate-100">{value}</span>
-    </div>
-  )
-}
-
-function SectionTitle({ icon, title }: { icon: React.ReactNode; title: string }) {
-  return (
-    <div className="mt-5 flex items-center gap-2 px-1 text-xs font-semibold uppercase tracking-[0.22em] text-slate-400">
-      <span className="text-cyan-300">{icon}</span>
-      <span>{title}</span>
-    </div>
-  )
-}
-
-function EmptySidebarBlock({
-  title,
-  description,
-  children,
-}: {
-  title: string
-  description: string
-  children: React.ReactNode
-}) {
-  return (
-    <div className="rounded-lg border border-dashed border-white/10 bg-white/[0.03] px-4 py-4">
-      <div className="text-sm font-medium text-white">{title}</div>
-      <p className="mt-1 text-xs leading-5 text-slate-400">{description}</p>
-      <div className="mt-3">{children}</div>
-    </div>
-  )
-}
-
-function MessageSquareIcon() {
-  return <MessageSquareText className="h-4 w-4" />
-}
-
-function LayersIcon() {
-  return <Layers3 className="h-4 w-4" />
 }
