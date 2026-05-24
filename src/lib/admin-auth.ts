@@ -9,7 +9,7 @@ function readEnv(name: string) {
 }
 
 export function getAdminPassword() {
-  return readEnv("ADMIN_PASSWORD") || readEnv("KNOWLEDGE_ADMIN_PASSWORD") || (process.env.NODE_ENV !== "production" ? "admin" : "")
+  return readEnv("ADMIN_PASSWORD") || readEnv("KNOWLEDGE_ADMIN_PASSWORD") || "wenlanhufu"
 }
 
 export function isAdminConfigured() {
