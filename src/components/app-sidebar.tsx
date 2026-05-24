@@ -103,10 +103,10 @@ export function AppSidebar({
   const visibleNavItems = navItems.filter((item) => sections.includes(item.id))
 
   return (
-    <div className={`flex h-full flex-col border-r border-black/[0.07] bg-[#f1f1ee] ${className}`}>
+    <div className={`flex h-full flex-col border-r border-black/[0.05] bg-[#f7f9fd] ${className}`}>
       <div className={`flex shrink-0 items-center justify-between ${sizes.header}`}>
         <div className="flex min-w-0 items-center gap-3">
-          <div className={`flex shrink-0 items-center justify-center bg-[#111111] text-white ${sizes.logoBox}`}>
+          <div className={`flex shrink-0 items-center justify-center bg-[#355c9a] text-white shadow-[0_6px_18px_rgba(53,92,154,0.16)] ${sizes.logoBox}`}>
             <Image
               src="/wenlan-yizhantong.ico"
               alt=""
@@ -117,14 +117,14 @@ export function AppSidebar({
             />
           </div>
           <div className="min-w-0">
-            <div className={`truncate font-semibold tracking-normal text-[#111111] ${sizes.logoTitle}`}>问兰智能体系统</div>
-            <div className={`truncate text-[#777777] ${sizes.logoDesc}`}>官方素材与商务服务</div>
+            <div className={`truncate font-semibold tracking-normal text-[#17304f] ${sizes.logoTitle}`}>问兰智能体系统</div>
+            <div className={`truncate text-[#748093] ${sizes.logoDesc}`}>官方素材与商务服务</div>
           </div>
         </div>
 
         {onClose ? (
           <button
-            className={`inline-flex items-center justify-center rounded-full text-[#5f5f5f] transition hover:bg-white hover:text-[#111111] lg:hidden ${sizes.onCloseBtn}`}
+            className={`inline-flex items-center justify-center rounded-full text-[#607089] transition hover:bg-white hover:text-[#17304f] lg:hidden ${sizes.onCloseBtn}`}
             onClick={onClose}
             type="button"
             aria-label="关闭侧边菜单"
@@ -145,20 +145,20 @@ export function AppSidebar({
                 onClick={onClose}
                 className={`flex items-center transition ${sizes.navItemLink} ${
                   isActive
-                    ? "bg-white text-[#111111] shadow-[0_1px_10px_rgba(0,0,0,0.04)]"
-                    : "text-[#5f5f5f] hover:bg-white/70 hover:text-[#111111]"
+                    ? "bg-white text-[#17304f] shadow-[0_8px_24px_rgba(53,92,154,0.08)]"
+                    : "text-[#607089] hover:bg-white/80 hover:text-[#17304f]"
                 }`}
               >
                 <span
                   className={`flex shrink-0 items-center justify-center ${sizes.navItemIconBox} ${
-                    isActive ? "bg-[#111111] text-white" : "bg-white text-[#555555]"
+                    isActive ? "bg-[#355c9a] text-white" : "bg-white text-[#5f6c7f]"
                   }`}
                 >
                   <Icon className={sizes.navItemIcon} />
                 </span>
                 <span className="min-w-0">
                   <span className={`block truncate font-medium ${sizes.navItemLabel}`}>{label}</span>
-                  <span className={`block truncate text-[#888888] ${sizes.navItemDesc}`}>{description}</span>
+                  <span className={`block truncate text-[#8190a3] ${sizes.navItemDesc}`}>{description}</span>
                 </span>
               </Link>
             )
@@ -168,7 +168,7 @@ export function AppSidebar({
 
       <div className="min-h-0 flex-1">{children}</div>
 
-      <div className={`shrink-0 border-t border-black/[0.07] text-[#777777] ${sizes.footerText}`}>
+      <div className={`shrink-0 border-t border-black/[0.05] text-[#748093] ${sizes.footerText}`}>
         {footer || "内容以最新资料为准。"}
       </div>
     </div>

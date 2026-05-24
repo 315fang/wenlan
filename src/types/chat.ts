@@ -1,10 +1,20 @@
 export type ChatRole = "user" | "assistant"
 
+export interface ChatAttachment {
+  id?: string
+  name?: string
+  url: string
+  kind: "image" | "file"
+  mimeType?: string
+  alt?: string
+}
+
 export interface ChatMessage {
   id: string
   role: ChatRole
   content: string
   status?: "pending" | "done" | "error"
+  attachments?: ChatAttachment[]
   createdAt: string
 }
 

@@ -101,6 +101,11 @@ export type KnowledgeTarget = {
   datasetId: string
 } | null
 
+export type DifyApiTarget = {
+  baseUrl: string
+  apiKey: string
+} | null
+
 function normalizeMimoAudioModel(value: string) {
   const normalized = value.trim().toLowerCase()
   if (normalized === "mimo-v2.5" || normalized === "mimo-v2-omni") {
@@ -149,5 +154,24 @@ export function getKnowledgeTarget(): KnowledgeTarget {
     baseUrl,
     apiKey,
     datasetId,
+  }
+}
+
+export function getDifyApiTarget(): DifyApiTarget {
+  const apiKey = readFirstEnv("DIFY_AGENT_API_KEY", "DIFY_API_KEY")
+  const baseUrl =
+    normalizeDifyApiBase(
+      readEnv("DIFY_AGENT_BASE_URL") ||
+        readEnv("DIFY_KB_BASE_URL") ||
+        readEnv("DIFY_PLATFORM_BASE_URL") ||
+        readEnv("DIFY_BASE_URL") ||
+        "http://119.45.182.109:8888"
+    ) || ""
+
+  if (!apiKey || !baseUrl) return null
+
+  return {
+    baseUrl,
+    apiKey,
   }
 }

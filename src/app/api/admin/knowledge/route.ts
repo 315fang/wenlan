@@ -1,4 +1,4 @@
-import { buildKnowledgeDocumentName, extractArticleSnapshot, parseKnowledgeDocumentName } from "@/lib/knowledge"
+import { buildKnowledgeDocumentName, extractArticleSnapshot, normalizeKnowledgeKey, parseKnowledgeDocumentName } from "@/lib/knowledge"
 import { isAdminConfigured, verifyAdminRequest } from "@/lib/admin-auth"
 import { getKnowledgeTarget } from "@/lib/server"
 import { joinUrl } from "@/lib/url"
@@ -228,6 +228,181 @@ function pickCreatedDocumentId(payload: Record<string, unknown>) {
   return ""
 }
 
+function matchesKnowledgeKey(left: string, right: string) {
+  return normalizeKnowledgeKey(left) === normalizeKnowledgeKey(right)
+}
+
+function stripFileExtension(name: string) {
+  return name.replace(/\.[^.]+$/, "").trim() || name.trim()
+}
+
+function getNextVersion(items: KnowledgeItem[], kind: KnowledgeKind, knowledgeKey: string) {
+  const versions = items
+    .filter((item) => item.kind === kind && matchesKnowledgeKey(item.knowledgeKey, knowledgeKey))
+    .map((item) => item.version)
+  return versions.length > 0 ? Math.max(...versions) + 1 : 1
+}
+
+async function removePreviousVersionsFromItems(
+  items: KnowledgeItem[],
+  kind: KnowledgeKind,
+  knowledgeKey: string,
+  newDocumentId: string
+) {
+  const previous = items.filter(
+    (item) =>
+      item.kind === kind &&
+      matchesKnowledgeKey(item.knowledgeKey, knowledgeKey) &&
+      item.documentId &&
+      item.documentId !== newDocumentId
+  )
+
+  await Promise.all(previous.map((item) => deleteDifyDocument(item.documentId)))
+
+  return {
+    removedCount: previous.length,
+    remaining: items.filter((item) => !previous.some((oldItem) => oldItem.documentId === item.documentId)),
+  }
+}
+
+function appendUploadedItem(params: {
+  documentId: string
+  kind: KnowledgeKind
+  knowledgeKey: string
+  title: string
+  version: number
+}) {
+  const now = new Date().toISOString()
+  return {
+    id: params.documentId || `${params.kind}-${params.knowledgeKey}-${params.version}`,
+    documentId: params.documentId,
+    kind: params.kind,
+    knowledgeKey: params.knowledgeKey,
+    title: params.title,
+    version: params.version,
+    status: "indexing" as const,
+    createdAt: now,
+    updatedAt: now,
+    summary: "",
+  } satisfies KnowledgeItem
+}
+
+async function uploadKnowledgeEntry(params: {
+  items: KnowledgeItem[]
+  kind: KnowledgeKind
+  title: string
+  knowledgeKey?: string
+  version?: number
+  sourceUrl?: string
+  description?: string
+  content?: string
+  file?: File
+}) {
+  const kind = params.kind
+  const inputTitle = params.title.trim()
+  const initialKnowledgeKey = normalizeKnowledgeKey(params.knowledgeKey || inputTitle)
+  let title = inputTitle
+  let knowledgeKey = initialKnowledgeKey
+  let version = params.version || 1
+  let documentName = ""
+  let payload: Record<string, unknown>
+
+  if (kind === "article") {
+    const snapshot = params.content
+      ? { title: title || params.sourceUrl || "未命名资料", text: params.content }
+      : params.sourceUrl
+        ? await extractArticleSnapshot(params.sourceUrl)
+        : { title: title || params.sourceUrl || "未命名资料", text: "" }
+
+    if (!snapshot.text.trim()) {
+      throw new Error("文章上传需要正文内容或可抓取的来源链接")
+    }
+
+    title = title || snapshot.title || params.sourceUrl || "未命名资料"
+    knowledgeKey = normalizeKnowledgeKey(params.knowledgeKey || title)
+    if (!knowledgeKey) {
+      throw new Error("请填写资料标题和关键词")
+    }
+    version = params.version || getNextVersion(params.items, kind, knowledgeKey)
+    documentName = buildKnowledgeDocumentName({
+      kind,
+      knowledgeKey,
+      version,
+      title,
+    })
+    payload = await createDifyTextDocument({
+      name: documentName,
+      text: buildKnowledgeText({
+        kind,
+        title,
+        knowledgeKey,
+        version,
+        sourceUrl: params.sourceUrl,
+        description: params.description,
+        body: snapshot.text,
+      }),
+    })
+  } else if (kind === "table") {
+    if (!(params.file instanceof File)) {
+      throw new Error("请上传表格文件")
+    }
+    if (!title || !knowledgeKey) {
+      throw new Error("请填写资料标题和关键词")
+    }
+    version = params.version || getNextVersion(params.items, kind, knowledgeKey)
+    documentName = buildKnowledgeDocumentName({ kind, knowledgeKey, version, title })
+    payload = await createDifyFileDocument({
+      name: documentName,
+      file: params.file,
+    })
+  } else {
+    if (!title || !knowledgeKey) {
+      throw new Error("请填写资料标题和关键词")
+    }
+    if (!(params.file instanceof File)) {
+      throw new Error("请上传图片文件")
+    }
+    version = params.version || getNextVersion(params.items, kind, knowledgeKey)
+    documentName = buildKnowledgeDocumentName({ kind, knowledgeKey, version, title })
+    const uploaded = await uploadImageFile(params.file)
+    const fileId = uploaded && typeof uploaded.id === "string" ? uploaded.id : ""
+    payload = await createDifyTextDocument({
+      name: documentName,
+      text: buildKnowledgeText({
+        kind,
+        title,
+        knowledgeKey,
+        version,
+        sourceUrl: params.sourceUrl,
+        description: params.description,
+        fileName: params.file.name,
+        fileId,
+        body:
+          params.description ||
+          "图片素材已上传。建议补充图片用途、画面内容、适用场景或图片识别文字，方便问兰智能体系统准确引用。",
+      }),
+    })
+  }
+
+  const documentId = pickCreatedDocumentId(payload)
+  const { removedCount, remaining } = documentId
+    ? await removePreviousVersionsFromItems(params.items, kind, knowledgeKey, documentId)
+    : { removedCount: 0, remaining: params.items }
+
+  const nextItems = documentId
+    ? [appendUploadedItem({ documentId, kind, knowledgeKey, title, version }), ...remaining]
+    : remaining
+
+  return {
+    documentId,
+    removedPrevious: removedCount,
+    items: nextItems,
+    title,
+    knowledgeKey,
+    version,
+  }
+}
+
 function buildKnowledgeText(params: {
   kind: KnowledgeKind
   title: string
@@ -254,16 +429,6 @@ function buildKnowledgeText(params: {
   ]
     .filter((line) => line !== "")
     .join("\n")
-}
-
-async function removePreviousVersions(kind: KnowledgeKind, knowledgeKey: string, newDocumentId: string) {
-  const { items } = await listDifyDocuments(100)
-  const previous = items.filter(
-    (item) => item.kind === kind && item.knowledgeKey === knowledgeKey && item.documentId && item.documentId !== newDocumentId
-  )
-
-  await Promise.all(previous.map((item) => deleteDifyDocument(item.documentId)))
-  return previous.length
 }
 
 export async function GET(request: Request) {
@@ -311,95 +476,137 @@ export async function POST(request: Request) {
 
     const formData = await request.formData()
     const kind = asString(formData.get("kind")) as KnowledgeKind
+    const mode = asString(formData.get("mode")) as "single" | "batch"
     if (!allowedKinds.includes(kind)) {
       return Response.json({ error: "资料类型只能是文章、表格或图片" }, { status: 400 })
+    }
+    if (mode !== "single" && mode !== "batch") {
+      return Response.json({ error: "上传模式只能是单条或批量" }, { status: 400 })
     }
 
     const sourceUrl = asString(formData.get("sourceUrl"))
     const description = asString(formData.get("description"))
     const file = formData.get("file")
+    const content = asString(formData.get("content"))
     const version = Number(asString(formData.get("version")) || "1") || 1
     let title = asString(formData.get("title"))
     const knowledgeKey = asString(formData.get("knowledgeKey")) || title
 
-    if (!title && file instanceof File) {
-      title = file.name
-    }
-    if (!title && sourceUrl) {
-      title = sourceUrl
-    }
-    if (!title || !knowledgeKey) {
-      return Response.json({ error: "请填写资料标题和关键词" }, { status: 400 })
+    if (mode === "single") {
+      if (!title && file instanceof File) {
+        title = file.name
+      }
+      const result = await uploadKnowledgeEntry({
+        items: (await listDifyDocuments(100)).items,
+        kind,
+        title,
+        knowledgeKey,
+        version,
+        sourceUrl,
+        description,
+        content,
+        file: file instanceof File ? file : undefined,
+      })
+
+      return Response.json({
+        ok: true,
+        documentId: result.documentId,
+        removedPrevious: result.removedPrevious,
+      })
     }
 
-    let payload: Record<string, unknown>
-    let documentName = buildKnowledgeDocumentName({ kind, knowledgeKey, version, title })
+    const initialItems = (await listDifyDocuments(100)).items
+    let workingItems = initialItems
+    let createdCount = 0
+    let failedCount = 0
+    let removedPrevious = 0
+    const failures: Array<{ title: string; error: string }> = []
 
     if (kind === "article") {
-      const manualText = asString(formData.get("content"))
-      const snapshot = manualText
-        ? { title, text: manualText }
-        : sourceUrl
-          ? await extractArticleSnapshot(sourceUrl)
-          : { title, text: "" }
+      const urls = asString(formData.get("batchUrls"))
+        .split(/\r?\n/)
+        .map((line) => line.trim())
+        .filter(Boolean)
 
-      if (!snapshot.text.trim()) {
-        return Response.json({ error: "文章上传需要正文内容或可抓取的来源链接" }, { status: 400 })
+      if (urls.length === 0) {
+        return Response.json({ error: "请至少填写一个文章链接" }, { status: 400 })
       }
 
-      title = title || snapshot.title
-      documentName = buildKnowledgeDocumentName({ kind, knowledgeKey, version, title })
-      payload = await createDifyTextDocument({
-        name: documentName,
-        text: buildKnowledgeText({
-          kind,
-          title,
-          knowledgeKey,
-          version,
-          sourceUrl,
-          description,
-          body: snapshot.text,
-        }),
-      })
-    } else if (kind === "table") {
-      if (!(file instanceof File)) {
-        return Response.json({ error: "请上传表格文件" }, { status: 400 })
+      for (const url of urls) {
+        try {
+          const snapshot = await extractArticleSnapshot(url)
+          const resolvedTitle = snapshot.title?.trim() || url
+          const result = await uploadKnowledgeEntry({
+            items: workingItems,
+            kind,
+            title: resolvedTitle,
+            knowledgeKey: snapshot.title || resolvedTitle,
+            sourceUrl: url,
+            description,
+            content: snapshot.text,
+          })
+          workingItems = result.items
+          createdCount += 1
+          removedPrevious += result.removedPrevious
+        } catch (error) {
+          failedCount += 1
+          failures.push({
+            title: url,
+            error: error instanceof Error ? error.message : "上传失败",
+          })
+        }
       }
-      payload = await createDifyFileDocument({
-        name: documentName,
-        file,
-      })
     } else {
-      if (!(file instanceof File)) {
-        return Response.json({ error: "请上传图片文件" }, { status: 400 })
+      const files = formData
+        .getAll("files")
+        .filter((entry): entry is File => entry instanceof File && entry.size > 0)
+
+      if (files.length === 0) {
+        return Response.json({ error: "请至少选择一个文件" }, { status: 400 })
       }
-      const uploaded = await uploadImageFile(file)
-      const fileId = uploaded && typeof uploaded.id === "string" ? uploaded.id : ""
-      payload = await createDifyTextDocument({
-        name: documentName,
-        text: buildKnowledgeText({
-          kind,
-          title,
-          knowledgeKey,
-          version,
-          sourceUrl,
-          description,
-          fileName: file.name,
-          fileId,
-          body:
-            description ||
-            "图片素材已上传。建议补充图片用途、画面内容、适用场景或图片识别文字，方便问兰智能体系统准确引用。",
-        }),
-      })
+
+      for (const itemFile of files) {
+        try {
+          const baseTitle = stripFileExtension(itemFile.name)
+          const result = await uploadKnowledgeEntry({
+            items: workingItems,
+            kind,
+            title: baseTitle,
+            knowledgeKey: baseTitle,
+            description,
+            file: itemFile,
+          })
+          workingItems = result.items
+          createdCount += 1
+          removedPrevious += result.removedPrevious
+        } catch (error) {
+          failedCount += 1
+          failures.push({
+            title: itemFile.name,
+            error: error instanceof Error ? error.message : "上传失败",
+          })
+        }
+      }
     }
 
-    const documentId = pickCreatedDocumentId(payload)
-    const removedPrevious = documentId ? await removePreviousVersions(kind, knowledgeKey, documentId) : 0
+    if (createdCount === 0) {
+      return Response.json(
+        {
+          error: failures[0]?.error || "批量上传失败",
+          createdCount,
+          failedCount,
+          failures,
+        },
+        { status: 400 }
+      )
+    }
 
     return Response.json({
       ok: true,
-      documentId,
+      createdCount,
+      failedCount,
       removedPrevious,
+      failures,
     })
   } catch (error) {
     const message = error instanceof Error ? error.message : "上传知识资料失败"

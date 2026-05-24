@@ -6,8 +6,8 @@
 
 :root {
   color-scheme: light;
-  --background: #ffffff;
-  --foreground: #0d0d0d;
+  --background: #f7fafc;
+  --foreground: #102033;
 }
 
 @theme inline {
@@ -41,6 +41,6 @@ select {
 }
 
 ::selection {
-  background: rgba(13, 13, 13, 0.12);
-  color: #0d0d0d;
+  background: rgba(53, 92, 154, 0.14);
+  color: #102033;
 }

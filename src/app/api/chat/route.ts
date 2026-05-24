@@ -1,3 +1,4 @@
+import { defaultSystemPrompt } from "@/lib/prompts"
 import { getChatTarget } from "@/lib/server"
 
 export const runtime = "nodejs"
@@ -93,6 +94,25 @@ function extractConversationId(data: unknown) {
   return ""
 }
 
+function extractAttachments(data: unknown) {
+  if (!data || typeof data !== "object") return []
+  const record = data as Record<string, unknown>
+  const source: unknown[] = []
+  for (const key of ["files", "attachments", "message_files", "images"] as const) {
+    if (Array.isArray(record[key])) source.push(...record[key])
+  }
+
+  const nested = record.data
+  if (nested && typeof nested === "object") {
+    const nestedRecord = nested as Record<string, unknown>
+    for (const key of ["files", "attachments", "message_files", "images"] as const) {
+      if (Array.isArray(nestedRecord[key])) source.push(...nestedRecord[key])
+    }
+  }
+
+  return source
+}
+
 async function parseJsonError(response: Response) {
   const text = await response.text()
   try {
@@ -117,6 +137,15 @@ function normalizeUpstreamError(status: number, detail: string) {
 function isEventStream(response: Response) {
   const contentType = response.headers.get("content-type") || ""
   return contentType.includes("text/event-stream")
+}
+
+function buildRoutedMessage(message: string) {
+  return [
+    "请严格按以下风格回答：",
+    defaultSystemPrompt,
+    "",
+    `用户问题：${message}`,
+  ].join("\n")
 }
 
 export async function POST(request: Request) {
@@ -146,7 +175,7 @@ export async function POST(request: Request) {
       },
       body: JSON.stringify({
         inputs: {},
-        query: message,
+        query: buildRoutedMessage(message),
         response_mode: "streaming",
         conversation_id: body.conversationId || body.conversation_id || "",
         user: body.userId || body.user_id || "wenlan-user",
@@ -202,13 +231,14 @@ export async function POST(request: Request) {
     method: "POST",
     headers: upstreamHeaders,
     body: JSON.stringify({
-      message,
+      message: buildRoutedMessage(message),
       conversationId: body.conversationId || body.conversation_id || "",
       conversation_id: body.conversationId || body.conversation_id || "",
       userId: body.userId || body.user_id || "wenlan-user",
       user_id: body.userId || body.user_id || "wenlan-user",
       pagePath: body.pagePath || body.page_path || "",
       page_path: body.pagePath || body.page_path || "",
+      systemPrompt: defaultSystemPrompt,
     }),
   })
 
@@ -231,12 +261,16 @@ export async function POST(request: Request) {
   const fallback = await response.json().catch(() => ({}))
   const answer = extractText(fallback)
   const conversationId = extractConversationId(fallback)
+  const attachments = extractAttachments(fallback)
   return buildSseResponse([
     {
       event: "message",
       data: {
+        ...(fallback && typeof fallback === "object" ? (fallback as Record<string, unknown>) : {}),
         answer,
         conversation_id: conversationId,
+        files: attachments,
+        attachments,
       },
     },
     {

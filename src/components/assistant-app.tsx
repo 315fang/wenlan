@@ -1,5 +1,7 @@
 "use client"
 
+/* eslint-disable @next/next/no-img-element */
+
 import type { KeyboardEvent, PointerEvent as ReactPointerEvent, ReactNode, RefObject } from "react"
 import Image from "next/image"
 import { useEffect, useMemo, useRef, useState } from "react"
@@ -32,7 +34,7 @@ import {
   trimText,
   writeStoredJson,
 } from "@/lib/storage"
-import type { ChatConversation, ChatMessage, PortalConfig, ServerStatus } from "@/types/chat"
+import type { ChatAttachment, ChatConversation, ChatMessage, PortalConfig, ServerStatus } from "@/types/chat"
 
 type AssistantAppProps = {
   initialConfig: PortalConfig
@@ -42,6 +44,11 @@ type StreamEvent = {
   event?: string
   answer?: string
   conversation_id?: string
+  files?: unknown[]
+  attachments?: unknown[]
+  message_files?: unknown[]
+  images?: unknown[]
+  data?: unknown
   [key: string]: unknown
 }
 
@@ -114,6 +121,169 @@ function parseSseBlock(block: string) {
 
 function buildConversationTitle(prompt: string) {
   return trimText(prompt.replace(/[？?。，、:：]/g, " "), 16)
+}
+
+function sanitizeAssistantReply(text: string) {
+  let cleaned = text
+    .replace(/\r\n/g, "\n")
+    .replace(/[ \t]+\n/g, "\n")
+    .replace(/<think>[\s\S]*?<\/think>/gi, "")
+    .replace(/<\/?think>/gi, "")
+    .trim()
+
+  const cutMarkers = [
+    "如果您还有其他问题",
+    "欢迎继续提问",
+    "建议联系后台补充上传",
+    "如需更详细的信息",
+    "如需更详尽的信息",
+  ]
+
+  let cutIndex = -1
+  for (const marker of cutMarkers) {
+    const markerIndex = cleaned.indexOf(marker)
+    if (markerIndex !== -1 && (cutIndex === -1 || markerIndex < cutIndex)) {
+      cutIndex = markerIndex
+    }
+  }
+
+  if (cutIndex !== -1) {
+    cleaned = cleaned.slice(0, cutIndex).trim()
+  }
+
+  const fallbackPatterns = [
+    /后台没有/,
+    /资料库没有/,
+    /当前资料未覆盖/,
+    /资料未覆盖/,
+    /没有搜索到/,
+    /没有检索到/,
+    /未单独列出/,
+  ]
+
+  if (fallbackPatterns.some((pattern) => pattern.test(cleaned))) {
+    return "你可以提问的再具体一些，便于我回答。\n\n我们品牌方会尽快明确政策，给您答复反馈。"
+  }
+
+  return cleaned.replace(/[。！？,，、；;：:\s]+$/g, "").trim()
+}
+
+function isImageUrl(value: string) {
+  return value.startsWith("data:image/") || /\.(png|jpe?g|gif|webp|avif|bmp|svg)(\?.*)?$/i.test(value)
+}
+
+function normalizeAttachment(candidate: unknown, fallbackKind?: ChatAttachment["kind"]): ChatAttachment | null {
+  if (!candidate) return null
+  if (typeof candidate === "string") {
+    const url = candidate.trim()
+    if (!url) return null
+    return {
+      url,
+      kind: fallbackKind || (isImageUrl(url) ? "image" : "file"),
+    }
+  }
+  if (typeof candidate !== "object") return null
+
+  const record = candidate as Record<string, unknown>
+  const id = typeof record.id === "string" ? record.id.trim() : ""
+  const fileId =
+    typeof record.file_id === "string"
+      ? record.file_id.trim()
+      : typeof record.fileId === "string"
+        ? record.fileId.trim()
+        : id
+  const rawUrl =
+    typeof record.url === "string"
+      ? record.url.trim()
+      : typeof record.preview_url === "string"
+        ? record.preview_url.trim()
+        : typeof record.previewUrl === "string"
+          ? record.previewUrl.trim()
+          : typeof record.source_url === "string"
+            ? record.source_url.trim()
+            : typeof record.sourceUrl === "string"
+              ? record.sourceUrl.trim()
+              : typeof record.original_url === "string"
+                ? record.original_url.trim()
+                : typeof record.originalUrl === "string"
+                  ? record.originalUrl.trim()
+                  : ""
+  const mimeType =
+    typeof record.mime_type === "string"
+      ? record.mime_type.trim()
+      : typeof record.mimeType === "string"
+        ? record.mimeType.trim()
+        : ""
+  const name =
+    typeof record.name === "string"
+      ? record.name.trim()
+      : typeof record.filename === "string"
+        ? record.filename.trim()
+        : typeof record.file_name === "string"
+          ? record.file_name.trim()
+          : ""
+  const alt =
+    typeof record.alt === "string"
+      ? record.alt.trim()
+      : typeof record.text === "string"
+        ? record.text.trim()
+        : name
+
+  const url = rawUrl || (fileId ? `/api/files/${encodeURIComponent(fileId)}/preview` : "")
+  if (!url) return null
+
+  const kind =
+    typeof record.kind === "string"
+      ? record.kind === "image"
+        ? "image"
+        : "file"
+      : fallbackKind
+        ? fallbackKind
+      : mimeType.startsWith("image/") || isImageUrl(url)
+        ? "image"
+        : "file"
+
+  return {
+    id: id || fileId || undefined,
+    name: name || undefined,
+    url,
+    kind,
+    mimeType: mimeType || undefined,
+    alt: alt || undefined,
+  }
+}
+
+function mergeAttachments(existing: ChatAttachment[], incoming: ChatAttachment[]) {
+  const map = new Map<string, ChatAttachment>()
+  for (const attachment of existing) {
+    map.set(`${attachment.kind}:${attachment.url}`, attachment)
+  }
+  for (const attachment of incoming) {
+    map.set(`${attachment.kind}:${attachment.url}`, attachment)
+  }
+  return Array.from(map.values())
+}
+
+function extractAttachmentsFromPayload(payload: StreamEvent) {
+  const source: Array<{ value: unknown; kind?: ChatAttachment["kind"] }> = []
+
+  if (Array.isArray(payload.files)) source.push(...payload.files.map((value) => ({ value })))
+  if (Array.isArray(payload.attachments)) source.push(...payload.attachments.map((value) => ({ value })))
+  if (Array.isArray(payload.message_files)) source.push(...payload.message_files.map((value) => ({ value })))
+  if (Array.isArray(payload.images)) source.push(...payload.images.map((value) => ({ value, kind: "image" as const })))
+
+  const nested = payload.data
+  if (nested && typeof nested === "object") {
+    const nestedRecord = nested as Record<string, unknown>
+    if (Array.isArray(nestedRecord.files)) source.push(...nestedRecord.files.map((value) => ({ value })))
+    if (Array.isArray(nestedRecord.attachments)) source.push(...nestedRecord.attachments.map((value) => ({ value })))
+    if (Array.isArray(nestedRecord.message_files)) source.push(...nestedRecord.message_files.map((value) => ({ value })))
+    if (Array.isArray(nestedRecord.images)) source.push(...nestedRecord.images.map((value) => ({ value, kind: "image" as const })))
+  }
+
+  return source
+    .map((item) => normalizeAttachment(item.value, item.kind))
+    .filter((item): item is ChatAttachment => Boolean(item))
 }
 
 function scrollElementIntoView(ref: RefObject<HTMLDivElement | null>) {
@@ -231,7 +401,7 @@ const fontSizeStyles: Record<
     sidebarItemBtn: "px-3.5 py-2.5",
     sidebarPrefBtn: "h-8 text-[12px] rounded-lg",
     messageSpacing: "space-y-4 py-4 pb-10",
-    userBubble: "px-3 py-2 rounded-xl max-w-[84%] bg-[#e3effd] border border-[#d2e3fc]/30",
+    userBubble: "px-3 py-2 rounded-xl max-w-[84%] bg-[#eaf3ff] border border-[#d8e4f2]/60",
     copyBtn: "h-8 px-2.5 text-[11px] gap-1.5",
     welcomeShell: "px-4 py-4",
     welcomeLogoBox: "h-12 w-12 rounded-xl p-1.5",
@@ -240,7 +410,7 @@ const fontSizeStyles: Record<
     welcomeTitleMargin: "mt-3",
     welcomeCopyMargin: "mt-2.5",
     welcomeChipMargin: "mt-4",
-    welcomeFeatureChip: "rounded-full border border-[#e5e5e5] bg-[#fafafa] px-3 py-1 text-[11.5px] font-medium text-[#555]",
+    welcomeFeatureChip: "rounded-full border border-[#dfe7f2] bg-[#fbfdff] px-3 py-1 text-[11.5px] font-medium text-[#5d6878]",
     qaSpacing: "space-y-2",
     qaPadding: "gap-3 rounded-xl p-3",
     qaIconBox: "h-9 w-9 rounded-lg",
@@ -267,7 +437,7 @@ const fontSizeStyles: Record<
     sidebarItemBtn: "px-4 py-3",
     sidebarPrefBtn: "h-9 text-[13.5px] rounded-xl",
     messageSpacing: "space-y-5.5 py-5 pb-12",
-    userBubble: "px-4 py-2.5 rounded-2xl max-w-[84%] bg-[#e3effd] border border-[#d2e3fc]/30",
+    userBubble: "px-4 py-2.5 rounded-2xl max-w-[84%] bg-[#eaf3ff] border border-[#d8e4f2]/60",
     copyBtn: "h-9 px-3 text-[12.5px] gap-2",
     welcomeShell: "px-4 py-3",
     welcomeLogoBox: "h-13 w-13 rounded-2xl p-1.5",
@@ -276,7 +446,7 @@ const fontSizeStyles: Record<
     welcomeTitleMargin: "mt-3",
     welcomeCopyMargin: "mt-2",
     welcomeChipMargin: "mt-4",
-    welcomeFeatureChip: "rounded-full border border-[#e5e5e5] bg-[#fafafa] px-3.5 py-1.5 text-[13px] font-medium text-[#555]",
+    welcomeFeatureChip: "rounded-full border border-[#dfe7f2] bg-[#fbfdff] px-3.5 py-1.5 text-[13px] font-medium text-[#5d6878]",
     qaSpacing: "space-y-2",
     qaPadding: "gap-3 rounded-2xl p-3",
     qaIconBox: "h-10 w-10 rounded-xl",
@@ -303,7 +473,7 @@ const fontSizeStyles: Record<
     sidebarItemBtn: "px-5 py-4",
     sidebarPrefBtn: "h-10 text-[15px] rounded-xl",
     messageSpacing: "space-y-7 py-6 pb-14",
-    userBubble: "px-5 py-3 rounded-2xl max-w-[84%] bg-[#e3effd] border border-[#d2e3fc]/30",
+    userBubble: "px-5 py-3 rounded-2xl max-w-[84%] bg-[#eaf3ff] border border-[#d8e4f2]/60",
     copyBtn: "h-10 px-3.5 text-[14px] gap-2.5",
     welcomeShell: "px-6 py-6",
     welcomeLogoBox: "h-18 w-18 rounded-2xl p-2.5",
@@ -312,7 +482,7 @@ const fontSizeStyles: Record<
     welcomeTitleMargin: "mt-5",
     welcomeCopyMargin: "mt-4",
     welcomeChipMargin: "mt-6",
-    welcomeFeatureChip: "rounded-full border border-[#e5e5e5] bg-[#fafafa] px-4 py-2 text-[14.5px] font-medium text-[#555]",
+    welcomeFeatureChip: "rounded-full border border-[#dfe7f2] bg-[#fbfdff] px-4 py-2 text-[14.5px] font-medium text-[#5d6878]",
     qaSpacing: "space-y-3.5",
     qaPadding: "gap-4 rounded-2xl p-4",
     qaIconBox: "h-12.5 w-12.5 rounded-xl",
@@ -341,7 +511,7 @@ const desktopBaseStyles = {
   sidebarItemBtn: "px-3 py-2",
   sidebarPrefBtn: "h-8 text-xs rounded-lg",
   messageSpacing: "space-y-7 py-6 pb-10",
-  userBubble: "px-5 py-3 rounded-[1.35rem] max-w-[75%] bg-[#f4f4f4]",
+  userBubble: "px-5 py-3 rounded-[1.35rem] max-w-[75%] bg-[#edf4fb]",
   copyBtn: "h-8 px-2 text-xs gap-1.5",
   welcomeShell: "rounded-[2rem] px-5 py-5 sm:px-6 sm:py-6",
   welcomeLogoBox: "h-12 w-12 rounded-xl p-1.5",
@@ -350,7 +520,7 @@ const desktopBaseStyles = {
   welcomeTitleMargin: "mt-3",
   welcomeCopyMargin: "mt-3",
   welcomeChipMargin: "mt-4",
-  welcomeFeatureChip: "rounded-full border border-[#e5e5e5] bg-[#fafafa] px-3 py-1.5 text-xs font-medium text-[#555]",
+  welcomeFeatureChip: "rounded-full border border-[#dfe7f2] bg-[#fbfdff] px-3 py-1.5 text-xs font-medium text-[#5d6878]",
   qaSpacing: "space-y-2",
   qaPadding: "gap-4 rounded-2xl px-1 py-3",
   qaIconBox: "h-11 w-11 rounded-2xl",
@@ -671,11 +841,24 @@ export function AssistantApp({ initialConfig }: AssistantAppProps) {
     }))
   }
 
-  function updateMessage(conversationId: string, messageId: string, nextContent: string, status?: ChatMessage["status"]) {
+  function updateMessage(
+    conversationId: string,
+    messageId: string,
+    nextContent: string,
+    status?: ChatMessage["status"],
+    attachments?: ChatAttachment[]
+  ) {
     patchConversation(conversationId, (conversation) => ({
       ...conversation,
       messages: conversation.messages.map((message) =>
-        message.id === messageId ? { ...message, content: nextContent, status } : message
+        message.id === messageId
+          ? {
+              ...message,
+              content: nextContent,
+              status,
+              attachments: attachments ?? message.attachments,
+            }
+          : message
       ),
       updatedAt: new Date().toISOString(),
     }))
@@ -715,6 +898,7 @@ export function AssistantApp({ initialConfig }: AssistantAppProps) {
       id: assistantMessageId,
       role: "assistant",
       content: "",
+      attachments: [],
       createdAt: new Date().toISOString(),
       status: "pending",
     }
@@ -750,6 +934,7 @@ export function AssistantApp({ initialConfig }: AssistantAppProps) {
       const decoder = new TextDecoder("utf-8")
       let buffer = ""
       let assistantText = ""
+      let assistantAttachments: ChatAttachment[] = []
       let latestConversationId = conversation.difyConversationId || ""
 
       while (true) {
@@ -768,18 +953,41 @@ export function AssistantApp({ initialConfig }: AssistantAppProps) {
             if (typeof payload.conversation_id === "string" && payload.conversation_id) {
               latestConversationId = payload.conversation_id
             }
+            const incomingAttachments = extractAttachmentsFromPayload(payload)
+            if (incomingAttachments.length > 0) {
+              assistantAttachments = mergeAttachments(assistantAttachments, incomingAttachments)
+            }
             if (typeof payload.answer === "string" && payload.answer) {
               assistantText += payload.answer
-              updateMessage(conversationId, assistantMessageId, assistantText, "pending")
-            } else if (payload.event === "message_end" && assistantText) {
-              updateMessage(conversationId, assistantMessageId, assistantText, "done")
+              updateMessage(
+                conversationId,
+                assistantMessageId,
+                sanitizeAssistantReply(assistantText),
+                "pending",
+                assistantAttachments
+              )
+            } else if ((payload.event === "message_end" || parsed.event === "message_end") && (assistantText || assistantAttachments.length > 0)) {
+              updateMessage(
+                conversationId,
+                assistantMessageId,
+                sanitizeAssistantReply(assistantText),
+                "done",
+                assistantAttachments
+              )
             }
           }
           delimiterIndex = buffer.indexOf("\n\n")
         }
       }
 
-      updateMessage(conversationId, assistantMessageId, assistantText || "模型暂时没有返回正文。", "done")
+      updateMessage(
+        conversationId,
+        assistantMessageId,
+        sanitizeAssistantReply(assistantText) ||
+          (assistantAttachments.length > 0 ? "" : "你可以提问的再具体一些，便于我回答。"),
+        "done",
+        assistantAttachments
+      )
       if (latestConversationId) {
         patchConversation(conversationId, (item) => ({
           ...item,
@@ -789,7 +997,7 @@ export function AssistantApp({ initialConfig }: AssistantAppProps) {
       }
     } catch (error) {
       const message = error instanceof Error ? error.message : "助手暂时无法回复"
-      updateMessage(conversationId, assistantMessageId, message, "error")
+      updateMessage(conversationId, assistantMessageId, message, "error", [])
     } finally {
       setIsSending(false)
     }
@@ -1031,16 +1239,7 @@ export function AssistantApp({ initialConfig }: AssistantAppProps) {
     return (
     <div className="flex h-full flex-col gap-3 px-3 pb-3 pt-1">
       <button
-        className={`inline-flex items-center justify-center bg-[#111111] font-medium text-white transition hover:bg-[#2f2f2f] ${uiClasses.sidebarNewChatBtn}`}
-        onClick={startNewChat}
-        type="button"
-      >
-        <CircleDashed className={uiFontSize === "lg" ? "h-5 w-5" : "h-4 w-4"} />
-        新对话
-      </button>
-
-      <button
-        className={`inline-flex items-center justify-center border border-black/[0.08] bg-white font-medium text-[#222222] transition hover:bg-[#f7f7f7] ${uiClasses.sidebarGuideBtn}`}
+        className={`inline-flex items-center justify-center border border-black/[0.08] bg-white font-medium text-[#244062] transition hover:bg-[#f4f8fd] ${uiClasses.sidebarGuideBtn}`}
         onClick={openGuideModal}
         type="button"
       >
@@ -1054,19 +1253,19 @@ export function AssistantApp({ initialConfig }: AssistantAppProps) {
           {centerActions.map(({ icon: Icon, title, description, prompt }) => (
             <button
               key={title}
-              className={`flex w-full items-center gap-3 rounded-2xl border border-black/[0.06] bg-white text-left transition hover:border-black/[0.1] hover:bg-[#fafafa] ${uiClasses.sidebarItemBtn}`}
+              className={`flex w-full items-center gap-3 rounded-2xl border border-black/[0.06] bg-white text-left transition hover:border-black/[0.08] hover:bg-[#f5f9fe] ${uiClasses.sidebarItemBtn}`}
               onClick={() => {
                 setMobileSidebarOpen(false)
                 void handleQuickPrompt(prompt)
               }}
               type="button"
             >
-              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#111111] text-white">
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#355c9a] text-white">
                 <Icon className={uiFontSize === "lg" ? "h-5 w-5" : "h-4 w-4"} />
               </span>
               <span className="min-w-0">
-                <span className={`block truncate font-semibold text-[#111111] ${uiClasses.sidebarItemTitle}`}>{title}</span>
-                <span className={`mt-0.5 block truncate text-[#777777] ${uiClasses.sidebarItemDate}`}>{description}</span>
+                <span className={`block truncate font-semibold text-[#17304f] ${uiClasses.sidebarItemTitle}`}>{title}</span>
+                <span className={`mt-0.5 block truncate text-[#748093] ${uiClasses.sidebarItemDate}`}>{description}</span>
               </span>
             </button>
           ))}
@@ -1090,12 +1289,12 @@ export function AssistantApp({ initialConfig }: AssistantAppProps) {
                   onClick={() => selectConversation(conversation.id)}
                   type="button"
                 >
-                  <div className={`truncate font-medium text-[#111111] ${uiClasses.sidebarItemTitle}`}>{conversation.title}</div>
+                  <div className={`truncate font-medium text-[#17304f] ${uiClasses.sidebarItemTitle}`}>{conversation.title}</div>
                   <div className={`mt-1 truncate text-[#878787] ${uiClasses.sidebarItemDate}`}>{formatClock(conversation.updatedAt)}</div>
                 </button>
 
                 <button
-                  className={`mt-1 inline-flex shrink-0 items-center justify-center rounded-full text-[#777777] opacity-100 transition hover:bg-red-50 hover:text-red-600 md:opacity-0 md:group-hover:opacity-100 ${
+                  className={`mt-1 inline-flex shrink-0 items-center justify-center rounded-full text-[#8190a3] opacity-100 transition hover:bg-red-50 hover:text-red-600 md:opacity-0 md:group-hover:opacity-100 ${
                     uiFontSize === "sm" ? "h-9 w-9" : uiFontSize === "md" ? "h-11 w-11" : "h-13 w-13"
                   }`}
                   onClick={() => deleteConversation(conversation.id)}
@@ -1110,28 +1309,37 @@ export function AssistantApp({ initialConfig }: AssistantAppProps) {
         </div>
       </div>
 
-      {showPreferences ? (
       <div className="mt-auto shrink-0 space-y-3 border-t border-black/[0.05] px-1 pt-3">
-        <div className="flex flex-col gap-1.5">
-          <div className="grid grid-cols-2 gap-1 rounded-xl bg-black/[0.04] p-1">
-            {displayModeOptions.map((option) => (
-              <button
-                key={option.value}
-                className={`rounded-lg font-medium transition ${
-                  option.value === displayMode
-                    ? "bg-white text-[#111111] shadow-sm"
-                    : "text-[#5f5f5f] hover:text-[#111111] hover:bg-black/[0.02]"
-                } ${uiClasses.sidebarPrefBtn}`}
-                onClick={() => changeDisplayMode(option.value)}
-                type="button"
-              >
-                {option.label}
-              </button>
-            ))}
+        <button
+          className={`inline-flex w-full items-center justify-center bg-[#355c9a] font-medium text-white transition hover:bg-[#4a74b6] ${uiClasses.sidebarNewChatBtn}`}
+          onClick={startNewChat}
+          type="button"
+        >
+          <CircleDashed className={uiFontSize === "lg" ? "h-5 w-5" : "h-4 w-4"} />
+          新对话
+        </button>
+
+        {showPreferences ? (
+          <div className="flex flex-col gap-1.5">
+            <div className="grid grid-cols-2 gap-1 rounded-xl bg-black/[0.04] p-1">
+              {displayModeOptions.map((option) => (
+                <button
+                  key={option.value}
+                  className={`rounded-lg font-medium transition ${
+                    option.value === displayMode
+                      ? "bg-white text-[#17304f] shadow-sm"
+                      : "text-[#5f5f5f] hover:text-[#17304f] hover:bg-black/[0.02]"
+                  } ${uiClasses.sidebarPrefBtn}`}
+                  onClick={() => changeDisplayMode(option.value)}
+                  type="button"
+                >
+                  {option.label}
+                </button>
+              ))}
+            </div>
           </div>
-        </div>
+        ) : null}
       </div>
-      ) : null}
     </div>
   )
   }
@@ -1140,7 +1348,7 @@ export function AssistantApp({ initialConfig }: AssistantAppProps) {
   const mobileSidebarBody = renderSidebarBody(mobileFontClasses, fontSize, true)
 
   return (
-    <div className="flex h-dvh overflow-hidden bg-[#f6f6f4] text-[#0d0d0d]">
+    <div className="flex h-dvh overflow-hidden bg-[#f7fafc] text-[#102033]">
       <aside className={`hidden shrink-0 lg:block ${desktopFontClasses.sidebarWidth}`}>
         <AppSidebar active="chat" sections={[]} fontSizeMode={desktopFontSize}>
           {desktopSidebarBody}
@@ -1159,12 +1367,12 @@ export function AssistantApp({ initialConfig }: AssistantAppProps) {
 
       <GuideModal open={guideModalOpen} onClose={() => setGuideModalOpen(false)} />
 
-      <main className="flex min-w-0 flex-1 flex-col bg-[#f6f6f4]">
+      <main className="flex min-w-0 flex-1 flex-col bg-[#f7fafc]">
         <header className="shrink-0 border-b border-black/[0.05] bg-white/[0.96]">
           <div className={`mx-auto flex w-full max-w-[430px] items-center justify-between px-4 lg:hidden ${mobileFontClasses.headerHeight}`}>
             <div className="flex min-w-0 flex-1 items-center gap-3 pr-2">
               <button
-                className={`inline-flex shrink-0 items-center justify-center rounded-full text-[#5b5b5b] transition hover:bg-[#f4f4f4] lg:hidden ${
+                className={`inline-flex shrink-0 items-center justify-center rounded-full text-[#607089] transition hover:bg-[#eef4fb] lg:hidden ${
                   fontSize === "sm" ? "h-10 w-10" : fontSize === "md" ? "h-11 w-11" : "h-13 w-13"
                 }`}
                 onClick={() => setMobileSidebarOpen(true)}
@@ -1175,16 +1383,16 @@ export function AssistantApp({ initialConfig }: AssistantAppProps) {
               </button>
 
               <div className="min-w-0">
-                <div className={`truncate font-semibold tracking-tight text-[#111] ${mobileFontClasses.headerTitle}`}>
+                <div className={`truncate font-semibold tracking-tight text-[#17304f] ${mobileFontClasses.headerTitle}`}>
                   {hasMessages ? activeConversation?.title || "智能问答" : "问兰智能体系统"}
                 </div>
-                <div className={`truncate text-[#7a7a7a] ${mobileFontClasses.headerSubtitle}`}>{initialConfig.headline}</div>
+                <div className={`truncate text-[#748093] ${mobileFontClasses.headerSubtitle}`}>{initialConfig.headline}</div>
               </div>
             </div>
 
             <div className="flex shrink-0 items-center">
               <button
-                className={`inline-flex items-center rounded-full bg-[#111111] text-white transition hover:bg-[#2f2f2f] ${mobileFontClasses.headerNewChatBtn}`}
+                className={`inline-flex items-center rounded-full bg-[#355c9a] text-white transition hover:bg-[#4a74b6] ${mobileFontClasses.headerNewChatBtn}`}
                 onClick={startNewChat}
                 type="button"
                 aria-label="新对话"
@@ -1198,15 +1406,15 @@ export function AssistantApp({ initialConfig }: AssistantAppProps) {
           <div className={`hidden w-full items-center justify-between px-8 lg:flex ${desktopFontClasses.headerHeight}`}>
             <div className="flex min-w-0 items-center gap-3">
               <div className="min-w-0">
-                <div className={`truncate font-semibold tracking-tight text-[#111] ${desktopFontClasses.headerTitle}`}>
+                <div className={`truncate font-semibold tracking-tight text-[#17304f] ${desktopFontClasses.headerTitle}`}>
                   {hasMessages ? activeConversation?.title || "智能问答" : "问兰智能体系统"}
                 </div>
-                <div className={`truncate text-[#7a7a7a] ${desktopFontClasses.headerSubtitle}`}>{initialConfig.headline}</div>
+                <div className={`truncate text-[#748093] ${desktopFontClasses.headerSubtitle}`}>{initialConfig.headline}</div>
               </div>
             </div>
 
             <button
-              className={`inline-flex items-center rounded-full bg-[#111111] text-white transition hover:bg-[#2f2f2f] ${desktopFontClasses.headerNewChatBtn}`}
+              className={`inline-flex items-center rounded-full bg-[#355c9a] text-white transition hover:bg-[#4a74b6] ${desktopFontClasses.headerNewChatBtn}`}
               onClick={startNewChat}
               type="button"
             >
@@ -1237,7 +1445,7 @@ export function AssistantApp({ initialConfig }: AssistantAppProps) {
                 </div>
               </div>
 
-              <div className="w-full shrink-0 border-t border-black/[0.03] bg-[#f6f6f4] px-4 pb-[calc(env(safe-area-inset-bottom)+1rem)] pt-2">
+              <div className="w-full shrink-0 border-t border-black/[0.03] bg-[#f7fafc] px-4 pb-[calc(env(safe-area-inset-bottom)+1rem)] pt-2">
                 <div className="mx-auto w-full max-w-[430px]">
                   {composer}
                   <p className="mx-auto mt-2 text-center text-[0.65em] leading-normal text-[#7d7d7d] opacity-75">
@@ -1321,6 +1529,9 @@ type MessageRowProps = {
 function MessageRow({ message, copiedMessageId, onCopy, fontSizeClass, fontSizeMode = "md", uiClasses }: MessageRowProps) {
   const isUser = message.role === "user"
   const isPending = message.status === "pending" && !message.content
+  const attachments = message.attachments ?? []
+  const hasAttachments = attachments.length > 0
+  const hasContent = Boolean(message.content.trim())
   const fontClasses = uiClasses ?? fontSizeStyles[fontSizeMode]
 
   if (isUser) {
@@ -1344,13 +1555,47 @@ function MessageRow({ message, copiedMessageId, onCopy, fontSizeClass, fontSizeM
             正在回复
           </div>
         ) : (
-          <MarkdownRenderer content={message.content || "暂未生成内容。"} />
+          <div className="space-y-3">
+            {hasAttachments ? (
+              <div className="space-y-3">
+                {attachments.map((attachment) => (
+                  <figure key={`${attachment.kind}:${attachment.url}`} className="overflow-hidden rounded-2xl border border-black/10 bg-white">
+                    {attachment.kind === "image" ? (
+                      <img
+                        src={attachment.url}
+                        alt={attachment.alt || attachment.name || "图片"}
+                        loading="lazy"
+                        className="block h-auto w-full max-w-full bg-[#f6f9fd] object-contain"
+                      />
+                    ) : (
+                      <a
+                        href={attachment.url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="flex items-center gap-3 px-4 py-3 text-sm text-[#102033] transition hover:bg-[#f5f9fe]"
+                      >
+                        <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-black/[0.06] text-xs font-medium text-[#444]">
+                          文件
+                        </span>
+                        <span className="min-w-0">
+                          <span className="block truncate font-medium">{attachment.name || "附件"}</span>
+                          <span className="block truncate text-xs text-[#707070]">{attachment.mimeType || attachment.url}</span>
+                        </span>
+                      </a>
+                    )}
+                  </figure>
+                ))}
+              </div>
+            ) : null}
+            {hasContent ? <MarkdownRenderer content={message.content} /> : null}
+            {!hasContent && !hasAttachments ? <MarkdownRenderer content="暂未生成内容。" /> : null}
+          </div>
         )}
       </div>
 
-      {message.content ? (
+      {hasContent ? (
         <button
-          className={`mt-2 inline-flex items-center rounded-lg text-[#6f6f6f] opacity-100 transition hover:bg-[#f4f4f4] hover:text-[#171717] md:opacity-0 md:group-hover:opacity-100 ${fontClasses.copyBtn}`}
+          className={`mt-2 inline-flex items-center rounded-lg text-[#6f7784] opacity-100 transition hover:bg-[#eef4fb] hover:text-[#17304f] md:opacity-0 md:group-hover:opacity-100 ${fontClasses.copyBtn}`}
           onClick={() => onCopy(message.content, message.id)}
         >
           {copiedMessageId === message.id ? (
@@ -1402,15 +1647,15 @@ function WelcomePanel({
             className="h-full w-full rounded-md object-contain"
           />
         </div>
-        <div className={`font-semibold uppercase tracking-[0.18em] text-[#8a8a8a] flex items-center ${subtitleChipClass}`}>
-          <Sparkles className="h-[1.1em] w-[1.1em] text-amber-500 fill-amber-500 shrink-0" />
+        <div className={`font-semibold uppercase tracking-[0.18em] text-[#7890a9] flex items-center ${subtitleChipClass}`}>
+          <Sparkles className="h-[1.1em] w-[1.1em] text-[#7aa0d6] fill-[#7aa0d6] shrink-0" />
           问兰智能体系统
         </div>
       </div>
 
-      <h1 className={`${titleMargin} text-center font-bold tracking-tight bg-gradient-to-r from-[#111111] via-[#484848] to-[#111111] bg-clip-text text-transparent ${titleStyle}`}>{launchTitle}</h1>
+      <h1 className={`${titleMargin} text-center font-bold tracking-tight bg-gradient-to-r from-[#1a355a] via-[#5a7fb3] to-[#1a355a] bg-clip-text text-transparent ${titleStyle}`}>{launchTitle}</h1>
 
-      <p className={`mx-auto ${copyMargin} max-w-2xl text-center text-[#555] ${copyStyle} leading-[1.65]`}>{emptyStateCopy}</p>
+      <p className={`mx-auto ${copyMargin} max-w-2xl text-center text-[#546273] ${copyStyle} leading-[1.65]`}>{emptyStateCopy}</p>
     </section>
   )
 }
@@ -1449,7 +1694,7 @@ function EmptyState({
         {prompts.slice(0, 4).map((prompt) => (
           <button
             key={prompt}
-            className={`max-w-full rounded-full border border-[#e3e3e3] bg-white text-[#4f4f4f] transition hover:bg-[#f7f7f7] ${promptBtnClass} ${promptClass}`}
+            className={`max-w-full rounded-full border border-[#dbe4f0] bg-white text-[#516172] transition hover:bg-[#f5f9fe] ${promptBtnClass} ${promptClass}`}
             onClick={() => onQuickPrompt(prompt)}
           >
             <span className="block max-w-[24rem] truncate">{prompt}</span>
@@ -1471,12 +1716,12 @@ function UsageGuide({ compact = false }: { compact?: boolean }) {
           }`}
         >
           <div className="flex items-start gap-3">
-            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#111111] text-[10.5px] font-semibold text-white sm:h-8 sm:w-8 sm:text-[11px]">
+            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#355c9a] text-[10.5px] font-semibold text-white sm:h-8 sm:w-8 sm:text-[11px]">
               {String(index + 1).padStart(2, "0")}
             </span>
             <div className="min-w-0">
-              <div className="text-[13.5px] font-semibold tracking-normal text-[#111111] sm:text-sm">{step.title}</div>
-              <p className="mt-1 text-[13px] leading-5 text-[#666666] sm:text-sm sm:leading-6">{step.description}</p>
+              <div className="text-[13.5px] font-semibold tracking-normal text-[#17304f] sm:text-sm">{step.title}</div>
+              <p className="mt-1 text-[13px] leading-5 text-[#627084] sm:text-sm sm:leading-6">{step.description}</p>
             </div>
           </div>
         </div>
@@ -1489,8 +1734,8 @@ function UsageGuide({ compact = false }: { compact?: boolean }) {
   }
 
   return (
-    <section className="mt-7 rounded-[2rem] border border-black/[0.08] bg-white p-4 shadow-[0_1px_12px_rgba(0,0,0,0.03)] sm:p-5">
-      <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-[0.18em] text-[#8a8a8a]">
+      <section className="mt-7 rounded-[2rem] border border-black/[0.08] bg-white p-4 shadow-[0_1px_12px_rgba(0,0,0,0.03)] sm:p-5">
+      <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-[0.18em] text-[#7890a9]">
         <Sparkles className="h-4 w-4" />
         初次使用引导
       </div>
@@ -1506,10 +1751,10 @@ function GuideModal({ open, onClose }: { open: boolean; onClose: () => void }) {
     <div className="fixed inset-0 z-[70] flex items-center justify-center px-3 py-3 sm:px-4 sm:py-6">
       <button className="absolute inset-0 bg-black/35" onClick={onClose} type="button" aria-label="关闭新手指导" />
 
-      <section className="relative max-h-[88dvh] w-full max-w-2xl overflow-y-auto rounded-[1.5rem] border border-black/[0.08] bg-white p-4 text-[#111111] shadow-[0_18px_60px_rgba(0,0,0,0.22)] sm:rounded-[2rem] sm:p-6">
+      <section className="relative max-h-[88dvh] w-full max-w-2xl overflow-y-auto rounded-[1.5rem] border border-black/[0.08] bg-white p-4 text-[#102033] shadow-[0_18px_60px_rgba(0,0,0,0.16)] sm:rounded-[2rem] sm:p-6">
         <header className="flex items-start justify-between gap-4">
           <div>
-            <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-[0.18em] text-[#8a8a8a]">
+            <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-[0.18em] text-[#7890a9]">
               <Sparkles className="h-4 w-4" />
               新手指导
             </div>
@@ -1520,7 +1765,7 @@ function GuideModal({ open, onClose }: { open: boolean; onClose: () => void }) {
           </div>
 
           <button
-            className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-[#666666] transition hover:bg-[#f4f4f4] hover:text-[#111111]"
+          className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-[#6a7888] transition hover:bg-[#eef4fb] hover:text-[#17304f]"
             onClick={onClose}
             type="button"
             aria-label="关闭新手指导"
@@ -1534,7 +1779,7 @@ function GuideModal({ open, onClose }: { open: boolean; onClose: () => void }) {
         </div>
 
         <button
-          className="sticky bottom-0 mt-4 inline-flex h-11 w-full items-center justify-center rounded-full bg-[#111111] px-4 text-sm font-medium text-white shadow-[0_-10px_22px_rgba(255,255,255,0.92)] transition hover:bg-[#2f2f2f] sm:mt-5"
+          className="sticky bottom-0 mt-4 inline-flex h-11 w-full items-center justify-center rounded-full bg-[#355c9a] px-4 text-sm font-medium text-white shadow-[0_-10px_22px_rgba(255,255,255,0.92)] transition hover:bg-[#4a74b6] sm:mt-5"
           onClick={onClose}
           type="button"
         >
@@ -1643,7 +1888,7 @@ function Composer({
             className={`inline-flex items-center justify-center rounded-full transition touch-none select-none ${desktopBtnSize} ${
               isRecording
                 ? "bg-[#d1242f] text-white"
-                : "text-[#5f5f5f] hover:bg-[#f4f4f4] disabled:cursor-not-allowed disabled:opacity-35 disabled:hover:bg-transparent"
+                : "text-[#5f5f5f] hover:bg-[#eef4fb] disabled:cursor-not-allowed disabled:opacity-35 disabled:hover:bg-transparent"
             }`}
             title={canTranscribe ? "按住说话，松开识别" : "语音输入暂不可用"}
             onPointerDown={onVoicePressStart}
@@ -1659,7 +1904,7 @@ function Composer({
           </button>
 
           <button
-            className={`inline-flex items-center justify-center rounded-full bg-[#111111] text-white transition hover:bg-[#303030] disabled:cursor-not-allowed disabled:bg-[#d7d7d7] disabled:text-white ${desktopBtnSize}`}
+            className={`inline-flex items-center justify-center rounded-full bg-[#355c9a] text-white transition hover:bg-[#4a74b6] disabled:cursor-not-allowed disabled:bg-[#d7d7d7] disabled:text-white ${desktopBtnSize}`}
             onClick={() => void onSubmit()}
             disabled={!canSend}
             aria-label="发送"
@@ -1673,7 +1918,7 @@ function Composer({
         <div className={`border border-[#e0e0e0] bg-white shadow-[0_4px_24px_rgba(0,0,0,0.08)] ${mobileContainerPadding}`}>
           <div className="flex items-end gap-2">
             <button
-              className={`inline-flex shrink-0 items-center justify-center rounded-full text-[#1a1a1a] transition hover:bg-[#f4f4f4] ${mobileBtnSize}`}
+              className={`inline-flex shrink-0 items-center justify-center rounded-full text-[#244062] transition hover:bg-[#eef4fb] ${mobileBtnSize}`}
               onClick={onNewChat}
               aria-label="新建对话"
               title="新建对话"
@@ -1695,7 +1940,7 @@ function Composer({
               className={`inline-flex shrink-0 items-center justify-center rounded-full transition touch-none select-none ${mobileBtnSize} ${
                 isRecording
                   ? "bg-[#d1242f] text-white"
-                  : "text-[#7a7a7a] hover:bg-[#f4f4f4] disabled:cursor-not-allowed disabled:opacity-35 disabled:hover:bg-transparent"
+                  : "text-[#7a7a7a] hover:bg-[#eef4fb] disabled:cursor-not-allowed disabled:opacity-35 disabled:hover:bg-transparent"
               }`}
               title={canTranscribe ? "按住说话，松开识别" : "语音输入暂不可用"}
               onPointerDown={onVoicePressStart}
@@ -1711,7 +1956,7 @@ function Composer({
             </button>
 
             <button
-              className={`inline-flex shrink-0 items-center justify-center rounded-full bg-[#111111] text-white transition hover:bg-[#303030] disabled:cursor-not-allowed disabled:bg-[#d7d7d7] disabled:text-white ${mobileBtnSize}`}
+              className={`inline-flex shrink-0 items-center justify-center rounded-full bg-[#355c9a] text-white transition hover:bg-[#4a74b6] disabled:cursor-not-allowed disabled:bg-[#d7d7d7] disabled:text-white ${mobileBtnSize}`}
               onClick={() => void onSubmit()}
               disabled={!canSend}
               aria-label="发送"
@@ -1759,13 +2004,13 @@ function VoiceMeter({
   const statusText = isTranscribing ? "正在识别语音..." : voiceLevel > 0.08 ? "已检测到声音" : "按住说话中"
   const helperText = isTranscribing ? "识别完成后可一键发送" : "松开后自动转成文字"
   const toneClass = isTranscribing ? "text-amber-800" : isRecording ? "text-rose-700" : "text-[#666]"
-  const dotClass = isTranscribing ? "bg-amber-500" : voiceLevel > 0.08 || isRecording ? "bg-rose-500" : "bg-[#111111]"
+  const dotClass = isTranscribing ? "bg-amber-500" : voiceLevel > 0.08 || isRecording ? "bg-sky-500" : "bg-[#355c9a]"
   const containerClass = isTranscribing
     ? "border-amber-200 bg-amber-50/70"
     : isRecording
       ? "border-rose-200 bg-rose-50/70"
-      : "border-black/[0.06] bg-[#fafafa]"
-  const barClass = isTranscribing ? "bg-amber-500" : isRecording ? "bg-rose-500" : "bg-[#111111]"
+      : "border-black/[0.06] bg-[#fbfdff]"
+  const barClass = isTranscribing ? "bg-amber-500" : isRecording ? "bg-sky-500" : "bg-[#355c9a]"
 
   return (
     <div className={`px-3 ${compact ? "pb-2 pt-1" : "pb-3 pt-2"}`} aria-live="polite">
@@ -1775,7 +2020,7 @@ function VoiceMeter({
             <span className={`h-2.5 w-2.5 rounded-full ${dotClass} ${isRecording || isTranscribing ? "animate-pulse" : ""}`} />
             <span>{statusText}</span>
           </div>
-          <span className={`text-[11px] ${isTranscribing ? "text-amber-800/80" : isRecording ? "text-rose-700/80" : "text-[#8a8a8a]"}`}>
+          <span className={`text-[11px] ${isTranscribing ? "text-amber-800/80" : isRecording ? "text-sky-700/80" : "text-[#7890a9]"}`}>
             {helperText}
           </span>
         </div>
@@ -1810,25 +2055,25 @@ function MobileQuickActions({
       {centerActions.map(({ icon: Icon, title, description, prompt }) => (
         <button
           key={title}
-          className={`flex w-full items-center text-left transition bg-white border border-black/[0.06] shadow-[0_8px_24px_rgba(0,0,0,0.05)] hover:bg-[#fafafa] hover:border-black/[0.1] active:scale-[0.99] active:shadow-[0_2px_10px_rgba(0,0,0,0.04)] ${fontClasses.qaPadding}`}
+          className={`flex w-full items-center text-left transition bg-white border border-black/[0.06] shadow-[0_8px_24px_rgba(0,0,0,0.05)] hover:bg-[#f5f9fe] hover:border-black/[0.08] active:scale-[0.99] active:shadow-[0_2px_10px_rgba(0,0,0,0.04)] ${fontClasses.qaPadding}`}
           onClick={() => onQuickPrompt(prompt)}
           type="button"
         >
           <span
-            className={`flex shrink-0 items-center justify-center bg-[#f4f4f4] text-[#111111] ${fontClasses.qaIconBox}`}
+            className={`flex shrink-0 items-center justify-center bg-[#edf4fb] text-[#355c9a] ${fontClasses.qaIconBox}`}
           >
             <Icon className={fontClasses.qaIcon} />
           </span>
           <div className="min-w-0 flex-1 ml-0.5">
             <div className="flex items-center justify-between gap-2">
-              <span className={`block font-semibold tracking-tight text-[#111111] ${fontClasses.qaTitle}`}>
+              <span className={`block font-semibold tracking-tight text-[#17304f] ${fontClasses.qaTitle}`}>
                 {title}
               </span>
-              <span className="shrink-0 rounded-full bg-[#f4f4f4] px-2.5 py-1 text-[11px] font-medium text-[#666666]">
+              <span className="shrink-0 rounded-full bg-[#edf4fb] px-2.5 py-1 text-[11px] font-medium text-[#5f6c7f]">
                 立即进入
               </span>
             </div>
-            <span className={`mt-1 block font-normal text-[#777777] ${fontClasses.qaSubtitle}`}>
+            <span className={`mt-1 block font-normal text-[#6f7c8d] ${fontClasses.qaSubtitle}`}>
               {description}
             </span>
           </div>

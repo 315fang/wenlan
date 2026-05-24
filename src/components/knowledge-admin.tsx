@@ -39,6 +39,8 @@ type FormState = {
   description: string
   content: string
   file: File | null
+  files: File[]
+  batchUrls: string
 }
 
 const emptyFormState: FormState = {
@@ -48,10 +50,15 @@ const emptyFormState: FormState = {
   description: "",
   content: "",
   file: null,
+  files: [],
+  batchUrls: "",
 }
+
+type UploadMode = "single" | "batch"
 
 export function KnowledgeAdminPanel() {
   const [kind, setKind] = useState<KnowledgeKind>("article")
+  const [uploadMode, setUploadMode] = useState<UploadMode>("single")
   const [items, setItems] = useState<KnowledgeItem[]>([])
   const [query, setQuery] = useState("")
   const [loading, setLoading] = useState(true)
@@ -64,6 +71,15 @@ export function KnowledgeAdminPanel() {
   const [form, setForm] = useState<FormState>(emptyFormState)
 
   const currentKey = normalizeKnowledgeKey(form.knowledgeKey || form.title)
+  const batchUrlEntries = useMemo(
+    () =>
+      form.batchUrls
+        .split(/\r?\n/)
+        .map((line) => line.trim())
+        .filter(Boolean),
+    [form.batchUrls]
+  )
+  const batchItemCount = kind === "article" ? batchUrlEntries.length : form.files.length
 
   const nextVersion = useMemo(() => {
     if (!currentKey) return 1
@@ -129,27 +145,54 @@ export function KnowledgeAdminPanel() {
     try {
       const formData = new FormData()
       formData.set("kind", kind)
-      formData.set("title", form.title.trim())
-      formData.set("knowledgeKey", form.knowledgeKey.trim() || form.title.trim())
-      formData.set("version", String(nextVersion))
-      if (form.sourceUrl.trim()) formData.set("sourceUrl", form.sourceUrl.trim())
+      formData.set("mode", uploadMode)
       if (form.description.trim()) formData.set("description", form.description.trim())
-      if (kind === "article") {
-        if (form.content.trim()) formData.set("content", form.content.trim())
-      } else if (form.file) {
-        formData.set("file", form.file)
+      if (uploadMode === "single") {
+        formData.set("title", form.title.trim())
+        formData.set("knowledgeKey", form.knowledgeKey.trim() || form.title.trim())
+        formData.set("version", String(nextVersion))
+        if (form.sourceUrl.trim()) formData.set("sourceUrl", form.sourceUrl.trim())
+        if (kind === "article") {
+          if (form.content.trim()) formData.set("content", form.content.trim())
+        } else if (form.file) {
+          formData.set("file", form.file)
+        }
+      } else if (kind === "article") {
+        formData.set("batchUrls", batchUrlEntries.join("\n"))
+      } else {
+        form.files.forEach((file) => formData.append("files", file))
       }
 
       const response = await fetch("/api/admin/knowledge", {
         method: "POST",
         body: formData,
       })
-      const payload = (await response.json().catch(() => ({}))) as { ok?: boolean; error?: string; removedPrevious?: number }
+      const payload = (await response.json().catch(() => ({}))) as {
+        ok?: boolean
+        error?: string
+        removedPrevious?: number
+        createdCount?: number
+        failedCount?: number
+        failures?: Array<{ title?: string; error?: string }>
+      }
       if (!response.ok) {
         throw new Error(payload.error || "上传失败")
       }
 
-      setMessage(payload.removedPrevious ? `已上传，自动移除 ${payload.removedPrevious} 条旧版本。` : "已上传。")
+      if (uploadMode === "batch") {
+        const createdCount = payload.createdCount || 0
+        const failedCount = payload.failedCount || 0
+        const overwriteText = payload.removedPrevious ? `，自动移除 ${payload.removedPrevious} 条旧版本` : ""
+        const failureText = (payload.failures || [])
+          .slice(0, 2)
+          .map((item) => `${item.title || "未命名"}：${item.error || "上传失败"}`)
+          .join("；")
+        setMessage(
+          `已批量上传 ${createdCount} 条${failedCount ? `，失败 ${failedCount} 条` : ""}${overwriteText}${failureText ? `。${failureText}` : ""}。`
+        )
+      } else {
+        setMessage(payload.removedPrevious ? `已上传，自动移除 ${payload.removedPrevious} 条旧版本。` : "已上传。")
+      }
       setForm(emptyFormState)
       await loadItems(false)
     } catch (submitError) {
@@ -241,6 +284,7 @@ export function KnowledgeAdminPanel() {
                   }`}
                   onClick={() => {
                     setKind(tabKind)
+                    setUploadMode("single")
                     setForm(emptyFormState)
                   }}
                 >
@@ -257,65 +301,149 @@ export function KnowledgeAdminPanel() {
               <div className="flex items-center justify-between">
                 <div>
                   <h2 className="text-base font-semibold text-[#121212]">上传资料</h2>
-                  <p className="mt-1 text-sm text-[#6b6b6b]">同关键词的新版本会自动覆盖旧版本。</p>
+                  <p className="mt-1 text-sm text-[#6b6b6b]">
+                    {uploadMode === "single" ? "同关键词的新版本会自动覆盖旧版本。" : "批量上传会按标题或文件名自动生成关键词，减少重复录入。"}
+                  </p>
                 </div>
                 <div className="inline-flex items-center gap-1 rounded-full bg-[#f4f4f4] px-3 py-1 text-xs text-[#666]">
                   <Plus className="h-3.5 w-3.5" />
-                  第 {nextVersion} 版
+                  {uploadMode === "single" ? `第 ${nextVersion} 版` : `本次 ${batchItemCount} 条`}
                 </div>
               </div>
 
+              <div className="mt-4 inline-flex rounded-full bg-[#f4f4f4] p-1 text-sm">
+                {(["single", "batch"] as UploadMode[]).map((mode) => (
+                  <button
+                    key={mode}
+                    type="button"
+                    className={`rounded-full px-3 py-1.5 transition ${
+                      uploadMode === mode ? "bg-white text-[#111111] shadow-sm" : "text-[#666666] hover:text-[#111111]"
+                    }`}
+                    onClick={() => {
+                      setUploadMode(mode)
+                      setForm(emptyFormState)
+                    }}
+                  >
+                    {mode === "single" ? "单条上传" : "批量上传"}
+                  </button>
+                ))}
+              </div>
+
               <div className="mt-4 grid gap-3">
-                <label className="grid gap-1.5 text-sm">
-                  <span className="text-[#444]">资料标题</span>
-                  <input
-                    value={form.title}
-                    onChange={(event) => setForm((current) => ({ ...current, title: event.target.value }))}
-                    className="h-11 rounded-xl border border-black/10 bg-white px-3 text-[15px] outline-none ring-0 placeholder:text-[#aaa] focus:border-black/30"
-                    placeholder={kind === "article" ? "例如：代理政策更新说明" : "例如：销售数据统计表"}
-                  />
-                </label>
-
-                <label className="grid gap-1.5 text-sm">
-                  <span className="text-[#444]">关键词</span>
-                  <input
-                    value={form.knowledgeKey}
-                    onChange={(event) => setForm((current) => ({ ...current, knowledgeKey: event.target.value }))}
-                    className="h-11 rounded-xl border border-black/10 bg-white px-3 text-[15px] outline-none ring-0 placeholder:text-[#aaa] focus:border-black/30"
-                    placeholder="例如：代理政策、等级说明、问兰前身"
-                  />
-                </label>
-
-                <div className="grid gap-3">
-                  <label className="grid gap-1.5 text-sm">
-                    <span className="text-[#444]">来源链接</span>
-                    <input
-                      value={form.sourceUrl}
-                      onChange={(event) => setForm((current) => ({ ...current, sourceUrl: event.target.value }))}
-                      className="h-11 rounded-xl border border-black/10 bg-white px-3 text-[15px] outline-none ring-0 placeholder:text-[#aaa] focus:border-black/30"
-                      placeholder="可选"
-                    />
-                  </label>
-                </div>
-
-                {kind === "article" ? (
+                {uploadMode === "single" ? (
                   <>
                     <label className="grid gap-1.5 text-sm">
-                      <span className="text-[#444]">正文快照或补充内容</span>
+                      <span className="text-[#444]">资料标题</span>
+                      <input
+                        value={form.title}
+                        onChange={(event) => setForm((current) => ({ ...current, title: event.target.value }))}
+                        className="h-11 rounded-xl border border-black/10 bg-white px-3 text-[15px] outline-none ring-0 placeholder:text-[#aaa] focus:border-black/30"
+                        placeholder={kind === "article" ? "例如：代理政策更新说明" : "例如：销售数据统计表"}
+                      />
+                    </label>
+
+                    <label className="grid gap-1.5 text-sm">
+                      <span className="text-[#444]">关键词</span>
+                      <input
+                        value={form.knowledgeKey}
+                        onChange={(event) => setForm((current) => ({ ...current, knowledgeKey: event.target.value }))}
+                        className="h-11 rounded-xl border border-black/10 bg-white px-3 text-[15px] outline-none ring-0 placeholder:text-[#aaa] focus:border-black/30"
+                        placeholder="例如：代理政策、等级说明、问兰前身"
+                      />
+                    </label>
+
+                    <div className="grid gap-3">
+                      <label className="grid gap-1.5 text-sm">
+                        <span className="text-[#444]">来源链接</span>
+                        <input
+                          value={form.sourceUrl}
+                          onChange={(event) => setForm((current) => ({ ...current, sourceUrl: event.target.value }))}
+                          className="h-11 rounded-xl border border-black/10 bg-white px-3 text-[15px] outline-none ring-0 placeholder:text-[#aaa] focus:border-black/30"
+                          placeholder="可选"
+                        />
+                      </label>
+                    </div>
+
+                    {kind === "article" ? (
+                      <>
+                        <label className="grid gap-1.5 text-sm">
+                          <span className="text-[#444]">正文快照或补充内容</span>
+                          <textarea
+                            value={form.content}
+                            onChange={(event) => setForm((current) => ({ ...current, content: event.target.value }))}
+                            className="min-h-36 rounded-xl border border-black/10 bg-white px-3 py-3 text-[15px] outline-none ring-0 placeholder:text-[#aaa] focus:border-black/30"
+                            placeholder="可粘贴文章正文。若留空，系统会根据来源链接抓取页面正文。"
+                          />
+                        </label>
+                        <label className="grid gap-1.5 text-sm">
+                          <span className="text-[#444]">备注</span>
+                          <textarea
+                            value={form.description}
+                            onChange={(event) => setForm((current) => ({ ...current, description: event.target.value }))}
+                            className="min-h-20 rounded-xl border border-black/10 bg-white px-3 py-3 text-[15px] outline-none ring-0 placeholder:text-[#aaa] focus:border-black/30"
+                            placeholder="可写明适用场景、分类说明或人工补充信息。"
+                          />
+                        </label>
+                      </>
+                    ) : (
+                      <>
+                        <label className="grid gap-1.5 text-sm">
+                          <span className="text-[#444]">{kind === "image" ? "图片文件" : "表格文件"}</span>
+                          <div className="rounded-xl border border-dashed border-black/15 bg-[#fafafa] p-4">
+                            <input
+                              type="file"
+                              accept={kind === "image" ? "image/*" : ".csv,.xls,.xlsx,.ods,.tsv"}
+                              onChange={(event) =>
+                                setForm((current) => ({
+                                  ...current,
+                                  file: event.target.files?.[0] || null,
+                                  title: current.title.trim() || event.target.files?.[0]?.name || "",
+                                }))
+                              }
+                              className="block w-full text-sm text-[#444] file:mr-4 file:rounded-full file:border-0 file:bg-[#111111] file:px-4 file:py-2 file:text-sm file:text-white hover:file:bg-[#2f2f2f]"
+                            />
+                            <p className="mt-2 text-xs leading-5 text-[#777]">
+                              {kind === "image"
+                                ? "建议同时填写用途说明或图片识别文字，方便模型引用图片素材。"
+                                : "支持常见电子表格文件。"}
+                            </p>
+                          </div>
+                        </label>
+
+                        <label className="grid gap-1.5 text-sm">
+                          <span className="text-[#444]">{kind === "image" ? "图片说明 / 识别文字" : "补充说明"}</span>
+                          <textarea
+                            value={form.description}
+                            onChange={(event) => setForm((current) => ({ ...current, description: event.target.value }))}
+                            className="min-h-28 rounded-xl border border-black/10 bg-white px-3 py-3 text-[15px] outline-none ring-0 placeholder:text-[#aaa] focus:border-black/30"
+                            placeholder={
+                              kind === "image"
+                                ? "描述这张图片适用的场景、文案要点或图片里能识别的文字。"
+                                : "可写明表格含义、字段说明、使用范围。"
+                            }
+                          />
+                        </label>
+                      </>
+                    )}
+                  </>
+                ) : kind === "article" ? (
+                  <>
+                    <label className="grid gap-1.5 text-sm">
+                      <span className="text-[#444]">来源链接列表</span>
                       <textarea
-                        value={form.content}
-                        onChange={(event) => setForm((current) => ({ ...current, content: event.target.value }))}
+                        value={form.batchUrls}
+                        onChange={(event) => setForm((current) => ({ ...current, batchUrls: event.target.value }))}
                         className="min-h-36 rounded-xl border border-black/10 bg-white px-3 py-3 text-[15px] outline-none ring-0 placeholder:text-[#aaa] focus:border-black/30"
-                        placeholder="可粘贴文章正文。若留空，系统会根据来源链接抓取页面正文。"
+                        placeholder={"每行一个文章链接。\n系统会自动抓取文章标题，并按标题生成关键词。"}
                       />
                     </label>
                     <label className="grid gap-1.5 text-sm">
-                      <span className="text-[#444]">备注</span>
+                      <span className="text-[#444]">统一备注</span>
                       <textarea
                         value={form.description}
                         onChange={(event) => setForm((current) => ({ ...current, description: event.target.value }))}
                         className="min-h-20 rounded-xl border border-black/10 bg-white px-3 py-3 text-[15px] outline-none ring-0 placeholder:text-[#aaa] focus:border-black/30"
-                        placeholder="可写明适用场景、分类说明或人工补充信息。"
+                        placeholder="可统一写明这批文章的分类或适用场景。"
                       />
                     </label>
                   </>
@@ -326,34 +454,37 @@ export function KnowledgeAdminPanel() {
                       <div className="rounded-xl border border-dashed border-black/15 bg-[#fafafa] p-4">
                         <input
                           type="file"
+                          multiple
                           accept={kind === "image" ? "image/*" : ".csv,.xls,.xlsx,.ods,.tsv"}
                           onChange={(event) =>
                             setForm((current) => ({
                               ...current,
-                              file: event.target.files?.[0] || null,
-                              title: current.title.trim() || event.target.files?.[0]?.name || "",
+                              files: Array.from(event.target.files || []),
                             }))
                           }
                           className="block w-full text-sm text-[#444] file:mr-4 file:rounded-full file:border-0 file:bg-[#111111] file:px-4 file:py-2 file:text-sm file:text-white hover:file:bg-[#2f2f2f]"
                         />
                         <p className="mt-2 text-xs leading-5 text-[#777]">
                           {kind === "image"
-                            ? "建议同时填写用途说明或图片识别文字，方便模型引用图片素材。"
-                            : "支持常见电子表格文件。"}
+                            ? "可一次选择多张图片，系统会按文件名自动生成标题和关键词。"
+                            : "可一次选择多个表格文件，系统会按文件名自动生成标题和关键词。"}
                         </p>
+                        {form.files.length > 0 ? (
+                          <p className="mt-2 text-xs font-medium text-[#333]">已选择 {form.files.length} 个文件。</p>
+                        ) : null}
                       </div>
                     </label>
 
                     <label className="grid gap-1.5 text-sm">
-                      <span className="text-[#444]">{kind === "image" ? "图片说明 / 识别文字" : "补充说明"}</span>
+                      <span className="text-[#444]">{kind === "image" ? "统一图片说明" : "统一补充说明"}</span>
                       <textarea
                         value={form.description}
                         onChange={(event) => setForm((current) => ({ ...current, description: event.target.value }))}
-                        className="min-h-28 rounded-xl border border-black/10 bg-white px-3 py-3 text-[15px] outline-none ring-0 placeholder:text-[#aaa] focus:border-black/30"
+                        className="min-h-24 rounded-xl border border-black/10 bg-white px-3 py-3 text-[15px] outline-none ring-0 placeholder:text-[#aaa] focus:border-black/30"
                         placeholder={
                           kind === "image"
-                            ? "描述这张图片适用的场景、文案要点或图片里能识别的文字。"
-                            : "可写明表格含义、字段说明、使用范围。"
+                            ? "这批图片都适用于什么场景、配什么文案，可统一写在这里。"
+                            : "这批表格的用途、字段说明、使用范围，可统一写在这里。"
                         }
                       />
                     </label>
@@ -375,7 +506,7 @@ export function KnowledgeAdminPanel() {
                 className="mt-4 inline-flex h-11 items-center gap-2 rounded-full bg-[#111111] px-4 text-sm font-medium text-white transition hover:bg-[#2e2e2e] disabled:cursor-not-allowed disabled:bg-[#888]"
               >
                 {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
-                上传资料
+                {uploadMode === "single" ? "上传资料" : `批量上传${batchItemCount ? `（${batchItemCount}）` : ""}`}
               </button>
             </form>
 

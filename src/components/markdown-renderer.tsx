@@ -1,5 +1,7 @@
 "use client"
 
+/* eslint-disable @next/next/no-img-element */
+
 import type { ComponentProps, ReactNode } from "react"
 import ReactMarkdown from "react-markdown"
 import remarkGfm from "remark-gfm"
@@ -30,6 +32,14 @@ export function MarkdownRenderer({ content }: MarkdownRendererProps) {
             >
               {children}
             </a>
+          ),
+          img: ({ src, alt }) => (
+            <img
+              src={typeof src === "string" ? src : undefined}
+              alt={alt || ""}
+              loading="lazy"
+              className="my-3 block h-auto max-w-full rounded-2xl border border-black/10 bg-[#f7f7f7] object-contain"
+            />
           ),
           blockquote: ({ children }) => (
             <blockquote className="mb-4 min-w-0 break-words border-l-2 border-black/10 pl-4 text-[#525252]">{children}</blockquote>
