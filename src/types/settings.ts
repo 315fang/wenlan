@@ -8,6 +8,28 @@ export interface InsightCard {
   description: string
 }
 
+export interface ContactInfo {
+  id: string
+  label: string
+  value: string
+}
+
+export interface PriceTier {
+  name: string
+  range: string
+  note: string
+}
+
+export interface MaterialItem {
+  id: string
+  cat: string
+  title: string
+  meta: string
+  copy?: string
+  download?: string
+  hue: string
+}
+
 export interface AppSettings {
   appName: string
   assistantName: string
@@ -21,4 +43,7 @@ export interface AppSettings {
   emptyStateCopy: string
   defaultDifyDatasetId: string
   defaultDifyBaseUrl: string
+  businessContacts: ContactInfo[]
+  businessPriceTiers: PriceTier[]
+  materialItems: MaterialItem[]
 }

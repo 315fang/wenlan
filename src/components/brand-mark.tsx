@@ -12,18 +12,16 @@ export function BrandMark({ size = 40, animated = false, className = "" }: { siz
       }}
       aria-hidden="true"
     >
-      <span
-        className="font-serif"
+      <img
+        src="/wenlan-yizhantong.ico"
+        alt=""
         style={{
-          color: "#c9a87a",
-          fontSize: size * 0.42,
-          fontWeight: 600,
-          letterSpacing: "0.04em",
-          lineHeight: 1,
+          width: size * 0.58,
+          height: size * 0.58,
+          borderRadius: "50%",
+          objectFit: "cover",
         }}
-      >
-        WL
-      </span>
+      />
     </span>
   )
 }

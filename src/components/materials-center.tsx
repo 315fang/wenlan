@@ -1,25 +1,16 @@
 "use client"
 
 import { Check, Copy, Download, Image as ImageIcon, Search } from "lucide-react"
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 
 import { PageHeader } from "@/components/page-header"
+import type { MaterialItem } from "@/types/settings"
 
 interface MaterialsCenterProps {
   onBack: () => void
 }
 
 type Category = "visual" | "wechat" | "community" | "script"
-
-interface MaterialItem {
-  id: string
-  cat: Category
-  title: string
-  meta: string
-  copy?: string
-  download?: string
-  hue: string
-}
 
 const CATS: { id: Category; label: string }[] = [
   { id: "visual", label: "官方主图" },
@@ -28,7 +19,7 @@ const CATS: { id: Category; label: string }[] = [
   { id: "script", label: "短视频脚本" },
 ]
 
-const DATA: MaterialItem[] = [
+const DEFAULT_DATA: MaterialItem[] = [
   {
     id: "v1",
     cat: "visual",
@@ -101,16 +92,26 @@ const DATA: MaterialItem[] = [
 ]
 
 export function MaterialsCenter({ onBack }: MaterialsCenterProps) {
+  const [data, setData] = useState<MaterialItem[]>(DEFAULT_DATA)
   const [cat, setCat] = useState<Category>("visual")
   const [q, setQ] = useState("")
   const [copiedId, setCopiedId] = useState<string | null>(null)
 
+  useEffect(() => {
+    fetch("/api/config", { cache: "no-store" })
+      .then((r) => r.json())
+      .then((d) => {
+        if (d.materialItems?.length) setData(d.materialItems)
+      })
+      .catch(() => {})
+  }, [])
+
   const items = useMemo(
     () =>
-      DATA.filter((d) => d.cat === cat).filter(
+      data.filter((d) => d.cat === cat).filter(
         (d) => !q.trim() || d.title.includes(q.trim()) || (d.copy?.includes(q.trim()) ?? false)
       ),
-    [cat, q]
+    [data, cat, q]
   )
 
   const onCopy = async (item: MaterialItem) => {

@@ -20,6 +20,9 @@ const defaultSettings: AppSettings = {
   emptyStateCopy: "",
   defaultDifyDatasetId: "",
   defaultDifyBaseUrl: "",
+  businessContacts: [],
+  businessPriceTiers: [],
+  materialItems: [],
 }
 
 export function AdminConfigPanel() {
@@ -34,6 +37,8 @@ export function AdminConfigPanel() {
   const [knowledgeOutlineText, setKnowledgeOutlineText] = useState("")
   const [onboardingGuideText, setOnboardingGuideText] = useState("")
   const [insightCardsText, setInsightCardsText] = useState("")
+  const [priceTiersText, setPriceTiersText] = useState("")
+  const [materialItemsText, setMaterialItemsText] = useState("")
 
   useEffect(() => {
     void loadSettings()
@@ -51,6 +56,8 @@ export function AdminConfigPanel() {
       setKnowledgeOutlineText(data.knowledgeOutline.join("\n"))
       setOnboardingGuideText(JSON.stringify(data.onboardingGuide, null, 2))
       setInsightCardsText(JSON.stringify(data.insightCards, null, 2))
+      setPriceTiersText(JSON.stringify(data.businessPriceTiers, null, 2))
+      setMaterialItemsText(JSON.stringify(data.materialItems, null, 2))
     } catch (err) {
       setError(err instanceof Error ? err.message : "读取配置失败")
     } finally {
@@ -91,12 +98,30 @@ export function AdminConfigPanel() {
         throw new Error("功能卡片 JSON 格式错误")
       }
 
+      let businessPriceTiers: AppSettings["businessPriceTiers"] = []
+      try {
+        businessPriceTiers = JSON.parse(priceTiersText)
+        if (!Array.isArray(businessPriceTiers)) throw new Error()
+      } catch {
+        throw new Error("价目表 JSON 格式错误")
+      }
+
+      let materialItems: AppSettings["materialItems"] = []
+      try {
+        materialItems = JSON.parse(materialItemsText)
+        if (!Array.isArray(materialItems)) throw new Error()
+      } catch {
+        throw new Error("素材 JSON 格式错误")
+      }
+
       const body: AppSettings = {
         ...settings,
         starterPrompts,
         knowledgeOutline,
         onboardingGuide,
         insightCards,
+        businessPriceTiers,
+        materialItems,
       }
 
       const response = await fetch("/api/admin/config", {
@@ -270,6 +295,54 @@ export function AdminConfigPanel() {
                   onChange={(e) => setKnowledgeOutlineText(e.target.value)}
                   className="min-h-32 rounded-xl border border-black/10 bg-white px-3 py-3 text-[15px] outline-none focus:border-black/30"
                   placeholder={"每行一个分类\n例如：\n产品介绍\n官方图片\n宣传文案"}
+                />
+              </label>
+            </section>
+
+            <section className="border border-black/10 bg-white p-4 sm:p-5">
+              <h2 className="text-base font-semibold text-[#121212]">商务中心 · 联系方式</h2>
+              <p className="mt-1 text-sm text-[#6b6b6b]">显示在商务中心的联系卡片中。</p>
+
+              <div className="mt-4 grid gap-4 sm:grid-cols-2">
+                {settings.businessContacts.map((contact, i) => (
+                  <label key={contact.id} className="grid gap-1.5 text-sm">
+                    <span className="text-[#444]">{contact.label}</span>
+                    <input
+                      value={settings.businessContacts[i].value}
+                      onChange={(e) => {
+                        const next = [...settings.businessContacts]
+                        next[i] = { ...next[i], value: e.target.value }
+                        setSettings((s) => ({ ...s, businessContacts: next }))
+                      }}
+                      className="h-11 rounded-xl border border-black/10 bg-white px-3 text-[15px] outline-none focus:border-black/30"
+                    />
+                  </label>
+                ))}
+              </div>
+            </section>
+
+            <section className="border border-black/10 bg-white p-4 sm:p-5">
+              <h2 className="text-base font-semibold text-[#121212]">商务中心 · 价目表</h2>
+              <p className="mt-1 text-sm text-[#6b6b6b]">JSON 数组格式，每项包含 name、range、note。</p>
+
+              <label className="mt-4 grid gap-1.5 text-sm">
+                <textarea
+                  value={priceTiersText}
+                  onChange={(e) => setPriceTiersText(e.target.value)}
+                  className="min-h-32 rounded-xl border border-black/10 bg-white px-3 py-3 text-[13px] outline-none focus:border-black/30 font-mono"
+                />
+              </label>
+            </section>
+
+            <section className="border border-black/10 bg-white p-4 sm:p-5">
+              <h2 className="text-base font-semibold text-[#121212]">素材中心 · 素材数据</h2>
+              <p className="mt-1 text-sm text-[#6b6b6b]">JSON 数组格式，每项包含 id、cat(visual/wechat/community/script)、title、meta、copy(可选)、download(可选)、hue。</p>
+
+              <label className="mt-4 grid gap-1.5 text-sm">
+                <textarea
+                  value={materialItemsText}
+                  onChange={(e) => setMaterialItemsText(e.target.value)}
+                  className="min-h-48 rounded-xl border border-black/10 bg-white px-3 py-3 text-[13px] outline-none focus:border-black/30 font-mono"
                 />
               </label>
             </section>

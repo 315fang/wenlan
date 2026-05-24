@@ -1,8 +1,15 @@
+import { readSettings } from "@/lib/config-store"
 import { getRuntimeStatus } from "@/lib/server"
 
 export const dynamic = "force-dynamic"
 
 export async function GET() {
-  return Response.json(getRuntimeStatus())
+  const status = getRuntimeStatus()
+  const settings = readSettings()
+  return Response.json({
+    ...status,
+    businessContacts: settings.businessContacts,
+    businessPriceTiers: settings.businessPriceTiers,
+    materialItems: settings.materialItems,
+  })
 }
-

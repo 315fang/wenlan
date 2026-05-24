@@ -1101,9 +1101,6 @@ export function AssistantApp({ initialConfig }: AssistantAppProps) {
                 <div className="border-t border-[#e6dccb] px-5 pb-[calc(env(safe-area-inset-bottom)+1rem)] pt-2">
                   <div className="mx-auto w-full max-w-[430px]">
                     {composer}
-                    <p className="mx-auto mt-2 text-center text-[0.65em] leading-normal text-[#7d7d7d] opacity-75">
-                      回答来自AI生成，请以官方最新资料为准
-                    </p>
                   </div>
                 </div>
               </div>
@@ -1128,9 +1125,6 @@ export function AssistantApp({ initialConfig }: AssistantAppProps) {
 
               <div className="bg-[#f7f3ec] px-4 pb-4 pt-2">
                 {composer}
-                <p className="mx-auto mt-2 max-w-3xl text-center text-xs leading-5 text-[#7d7d7d]">
-                  回答来自AI生成，请以官方最新资料为准
-                </p>
               </div>
             </section>
 
@@ -1152,9 +1146,6 @@ export function AssistantApp({ initialConfig }: AssistantAppProps) {
               <div className="bg-[#f7f3ec] px-5 pb-4 pt-2">
                 <div className="mx-auto w-full max-w-[430px]">
                 {composer}
-                <p className="mx-auto mt-2 text-center text-[0.65em] leading-normal text-[#7d7d7d] opacity-75">
-                  回答来自AI生成，请以官方最新资料为准
-                </p>
                 </div>
               </div>
             </section>
