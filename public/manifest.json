@@ -1,0 +1,27 @@
+{
+  "name": "问兰 · WENLAN",
+  "short_name": "问兰",
+  "description": "问兰智能体系统 - 面向客户咨询、素材检索和商务联系的智能体平台",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f7f3ec",
+  "theme_color": "#1a1410",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/wenlan-yizhantong.ico",
+      "sizes": "256x256",
+      "type": "image/x-icon"
+    },
+    {
+      "src": "/wenlan-yizhantong.ico",
+      "sizes": "192x192",
+      "type": "image/x-icon"
+    },
+    {
+      "src": "/wenlan-yizhantong.ico",
+      "sizes": "512x512",
+      "type": "image/x-icon"
+    }
+  ]
+}
