@@ -1,5 +1,5 @@
 import { assistantHeadline, assistantName, assistantSubtitle, appName, starterPrompts } from "@/lib/prompts"
-import { joinUrl, normalizeDifyChatEndpoint, safeBaseLabel } from "@/lib/url"
+import { joinUrl, normalizeDifyApiBase, normalizeDifyChatEndpoint, safeBaseLabel } from "@/lib/url"
 import type { PortalConfig, ServerStatus } from "@/types/chat"
 
 function readEnv(name: string) {
@@ -134,11 +134,17 @@ export function getTranscribeTarget(): TranscribeTarget {
 }
 
 export function getKnowledgeTarget(): KnowledgeTarget {
-  const datasetId = readEnv("DIFY_KB_DATASET_ID") || readEnv("DIFY_DATASET_ID")
-  const apiKey = readEnv("DIFY_KB_API_KEY") || readEnv("DIFY_API_KEY")
+  const datasetId = readEnv("DIFY_KB_DATASET_ID") || readEnv("DIFY_DATASET_ID") || "a296cee7-e802-4e30-b348-719c459136ba"
+  const apiKey = readEnv("DIFY_KB_API_KEY") || readEnv("DIFY_API_KEY") || readEnv("DIFY_AGENT_API_KEY")
   if (!datasetId || !apiKey) return null
 
-  const baseUrl = readEnv("DIFY_KB_BASE_URL") || readEnv("DIFY_PLATFORM_BASE_URL") || "https://api.dify.ai/v1"
+  const baseUrl =
+    normalizeDifyApiBase(
+      readEnv("DIFY_KB_BASE_URL") ||
+        readEnv("DIFY_PLATFORM_BASE_URL") ||
+        readFirstEnv("DIFY_AGENT_BASE_URL", "DIFY_BASE_URL") ||
+        "http://119.45.182.109:8888"
+    ) || "http://119.45.182.109:8888/v1"
   return {
     baseUrl,
     apiKey,
