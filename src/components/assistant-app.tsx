@@ -232,7 +232,7 @@ const fontSizeStyles: Record<
     sidebarItemBtn: "px-3.5 py-2.5",
     sidebarPrefBtn: "h-8 text-[12px] rounded-lg",
     messageSpacing: "space-y-4 py-4 pb-10",
-    userBubble: "px-3 py-2 rounded-xl max-w-[88%] bg-[#e3effd] border border-[#d2e3fc]/30",
+    userBubble: "px-3 py-2 rounded-xl max-w-[84%] bg-[#e3effd] border border-[#d2e3fc]/30",
     copyBtn: "h-8 px-2.5 text-[11px] gap-1.5",
     welcomeShell: "px-4 py-4",
     welcomeLogoBox: "h-12 w-12 rounded-xl p-1.5",
@@ -268,7 +268,7 @@ const fontSizeStyles: Record<
     sidebarItemBtn: "px-4 py-3",
     sidebarPrefBtn: "h-9 text-[13.5px] rounded-xl",
     messageSpacing: "space-y-5.5 py-5 pb-12",
-    userBubble: "px-4 py-2.5 rounded-2xl max-w-[88%] bg-[#e3effd] border border-[#d2e3fc]/30",
+    userBubble: "px-4 py-2.5 rounded-2xl max-w-[84%] bg-[#e3effd] border border-[#d2e3fc]/30",
     copyBtn: "h-9 px-3 text-[12.5px] gap-2",
     welcomeShell: "px-4 py-3",
     welcomeLogoBox: "h-13 w-13 rounded-2xl p-1.5",
@@ -304,7 +304,7 @@ const fontSizeStyles: Record<
     sidebarItemBtn: "px-5 py-4",
     sidebarPrefBtn: "h-10 text-[15px] rounded-xl",
     messageSpacing: "space-y-7 py-6 pb-14",
-    userBubble: "px-5 py-3 rounded-2xl max-w-[88%] bg-[#e3effd] border border-[#d2e3fc]/30",
+    userBubble: "px-5 py-3 rounded-2xl max-w-[84%] bg-[#e3effd] border border-[#d2e3fc]/30",
     copyBtn: "h-10 px-3.5 text-[14px] gap-2.5",
     welcomeShell: "px-6 py-6",
     welcomeLogoBox: "h-18 w-18 rounded-2xl p-2.5",
@@ -1107,7 +1107,7 @@ export function AssistantApp({ initialConfig }: AssistantAppProps) {
 
       <main className="flex min-w-0 flex-1 flex-col bg-[#f6f6f4]">
         <header className="shrink-0 border-b border-black/[0.05] bg-white/[0.96]">
-          <div className={`flex w-full items-center justify-between px-[5vw] lg:hidden ${mobileFontClasses.headerHeight}`}>
+          <div className={`flex w-full items-center justify-between px-[6vw] lg:hidden ${mobileFontClasses.headerHeight}`}>
             <div className="flex min-w-0 items-center gap-3">
               <button
                 className={`inline-flex shrink-0 items-center justify-center rounded-full text-[#5b5b5b] transition hover:bg-[#f4f4f4] lg:hidden ${
@@ -1176,14 +1176,14 @@ export function AssistantApp({ initialConfig }: AssistantAppProps) {
             </section>
 
             <section className="flex min-h-0 w-full flex-1 flex-col overflow-hidden lg:hidden">
-              <div className="min-h-0 w-full flex-1 overflow-y-auto px-[5vw] py-4">
+              <div className="min-h-0 w-full flex-1 overflow-y-auto px-[6vw] py-4">
                 <div className="mx-auto flex min-h-full w-full flex-col items-stretch justify-start gap-5 pb-8 pt-5 sm:gap-8">
                   <WelcomePanel framed={false} fontSizeMode={fontSize} uiClasses={mobileFontClasses} />
                   <MobileQuickActions onQuickPrompt={handleQuickPrompt} fontSizeMode={fontSize} />
                 </div>
               </div>
 
-              <div className="w-full shrink-0 border-t border-black/[0.03] bg-[#f6f6f4] px-[5vw] pb-[calc(env(safe-area-inset-bottom)+1rem)] pt-2">
+              <div className="w-full shrink-0 border-t border-black/[0.03] bg-[#f6f6f4] px-[6vw] pb-[calc(env(safe-area-inset-bottom)+1rem)] pt-2">
                 <div className="mx-auto w-full">
                   {composer}
                   <p className="mx-auto mt-2 text-center text-[0.65em] leading-normal text-[#7d7d7d] opacity-75">
@@ -1222,7 +1222,7 @@ export function AssistantApp({ initialConfig }: AssistantAppProps) {
             </section>
 
             <section className="grid min-h-0 flex-1 grid-rows-[minmax(0,1fr)_auto] lg:hidden">
-              <div className="min-h-0 overflow-y-auto px-[5vw]">
+              <div className="min-h-0 overflow-y-auto px-[6vw]">
                 <div className={`mx-auto w-full ${mobileFontClasses.messageSpacing}`}>
                   {activeMessages.map((message) => (
                     <MessageRow
@@ -1239,7 +1239,7 @@ export function AssistantApp({ initialConfig }: AssistantAppProps) {
                 </div>
               </div>
 
-              <div className="bg-white px-[5vw] pb-4 pt-2">
+              <div className="bg-white px-[6vw] pb-4 pt-2">
                 {composer}
                 <p className="mx-auto mt-2 text-center text-[0.65em] leading-normal text-[#7d7d7d] opacity-75">
                   回答来自AI生成，请以官方最新资料为准
