@@ -1180,13 +1180,13 @@ export function AssistantApp({ initialConfig }: AssistantAppProps) {
 
             <section className="flex min-h-0 w-full flex-1 flex-col overflow-hidden lg:hidden">
               <div className="min-h-0 w-full flex-1 overflow-y-auto px-[5vw] py-4">
-                <div className="mx-auto flex min-h-full w-full flex-col items-stretch justify-center gap-6 py-4 sm:gap-8">
+                <div className="mx-auto flex min-h-full w-full flex-col items-stretch justify-start gap-5 pb-8 pt-5 sm:gap-8">
                   <WelcomePanel framed={false} fontSizeMode={fontSize} uiClasses={mobileFontClasses} />
                   <MobileQuickActions onQuickPrompt={handleQuickPrompt} fontSizeMode={fontSize} />
                 </div>
               </div>
 
-              <div className="w-full shrink-0 border-t border-black/[0.03] bg-[#f6f6f4] px-[5vw] pb-4 pt-2">
+              <div className="w-full shrink-0 border-t border-black/[0.03] bg-[#f6f6f4] px-[5vw] pb-[calc(env(safe-area-inset-bottom)+1rem)] pt-2">
                 <div className="mx-auto w-full">
                   {composer}
                   <p className="mx-auto mt-2 text-center text-[0.65em] leading-normal text-[#7d7d7d] opacity-75">
@@ -1423,17 +1423,17 @@ function UsageGuide({ compact = false }: { compact?: boolean }) {
       {onboardingGuide.map((step, index) => (
         <div
           key={step.title}
-          className={`rounded-2xl border border-black/[0.08] bg-white px-4 py-3 shadow-[0_1px_12px_rgba(0,0,0,0.03)] ${
-            compact ? "px-3 py-3" : ""
+          className={`rounded-xl border border-black/[0.08] bg-white px-4 py-3 shadow-[0_1px_12px_rgba(0,0,0,0.03)] sm:rounded-2xl ${
+            compact ? "px-3 py-2.5 sm:px-3 sm:py-3" : ""
           }`}
         >
           <div className="flex items-start gap-3">
-            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#111111] text-[11px] font-semibold text-white">
+            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#111111] text-[10.5px] font-semibold text-white sm:h-8 sm:w-8 sm:text-[11px]">
               {String(index + 1).padStart(2, "0")}
             </span>
             <div className="min-w-0">
-              <div className="text-sm font-semibold tracking-normal text-[#111111]">{step.title}</div>
-              <p className="mt-1 text-sm leading-6 text-[#666666]">{step.description}</p>
+              <div className="text-[13.5px] font-semibold tracking-normal text-[#111111] sm:text-sm">{step.title}</div>
+              <p className="mt-1 text-[13px] leading-5 text-[#666666] sm:text-sm sm:leading-6">{step.description}</p>
             </div>
           </div>
         </div>
@@ -1460,18 +1460,18 @@ function GuideModal({ open, onClose }: { open: boolean; onClose: () => void }) {
   if (!open) return null
 
   return (
-    <div className="fixed inset-0 z-[70] flex items-center justify-center px-4 py-6">
+    <div className="fixed inset-0 z-[70] flex items-center justify-center px-3 py-3 sm:px-4 sm:py-6">
       <button className="absolute inset-0 bg-black/35" onClick={onClose} type="button" aria-label="关闭新手指导" />
 
-      <section className="relative max-h-[88dvh] w-full max-w-2xl overflow-y-auto rounded-[2rem] border border-black/[0.08] bg-white p-5 text-[#111111] shadow-[0_18px_60px_rgba(0,0,0,0.22)] sm:p-6">
+      <section className="relative max-h-[88dvh] w-full max-w-2xl overflow-y-auto rounded-[1.5rem] border border-black/[0.08] bg-white p-4 text-[#111111] shadow-[0_18px_60px_rgba(0,0,0,0.22)] sm:rounded-[2rem] sm:p-6">
         <header className="flex items-start justify-between gap-4">
           <div>
             <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-[0.18em] text-[#8a8a8a]">
               <Sparkles className="h-4 w-4" />
               新手指导
             </div>
-            <h2 className="mt-2 text-[24px] font-semibold tracking-normal text-[#202020]">第一次使用可以这样开始</h2>
-            <p className="mt-2 text-sm leading-6 text-[#666666]">
+            <h2 className="mt-2 text-[22px] font-semibold leading-tight tracking-normal text-[#202020] sm:text-[24px]">第一次使用可以这样开始</h2>
+            <p className="mt-2 text-[13.5px] leading-6 text-[#666666] sm:text-sm">
               前台只负责提问、找官方图片、复制宣传文案和语音输入；上传和删除资料请进入受保护的后台知识库。
             </p>
           </div>
@@ -1491,7 +1491,7 @@ function GuideModal({ open, onClose }: { open: boolean; onClose: () => void }) {
         </div>
 
         <button
-          className="mt-5 inline-flex h-11 w-full items-center justify-center rounded-full bg-[#111111] px-4 text-sm font-medium text-white transition hover:bg-[#2f2f2f]"
+          className="sticky bottom-0 mt-4 inline-flex h-11 w-full items-center justify-center rounded-full bg-[#111111] px-4 text-sm font-medium text-white shadow-[0_-10px_22px_rgba(255,255,255,0.92)] transition hover:bg-[#2f2f2f] sm:mt-5"
           onClick={onClose}
           type="button"
         >
