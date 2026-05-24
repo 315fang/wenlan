@@ -241,7 +241,7 @@ function buildKnowledgeText(params: {
 }) {
   return [
     `资料类型：${params.kind}`,
-    `资料主题：${params.knowledgeKey}`,
+    `关键词：${params.knowledgeKey}`,
     `资料标题：${params.title}`,
     `版本：v${params.version}`,
     params.sourceUrl ? `来源链接：${params.sourceUrl}` : "",
@@ -329,7 +329,7 @@ export async function POST(request: Request) {
       title = sourceUrl
     }
     if (!title || !knowledgeKey) {
-      return Response.json({ error: "请填写资料标题和主题" }, { status: 400 })
+      return Response.json({ error: "请填写资料标题和关键词" }, { status: 400 })
     }
 
     let payload: Record<string, unknown>

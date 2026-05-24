@@ -257,7 +257,7 @@ export function KnowledgeAdminPanel() {
               <div className="flex items-center justify-between">
                 <div>
                   <h2 className="text-base font-semibold text-[#121212]">上传资料</h2>
-                  <p className="mt-1 text-sm text-[#6b6b6b]">同主题的新版本会自动覆盖旧版本。</p>
+                  <p className="mt-1 text-sm text-[#6b6b6b]">同关键词的新版本会自动覆盖旧版本。</p>
                 </div>
                 <div className="inline-flex items-center gap-1 rounded-full bg-[#f4f4f4] px-3 py-1 text-xs text-[#666]">
                   <Plus className="h-3.5 w-3.5" />
@@ -277,12 +277,12 @@ export function KnowledgeAdminPanel() {
                 </label>
 
                 <label className="grid gap-1.5 text-sm">
-                  <span className="text-[#444]">资料主题</span>
+                  <span className="text-[#444]">关键词</span>
                   <input
                     value={form.knowledgeKey}
                     onChange={(event) => setForm((current) => ({ ...current, knowledgeKey: event.target.value }))}
                     className="h-11 rounded-xl border border-black/10 bg-white px-3 text-[15px] outline-none ring-0 placeholder:text-[#aaa] focus:border-black/30"
-                    placeholder="例如：代理政策-等级说明"
+                    placeholder="例如：代理政策、等级说明、问兰前身"
                   />
                 </label>
 
@@ -392,7 +392,7 @@ export function KnowledgeAdminPanel() {
                     <input
                       value={query}
                       onChange={(event) => setQuery(event.target.value)}
-                      placeholder="搜索标题或主题"
+                      placeholder="搜索标题或关键词"
                       className="h-10 w-[16rem] rounded-full border border-black/10 bg-white pl-9 pr-3 text-sm outline-none focus:border-black/30"
                     />
                   </div>
@@ -402,7 +402,7 @@ export function KnowledgeAdminPanel() {
               <div className="mt-4 overflow-hidden rounded-2xl border border-black/10">
                 <div className="grid grid-cols-[1.8fr_1.2fr_0.7fr_0.8fr_0.9fr_0.5fr] gap-3 border-b border-black/10 bg-[#f8f8f8] px-4 py-3 text-xs font-medium uppercase tracking-wide text-[#666]">
                   <span>标题</span>
-                  <span>资料主题 / 来源</span>
+                  <span>关键词 / 来源</span>
                   <span>版本</span>
                   <span>状态</span>
                   <span>更新时间</span>
@@ -433,7 +433,7 @@ export function KnowledgeAdminPanel() {
                         </div>
 
                         <div className="min-w-0 text-sm text-[#4a4a4a]">
-                          <div className="truncate">{item.knowledgeKey || "未命名主题"}</div>
+                          <div className="truncate">{item.knowledgeKey || "未命名关键词"}</div>
                           {item.sourceUrl ? <div className="mt-1 truncate text-xs text-[#777]">{item.sourceUrl}</div> : null}
                         </div>
 
