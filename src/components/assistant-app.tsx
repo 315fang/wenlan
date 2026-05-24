@@ -219,9 +219,9 @@ const fontSizeStyles: Record<
     input: "text-[clamp(14px,3.5vw,20px)]",
     meta: "text-[clamp(11.5px,2.8vw,15px)]",
     headerHeight: "h-14 sm:h-16",
-    headerTitle: "text-[clamp(15px,4vw,20px)]",
-    headerSubtitle: "text-[clamp(10.5px,2.8vw,14px)]",
-    headerNewChatBtn: "h-9 px-3.5 text-[12px] gap-1.5",
+    headerTitle: "text-[clamp(14.5px,3.7vw,17px)]",
+    headerSubtitle: "text-[clamp(10px,2.6vw,12px)]",
+    headerNewChatBtn: "h-9 px-3 text-[11px] gap-1.5",
     sidebarWidth: "w-[16rem]",
     sidebarNewChatBtn: "h-10 text-[14px] gap-2 rounded-xl",
     sidebarGuideBtn: "h-9.5 text-[13.5px] gap-2 rounded-xl",
@@ -255,9 +255,9 @@ const fontSizeStyles: Record<
     input: "text-[clamp(15px,3.8vw,22px)]",
     meta: "text-[clamp(12px,3vw,16px)]",
     headerHeight: "h-15 sm:h-18",
-    headerTitle: "text-[clamp(16.5px,4.5vw,22px)]",
-    headerSubtitle: "text-[clamp(11.5px,3vw,15.5px)]",
-    headerNewChatBtn: "h-10 px-4 text-[13.5px] gap-2",
+    headerTitle: "text-[clamp(15.5px,4vw,19px)]",
+    headerSubtitle: "text-[clamp(10.5px,2.8vw,13px)]",
+    headerNewChatBtn: "h-9 px-3.5 text-[12px] gap-1.5",
     sidebarWidth: "w-[18rem]",
     sidebarNewChatBtn: "h-11.5 text-[15.5px] gap-2 rounded-2xl",
     sidebarGuideBtn: "h-11 text-[15px] gap-2 rounded-2xl",
@@ -291,9 +291,9 @@ const fontSizeStyles: Record<
     input: "text-[clamp(17px,4.4vw,26px)]",
     meta: "text-[clamp(13px,3.4vw,18px)]",
     headerHeight: "h-18 sm:h-20",
-    headerTitle: "text-[clamp(18px,5vw,25px)]",
-    headerSubtitle: "text-[clamp(13px,3.4vw,17.5px)]",
-    headerNewChatBtn: "h-11 px-4.5 text-[15px] gap-2.5",
+    headerTitle: "text-[clamp(16.5px,4.3vw,21px)]",
+    headerSubtitle: "text-[clamp(12px,3vw,14px)]",
+    headerNewChatBtn: "h-10 px-4 text-[13px] gap-2",
     sidebarWidth: "w-[21rem]",
     sidebarNewChatBtn: "h-13 text-[17px] gap-2.5 rounded-2xl",
     sidebarGuideBtn: "h-12 text-[16.5px] gap-2.5 rounded-2xl",
@@ -1161,8 +1161,8 @@ export function AssistantApp({ initialConfig }: AssistantAppProps) {
 
       <main className="flex min-w-0 flex-1 flex-col bg-[#f6f6f4]">
         <header className="shrink-0 border-b border-black/[0.05] bg-white/[0.96]">
-          <div className={`flex w-full items-center justify-between px-[6vw] lg:hidden ${mobileFontClasses.headerHeight}`}>
-            <div className="flex min-w-0 items-center gap-3">
+          <div className={`mx-auto flex w-full max-w-[430px] items-center justify-between px-4 lg:hidden ${mobileFontClasses.headerHeight}`}>
+            <div className="flex min-w-0 flex-1 items-center gap-3 pr-2">
               <button
                 className={`inline-flex shrink-0 items-center justify-center rounded-full text-[#5b5b5b] transition hover:bg-[#f4f4f4] lg:hidden ${
                   fontSize === "sm" ? "h-10 w-10" : fontSize === "md" ? "h-11 w-11" : "h-13 w-13"
@@ -1182,7 +1182,7 @@ export function AssistantApp({ initialConfig }: AssistantAppProps) {
               </div>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex shrink-0 items-center">
               <button
                 className={`inline-flex items-center rounded-full bg-[#111111] text-white transition hover:bg-[#2f2f2f] ${mobileFontClasses.headerNewChatBtn}`}
                 onClick={startNewChat}
@@ -1230,15 +1230,15 @@ export function AssistantApp({ initialConfig }: AssistantAppProps) {
             </section>
 
             <section className="flex min-h-0 w-full flex-1 flex-col overflow-hidden lg:hidden">
-              <div className="min-h-0 w-full flex-1 overflow-y-auto px-[6vw] py-4">
-                <div className="mx-auto flex min-h-full w-full flex-col items-stretch justify-start gap-5 pb-8 pt-5 sm:gap-8">
+              <div className="min-h-0 w-full flex-1 overflow-y-auto px-4 py-4">
+                <div className="mx-auto flex min-h-full w-full max-w-[430px] flex-col items-stretch justify-start gap-5 pb-8 pt-5 sm:gap-8">
                   <WelcomePanel framed={false} fontSizeMode={fontSize} uiClasses={mobileFontClasses} />
                   <MobileQuickActions onQuickPrompt={handleQuickPrompt} fontSizeMode={fontSize} />
                 </div>
               </div>
 
-              <div className="w-full shrink-0 border-t border-black/[0.03] bg-[#f6f6f4] px-[6vw] pb-[calc(env(safe-area-inset-bottom)+1rem)] pt-2">
-                <div className="mx-auto w-full">
+              <div className="w-full shrink-0 border-t border-black/[0.03] bg-[#f6f6f4] px-4 pb-[calc(env(safe-area-inset-bottom)+1rem)] pt-2">
+                <div className="mx-auto w-full max-w-[430px]">
                   {composer}
                   <p className="mx-auto mt-2 text-center text-[0.65em] leading-normal text-[#7d7d7d] opacity-75">
                     回答来自AI生成，请以官方最新资料为准
@@ -1276,8 +1276,8 @@ export function AssistantApp({ initialConfig }: AssistantAppProps) {
             </section>
 
             <section className="grid min-h-0 flex-1 grid-rows-[minmax(0,1fr)_auto] lg:hidden">
-              <div className="min-h-0 overflow-y-auto px-[6vw]">
-                <div className={`mx-auto w-full ${mobileFontClasses.messageSpacing}`}>
+              <div className="min-h-0 overflow-y-auto px-4">
+                <div className={`mx-auto w-full max-w-[430px] ${mobileFontClasses.messageSpacing}`}>
                   {activeMessages.map((message) => (
                     <MessageRow
                       key={message.id}
@@ -1293,11 +1293,13 @@ export function AssistantApp({ initialConfig }: AssistantAppProps) {
                 </div>
               </div>
 
-              <div className="bg-white px-[6vw] pb-4 pt-2">
+              <div className="bg-white px-4 pb-4 pt-2">
+                <div className="mx-auto w-full max-w-[430px]">
                 {composer}
                 <p className="mx-auto mt-2 text-center text-[0.65em] leading-normal text-[#7d7d7d] opacity-75">
                   回答来自AI生成，请以官方最新资料为准
                 </p>
+                </div>
               </div>
             </section>
           </>
@@ -1598,15 +1600,15 @@ function Composer({
   const desktopTextareaMinHeight = "min-h-14"
 
   const mobileBtnSize =
-    mobileFontSizeMode === "sm" ? "h-11 w-11" : mobileFontSizeMode === "md" ? "h-14 w-14" : "h-16 w-16"
+    mobileFontSizeMode === "sm" ? "h-10 w-10" : mobileFontSizeMode === "md" ? "h-12 w-12" : "h-14 w-14"
   const mobileIconSize =
-    mobileFontSizeMode === "sm" ? "h-5 w-5" : mobileFontSizeMode === "md" ? "h-7 w-7" : "h-8 w-8"
+    mobileFontSizeMode === "sm" ? "h-4.5 w-4.5" : mobileFontSizeMode === "md" ? "h-6 w-6" : "h-7 w-7"
   const mobileContainerPadding =
     mobileFontSizeMode === "sm"
-      ? "px-3.5 py-2.5 rounded-2xl"
+      ? "px-3 py-2 rounded-2xl"
       : mobileFontSizeMode === "md"
-        ? "px-4 py-3 rounded-[1.4rem]"
-        : "px-4.5 py-3.5 rounded-[1.6rem]"
+        ? "px-3.5 py-2.5 rounded-[1.35rem]"
+        : "px-4 py-3 rounded-[1.5rem]"
   const mobileTextareaPadding = mobileFontSizeMode === "sm" ? "px-2 py-1" : "px-2 py-1"
   const mobileTextareaMinHeight =
     mobileFontSizeMode === "sm" ? "min-h-12" : mobileFontSizeMode === "md" ? "min-h-14" : "min-h-16"
