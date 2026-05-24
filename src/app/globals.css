@@ -6,8 +6,8 @@
 
 :root {
   color-scheme: light;
-  --background: #f7fafc;
-  --foreground: #102033;
+  --background: #f7f3ec;
+  --foreground: #1a1410;
 }
 
 @theme inline {
@@ -41,6 +41,20 @@ select {
 }
 
 ::selection {
-  background: rgba(53, 92, 154, 0.14);
-  color: #102033;
+  background: rgba(201, 168, 122, 0.24);
+  color: #1a1410;
+}
+
+.lux-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(140, 130, 118, 0.35) transparent;
+}
+
+.lux-scroll::-webkit-scrollbar {
+  width: 8px;
+}
+
+.lux-scroll::-webkit-scrollbar-thumb {
+  background: rgba(140, 130, 118, 0.32);
+  border-radius: 999px;
 }
