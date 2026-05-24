@@ -1,12 +1,11 @@
 "use client"
 
-import type { FormEvent, ReactNode } from "react"
 import { Check, Copy, Mail, MessageCircle, Phone, QrCode, Send } from "lucide-react"
 import { useState } from "react"
 
 import { PageHeader } from "@/components/page-header"
 
-type BusinessCenterProps = {
+interface BusinessCenterProps {
   onBack: () => void
 }
 
@@ -31,15 +30,15 @@ export function BusinessCenter({ onBack }: BusinessCenterProps) {
     try {
       await navigator.clipboard.writeText(value)
       setCopied(id)
-      window.setTimeout(() => setCopied((current) => (current === id ? null : current)), 1500)
+      setTimeout(() => setCopied((c) => (c === id ? null : c)), 1500)
     } catch {}
   }
 
-  const submit = (event: FormEvent) => {
-    event.preventDefault()
+  const submit = (e: React.FormEvent) => {
+    e.preventDefault()
     if (!form.name || !form.wechat) return
     setSubmitted(true)
-    window.setTimeout(() => setSubmitted(false), 2400)
+    setTimeout(() => setSubmitted(false), 2400)
     setForm({ name: "", city: "", wechat: "", note: "" })
   }
 
@@ -49,92 +48,158 @@ export function BusinessCenter({ onBack }: BusinessCenterProps) {
 
       <div className="@container flex-1 min-h-0 overflow-y-auto lux-scroll">
         <div className="mx-auto w-full max-w-3xl px-4 md:px-8 py-5 space-y-5">
-          <section className="rounded-2xl p-5" style={{ background: "#ffffff", border: "1px solid #e6dccb" }}>
+          <section
+            className="rounded-2xl p-5"
+            style={{ background: "#ffffff", border: "1px solid #e6dccb" }}
+          >
             <SectionTitle eyebrow="CONTACT" title="官方联系方式" />
             <div className="mt-4 flex flex-col gap-2.5">
-              {CONTACTS.map((item) => (
-                <div key={item.id} className="flex items-center gap-3 rounded-2xl px-4 py-3.5" style={{ background: "#f7f3ec" }}>
-                  <div className="grid place-items-center rounded-xl shrink-0" style={{ width: 38, height: 38, background: "#ffffff", color: "#1a1410" }}>
-                    {item.icon}
+              {CONTACTS.map((c) => (
+                <div
+                  key={c.id}
+                  className="flex items-center gap-3 rounded-2xl px-4 py-3.5"
+                  style={{ background: "#f7f3ec" }}
+                >
+                  <div
+                    className="grid place-items-center rounded-xl shrink-0"
+                    style={{ width: 38, height: 38, background: "#ffffff", color: "#1a1410" }}
+                  >
+                    {c.icon}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div style={{ color: "#8c8276", fontSize: 12, letterSpacing: "0.1em" }}>{item.label}</div>
-                    <div className="mt-0.5 font-serif truncate" style={{ color: "#1a1410", fontSize: 17, letterSpacing: "0.02em" }}>
-                      {item.value}
+                    <div style={{ color: "#8c8276", fontSize: 12, letterSpacing: "0.1em" }}>
+                      {c.label}
+                    </div>
+                    <div
+                      className="mt-0.5 font-serif truncate"
+                      style={{ color: "#1a1410", fontSize: 17, letterSpacing: "0.02em" }}
+                    >
+                      {c.value}
                     </div>
                   </div>
                   <button
-                    onClick={() => copy(item.id, item.value)}
+                    onClick={() => copy(c.id, c.value)}
                     className="shrink-0 inline-flex items-center gap-1 rounded-full px-3 py-1.5 transition-colors"
                     style={{
-                      background: copied === item.id ? "#1a1410" : "#ffffff",
-                      color: copied === item.id ? "#f7f3ec" : "#1a1410",
+                      background: copied === c.id ? "#1a1410" : "#ffffff",
+                      color: copied === c.id ? "#f7f3ec" : "#1a1410",
                       border: "1px solid #e6dccb",
                       fontSize: 12,
                     }}
                   >
-                    {copied === item.id ? <Check size={12} /> : <Copy size={12} />}
-                    {copied === item.id ? "已复制" : "复制"}
+                    {copied === c.id ? <Check size={12} /> : <Copy size={12} />}
+                    {copied === c.id ? "已复制" : "复制"}
                   </button>
                 </div>
               ))}
             </div>
 
-            <div className="mt-4 flex items-center gap-4 rounded-2xl px-4 py-3.5" style={{ background: "#1a1410" }}>
-              <div className="grid place-items-center rounded-xl shrink-0" style={{ width: 76, height: 76, background: "#f7f3ec", color: "#1a1410" }}>
+            <div
+              className="mt-4 flex items-center gap-4 rounded-2xl px-4 py-3.5"
+              style={{ background: "#1a1410" }}
+            >
+              <div
+                className="grid place-items-center rounded-xl shrink-0"
+                style={{ width: 76, height: 76, background: "#f7f3ec", color: "#1a1410" }}
+              >
                 <QrCode size={44} />
               </div>
               <div className="min-w-0">
-                <div className="font-serif" style={{ color: "#c9a87a", fontSize: 12.5, letterSpacing: "0.18em" }}>
-                  OFFICIAL · WECHAT
+                <div
+                  className="font-serif"
+                  style={{ color: "#c9a87a", fontSize: 12.5, letterSpacing: "0.18em" }}
+                >
+                  OFFICIAL &middot; WECHAT
                 </div>
-                <div className="font-serif mt-1" style={{ color: "#f7f3ec", fontSize: 16, letterSpacing: "0.04em" }}>
+                <div
+                  className="font-serif mt-1"
+                  style={{ color: "#f7f3ec", fontSize: 16, letterSpacing: "0.04em" }}
+                >
                   扫码添加问兰商务顾问
                 </div>
-                <div style={{ color: "#8c8276", fontSize: 12, marginTop: 4 }}>工作日 09:30 – 19:00 · 周末顺延回复</div>
+                <div style={{ color: "#8c8276", fontSize: 12, marginTop: 4 }}>
+                  工作日 09:30 &ndash; 19:00 &middot; 周末顺延回复
+                </div>
               </div>
             </div>
           </section>
 
-          <section className="rounded-2xl p-5" style={{ background: "#ffffff", border: "1px solid #e6dccb" }}>
+          <section
+            className="rounded-2xl p-5"
+            style={{ background: "#ffffff", border: "1px solid #e6dccb" }}
+          >
             <SectionTitle eyebrow="PRICING" title="零售价目区间" />
             <div className="mt-4 divide-y" style={{ borderColor: "#f1ebde" }}>
-              {PRICE_TIERS.map((item) => (
-                <div key={item.name} className="flex items-center gap-3 py-3">
+              {PRICE_TIERS.map((p) => (
+                <div key={p.name} className="flex items-center gap-3 py-3">
                   <div className="flex-1 min-w-0">
-                    <div style={{ color: "#1a1410", fontSize: 14 }}>{item.name}</div>
-                    <div style={{ color: "#8c8276", fontSize: 12, marginTop: 2 }}>{item.note}</div>
+                    <div style={{ color: "#1a1410", fontSize: 14 }}>{p.name}</div>
+                    <div style={{ color: "#8c8276", fontSize: 12, marginTop: 2 }}>{p.note}</div>
                   </div>
-                  <div className="font-serif shrink-0" style={{ color: "#1a1410", fontSize: 15, letterSpacing: "0.04em" }}>
-                    {item.range}
+                  <div
+                    className="font-serif shrink-0"
+                    style={{ color: "#1a1410", fontSize: 15, letterSpacing: "0.04em" }}
+                  >
+                    {p.range}
                   </div>
                 </div>
               ))}
             </div>
-            <div className="mt-3 rounded-xl px-3 py-2.5" style={{ background: "#f7f3ec", color: "#3a322a", fontSize: 12.5, lineHeight: 1.65 }}>
-              如需了解代理等级、费用档位或申请流程，请在下方留下联系方式，对接顾问会在 1 个工作日内联系您。
+            <div
+              className="mt-3 rounded-xl px-3 py-2.5"
+              style={{ background: "#f7f3ec", color: "#3a322a", fontSize: 12.5, lineHeight: 1.65 }}
+            >
+              如需了解代理等级、费用档位或申请流程，请在下方留下联系方式，
+              对接顾问会在 1 个工作日内联系您。
             </div>
           </section>
 
-          <section className="rounded-2xl p-5" style={{ background: "#ffffff", border: "1px solid #e6dccb" }}>
+          <section
+            className="rounded-2xl p-5"
+            style={{ background: "#ffffff", border: "1px solid #e6dccb" }}
+          >
             <SectionTitle eyebrow="INQUIRY" title="合作申请" />
             <form onSubmit={submit} className="mt-4 grid grid-cols-1 @xl:grid-cols-2 gap-3">
-              <Field label="姓名 *" value={form.name} onChange={(value) => setForm((current) => ({ ...current, name: value }))} placeholder="您的称呼" />
-              <Field label="所在城市" value={form.city} onChange={(value) => setForm((current) => ({ ...current, city: value }))} placeholder="如：上海 · 静安" />
-              <Field label="微信 / 电话 *" value={form.wechat} onChange={(value) => setForm((current) => ({ ...current, wechat: value }))} placeholder="留下方便联系的方式" />
+              <Field
+                label="姓名 *"
+                value={form.name}
+                onChange={(v) => setForm((f) => ({ ...f, name: v }))}
+                placeholder="您的称呼"
+              />
+              <Field
+                label="所在城市"
+                value={form.city}
+                onChange={(v) => setForm((f) => ({ ...f, city: v }))}
+                placeholder="如：上海 · 静安"
+              />
+              <Field
+                label="微信 / 电话 *"
+                value={form.wechat}
+                onChange={(v) => setForm((f) => ({ ...f, wechat: v }))}
+                placeholder="留下方便联系的方式"
+              />
               <div className="@xl:col-span-2">
                 <Label>合作意向</Label>
                 <textarea
                   value={form.note}
-                  onChange={(event) => setForm((current) => ({ ...current, note: event.target.value }))}
+                  onChange={(e) => setForm((f) => ({ ...f, note: e.target.value }))}
                   rows={3}
                   placeholder="想了解的内容、目标城市、客群规模等"
                   className="w-full rounded-2xl px-4 py-3 outline-none resize-none"
-                  style={{ background: "#f7f3ec", border: "1px solid #e6dccb", color: "#1a1410", fontSize: 14, lineHeight: 1.6, fontFamily: "var(--font-sans)" }}
+                  style={{
+                    background: "#f7f3ec",
+                    border: "1px solid #e6dccb",
+                    color: "#1a1410",
+                    fontSize: 14,
+                    lineHeight: 1.6,
+                    fontFamily: "var(--font-sans)",
+                  }}
                 />
               </div>
-              <div className="@xl:col-span-2 flex items-center justify-between gap-3">
-                <span style={{ color: "#8c8276", fontSize: 12 }}>提交后由问兰商务团队在 1 个工作日内联系。</span>
+              <div className="@xl:col-span-2 flex items-center justify-between">
+                <span style={{ color: "#8c8276", fontSize: 12 }}>
+                  提交后由问兰商务团队在 1 个工作日内联系。
+                </span>
                 <button
                   type="submit"
                   disabled={!form.name || !form.wechat}
@@ -161,30 +226,56 @@ export function BusinessCenter({ onBack }: BusinessCenterProps) {
 function SectionTitle({ eyebrow, title }: { eyebrow: string; title: string }) {
   return (
     <>
-      <div className="font-serif" style={{ color: "#c9a87a", fontSize: 11, letterSpacing: "0.24em" }}>
+      <div
+        className="font-serif"
+        style={{ color: "#c9a87a", fontSize: 11, letterSpacing: "0.24em" }}
+      >
         {eyebrow}
       </div>
-      <div className="font-serif mt-1" style={{ color: "#1a1410", fontSize: 18, letterSpacing: "0.04em" }}>
+      <div
+        className="font-serif mt-1"
+        style={{ color: "#1a1410", fontSize: 18, letterSpacing: "0.04em" }}
+      >
         {title}
       </div>
     </>
   )
 }
 
-function Label({ children }: { children: ReactNode }) {
-  return <div style={{ color: "#8c8276", fontSize: 12, letterSpacing: "0.06em", marginBottom: 6 }}>{children}</div>
+function Label({ children }: { children: React.ReactNode }) {
+  return (
+    <div style={{ color: "#8c8276", fontSize: 12, letterSpacing: "0.06em", marginBottom: 6 }}>
+      {children}
+    </div>
+  )
 }
 
-function Field({ label, value, onChange, placeholder }: { label: string; value: string; onChange: (value: string) => void; placeholder?: string }) {
+function Field({
+  label,
+  value,
+  onChange,
+  placeholder,
+}: {
+  label: string
+  value: string
+  onChange: (v: string) => void
+  placeholder?: string
+}) {
   return (
     <div>
       <Label>{label}</Label>
       <input
         value={value}
-        onChange={(event) => onChange(event.target.value)}
+        onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
         className="w-full rounded-full px-4 py-2.5 outline-none"
-        style={{ background: "#f7f3ec", border: "1px solid #e6dccb", color: "#1a1410", fontSize: 14, fontFamily: "var(--font-sans)" }}
+        style={{
+          background: "#f7f3ec",
+          border: "1px solid #e6dccb",
+          color: "#1a1410",
+          fontSize: 14,
+          fontFamily: "var(--font-sans)",
+        }}
       />
     </div>
   )

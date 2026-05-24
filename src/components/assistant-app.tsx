@@ -1,19 +1,12 @@
 "use client"
 
-/* eslint-disable @next/next/no-img-element */
-
-import type { KeyboardEvent, PointerEvent as ReactPointerEvent, ReactNode, RefObject } from "react"
+import type { ReactNode } from "react"
 import { useEffect, useMemo, useRef, useState } from "react"
+import { useRouter } from "next/navigation"
 import {
-  ArrowUp,
-  Check,
   CircleDashed,
-  Copy,
-  Loader2,
   Menu,
-  Mic,
   Phone,
-  Plus,
   Search,
   Sparkles,
   Trash2,
@@ -22,8 +15,9 @@ import {
 
 import { AppSidebar, MobileAppSidebar } from "@/components/app-sidebar"
 import { BrandMark } from "@/components/brand-mark"
-import { MarkdownRenderer } from "@/components/markdown-renderer"
-import { assistantName, emptyStateCopy, onboardingGuide } from "@/lib/prompts"
+import { Bubble } from "@/components/bubble"
+import { Composer } from "@/components/composer"
+import { assistantName } from "@/lib/prompts"
 import {
   STORAGE_KEYS,
   createId,
@@ -286,7 +280,7 @@ function extractAttachmentsFromPayload(payload: StreamEvent) {
     .filter((item): item is ChatAttachment => Boolean(item))
 }
 
-function scrollElementIntoView(ref: RefObject<HTMLDivElement | null>) {
+function scrollElementIntoView(ref: React.RefObject<HTMLDivElement | null>) {
   requestAnimationFrame(() => {
     ref.current?.scrollIntoView({ block: "end", behavior: "smooth" })
   })
@@ -294,44 +288,11 @@ function scrollElementIntoView(ref: RefObject<HTMLDivElement | null>) {
 
 type FontSizeMode = "sm" | "md" | "lg"
 type DisplayMode = "fashion" | "efficiency"
-type LayoutDensity = "regular" | "compact" | "tight"
 
 const displayModeOptions: Array<{ value: DisplayMode; label: string }> = [
   { value: "fashion", label: "时尚版" },
   { value: "efficiency", label: "效率版" },
 ]
-
-function useLayoutDensity() {
-  const [density, setDensity] = useState<LayoutDensity>("regular")
-
-  useEffect(() => {
-    const update = () => {
-      const width = Math.round(window.visualViewport?.width || window.innerWidth || 0)
-      if (width <= 375) {
-        setDensity("tight")
-        return
-      }
-      if (width <= 430) {
-        setDensity("compact")
-        return
-      }
-      setDensity("regular")
-    }
-
-    update()
-    window.addEventListener("resize", update)
-    window.addEventListener("orientationchange", update)
-    window.visualViewport?.addEventListener("resize", update)
-
-    return () => {
-      window.removeEventListener("resize", update)
-      window.removeEventListener("orientationchange", update)
-      window.visualViewport?.removeEventListener("resize", update)
-    }
-  }, [])
-
-  return density
-}
 
 const fontSizeStyles: Record<
   FontSizeMode,
@@ -535,105 +496,10 @@ const desktopFontSizeStyles: typeof fontSizeStyles = {
   lg: desktopBaseStyles,
 }
 
-const preferredRecorderMimeTypes = [
-  "audio/mp4",
-  "audio/mp4;codecs=mp4a.40.2",
-  "audio/ogg;codecs=opus",
-  "audio/ogg",
-  "audio/webm;codecs=opus",
-  "audio/webm",
-]
-
-function pickRecorderMimeType() {
-  if (typeof MediaRecorder === "undefined") return ""
-  for (const mimeType of preferredRecorderMimeTypes) {
-    if (MediaRecorder.isTypeSupported(mimeType)) {
-      return mimeType
-    }
-  }
-  return ""
-}
-
-function audioBufferToWavBuffer(buffer: AudioBuffer) {
-  const numChannels = buffer.numberOfChannels
-  const sampleRate = buffer.sampleRate
-  const bytesPerSample = 2
-  const blockAlign = numChannels * bytesPerSample
-  const byteRate = sampleRate * blockAlign
-  const dataSize = buffer.length * blockAlign
-  const wavBuffer = new ArrayBuffer(44 + dataSize)
-  const view = new DataView(wavBuffer)
-  let offset = 0
-
-  const writeString = (value: string) => {
-    for (let index = 0; index < value.length; index += 1) {
-      view.setUint8(offset + index, value.charCodeAt(index))
-    }
-    offset += value.length
-  }
-
-  writeString("RIFF")
-  view.setUint32(offset, 36 + dataSize, true)
-  offset += 4
-  writeString("WAVE")
-  writeString("fmt ")
-  view.setUint32(offset, 16, true)
-  offset += 4
-  view.setUint16(offset, 1, true)
-  offset += 2
-  view.setUint16(offset, numChannels, true)
-  offset += 2
-  view.setUint32(offset, sampleRate, true)
-  offset += 4
-  view.setUint32(offset, byteRate, true)
-  offset += 4
-  view.setUint16(offset, blockAlign, true)
-  offset += 2
-  view.setUint16(offset, bytesPerSample * 8, true)
-  offset += 2
-  writeString("data")
-  view.setUint32(offset, dataSize, true)
-  offset += 4
-
-  const channelData = Array.from({ length: numChannels }, (_, index) => buffer.getChannelData(index))
-  for (let frame = 0; frame < buffer.length; frame += 1) {
-    for (let channel = 0; channel < numChannels; channel += 1) {
-      const sample = Math.max(-1, Math.min(1, channelData[channel][frame]))
-      view.setInt16(offset, sample < 0 ? sample * 0x8000 : sample * 0x7fff, true)
-      offset += 2
-    }
-  }
-
-  return wavBuffer
-}
-
-async function convertRecordedBlobToWav(blob: Blob) {
-  if (blob.type === "audio/wav") {
-    return blob
-  }
-
-  const AudioContextClass =
-    window.AudioContext || (window as Window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext
-  if (!AudioContextClass) {
-    throw new Error("当前浏览器不支持语音转文字所需的音频转换能力")
-  }
-
-  const audioContext = new AudioContextClass()
-  try {
-    const decodedBuffer = await audioContext.decodeAudioData(await blob.arrayBuffer())
-    return new Blob([audioBufferToWavBuffer(decodedBuffer)], { type: "audio/wav" })
-  } finally {
-    await audioContext.close().catch(() => {})
-  }
-}
-
 export function AssistantApp({ initialConfig }: AssistantAppProps) {
   const [conversations, setConversations] = useState<ChatConversation[]>([])
   const [activeConversationId, setActiveConversationId] = useState("")
-  const [draft, setDraft] = useState("")
   const [isSending, setIsSending] = useState(false)
-  const [isRecording, setIsRecording] = useState(false)
-  const [isTranscribing, setIsTranscribing] = useState(false)
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false)
   const [guideModalOpen, setGuideModalOpen] = useState(false)
   const [displayMode, setDisplayMode] = useState<DisplayMode>(() => {
@@ -658,24 +524,14 @@ export function AssistantApp({ initialConfig }: AssistantAppProps) {
   })
   const [copiedMessageId, setCopiedMessageId] = useState("")
   const [serverStatus, setServerStatus] = useState<ServerStatus>(initialServerStatus)
+  const router = useRouter()
   const navigateTo = (path: string) => {
-    window.location.pathname = path
+    router.push(path)
   }
 
   const desktopStreamAnchorRef = useRef<HTMLDivElement | null>(null)
   const mobileStreamAnchorRef = useRef<HTMLDivElement | null>(null)
-  const textareaRef = useRef<HTMLTextAreaElement | null>(null)
-  const recorderRef = useRef<MediaRecorder | null>(null)
-  const recorderStreamRef = useRef<MediaStream | null>(null)
-  const audioChunksRef = useRef<Blob[]>([])
-  const audioContextRef = useRef<AudioContext | null>(null)
-  const voiceFrameRef = useRef<number | null>(null)
-  const analyserRef = useRef<AnalyserNode | null>(null)
-  const voiceDataRef = useRef<Uint8Array<ArrayBuffer> | null>(null)
-  const voicePressActiveRef = useRef(false)
-  const voiceStartPendingRef = useRef(false)
   const userIdRef = useRef("browser")
-  const [voiceLevel, setVoiceLevel] = useState(0)
 
   useEffect(() => {
     userIdRef.current = ensureUserId()
@@ -775,8 +631,7 @@ export function AssistantApp({ initialConfig }: AssistantAppProps) {
 
   useEffect(() => {
     return () => {
-      stopVoiceMeter()
-      recorderStreamRef.current?.getTracks().forEach((track) => track.stop())
+      // cleanup handled by useRecorder in Composer
     }
   }, [])
 
@@ -790,7 +645,6 @@ export function AssistantApp({ initialConfig }: AssistantAppProps) {
   const mobileFontClasses = fontSizeStyles[fontSize]
   const desktopFontSize: FontSizeMode = "md"
   const desktopFontClasses = desktopFontSizeStyles[desktopFontSize]
-  const layoutDensity = useLayoutDensity()
 
   function patchConversation(conversationId: string, updater: (conversation: ChatConversation) => ChatConversation) {
     setConversations((current) =>
@@ -802,7 +656,6 @@ export function AssistantApp({ initialConfig }: AssistantAppProps) {
     const conversation = emptyConversation()
     setConversations((current) => [conversation, ...current])
     setActiveConversationId(conversation.id)
-    setDraft("")
     setMobileSidebarOpen(false)
   }
 
@@ -907,7 +760,6 @@ export function AssistantApp({ initialConfig }: AssistantAppProps) {
     }
 
     setIsSending(true)
-    setDraft("")
     setActiveConversationId(conversationId)
 
     appendMessage(conversationId, userMessage)
@@ -1006,14 +858,6 @@ export function AssistantApp({ initialConfig }: AssistantAppProps) {
     }
   }
 
-  async function handleSubmit() {
-    await sendPrompt(draft)
-  }
-
-  async function handleQuickPrompt(prompt: string) {
-    await sendPrompt(prompt)
-  }
-
   async function copyMessage(content: string, messageId: string) {
     try {
       await navigator.clipboard.writeText(content)
@@ -1029,208 +873,12 @@ export function AssistantApp({ initialConfig }: AssistantAppProps) {
     setFontSize(mode === "efficiency" ? "lg" : "md")
   }
 
-  function stopVoiceMeter() {
-    if (voiceFrameRef.current !== null) {
-      window.cancelAnimationFrame(voiceFrameRef.current)
-      voiceFrameRef.current = null
-    }
-    analyserRef.current = null
-    voiceDataRef.current = null
-    setVoiceLevel(0)
-    const audioContext = audioContextRef.current
-    audioContextRef.current = null
-    if (audioContext) {
-      void audioContext.close().catch(() => {})
-    }
-  }
-
-  function startVoiceMeter(stream: MediaStream) {
-    stopVoiceMeter()
-    const AudioContextClass =
-      window.AudioContext || (window as Window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext
-    if (!AudioContextClass) return
-
-    const audioContext = new AudioContextClass()
-    const analyser = audioContext.createAnalyser()
-    analyser.fftSize = 256
-    analyser.smoothingTimeConstant = 0.72
-    audioContext.createMediaStreamSource(stream).connect(analyser)
-
-    audioContextRef.current = audioContext
-    analyserRef.current = analyser
-    voiceDataRef.current = new Uint8Array(analyser.frequencyBinCount) as Uint8Array<ArrayBuffer>
-
-    const updateLevel = () => {
-      const currentAnalyser = analyserRef.current
-      const data = voiceDataRef.current
-      if (!currentAnalyser || !data) return
-
-      currentAnalyser.getByteTimeDomainData(data)
-      let total = 0
-      for (const value of data) {
-        const normalized = (value - 128) / 128
-        total += normalized * normalized
-      }
-      const rms = Math.sqrt(total / data.length)
-      setVoiceLevel(Math.min(1, Math.max(0, rms * 5)))
-      voiceFrameRef.current = window.requestAnimationFrame(updateLevel)
-    }
-
-    updateLevel()
-  }
-
-  function stopVoiceRecording() {
-    voicePressActiveRef.current = false
-    if (!isRecording && !voiceStartPendingRef.current) return
-    voiceStartPendingRef.current = false
-
-    const recorder = recorderRef.current
-    recorderRef.current = null
-    setIsRecording(false)
-    stopVoiceMeter()
-    recorderStreamRef.current?.getTracks().forEach((track) => track.stop())
-    recorderStreamRef.current = null
-
-    recorder?.stop()
-  }
-
-  async function startVoiceRecording() {
-    if (isTranscribing || !serverStatus.transcribeReady || isRecording || voiceStartPendingRef.current) return
-    voicePressActiveRef.current = true
-    voiceStartPendingRef.current = true
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
-      if (!voicePressActiveRef.current) {
-        stream.getTracks().forEach((track) => track.stop())
-        return
-      }
-      recorderStreamRef.current = stream
-      startVoiceMeter(stream)
-      const mimeType = pickRecorderMimeType()
-      const recorder = mimeType ? new MediaRecorder(stream, { mimeType }) : new MediaRecorder(stream)
-      recorderRef.current = recorder
-      audioChunksRef.current = []
-
-      recorder.ondataavailable = (event) => {
-        if (event.data.size > 0) {
-          audioChunksRef.current.push(event.data)
-        }
-      }
-
-      recorder.onstop = async () => {
-        setIsTranscribing(true)
-        try {
-          const recordedBlob = new Blob(audioChunksRef.current, { type: recorder.mimeType || "audio/webm" })
-          const blob = await convertRecordedBlobToWav(recordedBlob)
-          const formData = new FormData()
-          formData.append("file", blob, "voice.wav")
-          const response = await fetch("/api/transcribe", {
-            method: "POST",
-            body: formData,
-          })
-          if (!response.ok) {
-            const errorPayload = await response.json().catch(() => ({}))
-            throw new Error((errorPayload as { error?: string }).error || "语音转文字失败")
-          }
-          const payload = (await response.json()) as { text?: string }
-          const text = (payload.text || "").trim()
-          if (text) {
-            setDraft((current) => `${current ? `${current} ` : ""}${text}`)
-            textareaRef.current?.focus()
-          }
-        } catch (error) {
-          const message = error instanceof Error ? error.message : "语音转文字失败"
-          if (activeConversation?.id) {
-            appendMessage(activeConversation.id, {
-              id: createId("msg"),
-              role: "assistant",
-              content: message,
-              createdAt: new Date().toISOString(),
-              status: "error",
-            })
-          }
-        } finally {
-          setIsTranscribing(false)
-          stopVoiceMeter()
-        }
-      }
-
-      recorder.start()
-      setIsRecording(true)
-    } catch {
-      voicePressActiveRef.current = false
-      stopVoiceMeter()
-      // Permission denial is handled by the browser prompt.
-    } finally {
-      voiceStartPendingRef.current = false
-    }
-  }
-
-  function handleVoicePressStart(event: ReactPointerEvent<HTMLButtonElement>) {
-    if (!serverStatus.transcribeReady || isTranscribing || isRecording || voiceStartPendingRef.current) return
-    event.preventDefault()
-    try {
-      event.currentTarget.setPointerCapture(event.pointerId)
-    } catch {
-      // Ignore capture issues on browsers that do not support it cleanly.
-    }
-    void startVoiceRecording()
-  }
-
-  function handleVoicePressEnd(event: ReactPointerEvent<HTMLButtonElement>) {
-    event.preventDefault()
-    try {
-      if (event.currentTarget.hasPointerCapture(event.pointerId)) {
-        event.currentTarget.releasePointerCapture(event.pointerId)
-      }
-    } catch {
-      // Ignore capture issues.
-    }
-    stopVoiceRecording()
-  }
-
-  function handleVoiceKeyDown(event: KeyboardEvent<HTMLButtonElement>) {
-    if (event.key !== " " && event.key !== "Enter") return
-    if (event.repeat) return
-    event.preventDefault()
-    void startVoiceRecording()
-  }
-
-  function handleVoiceKeyUp(event: KeyboardEvent<HTMLButtonElement>) {
-    if (event.key !== " " && event.key !== "Enter") return
-    event.preventDefault()
-    stopVoiceRecording()
-  }
-
-  function handleTextareaKeyDown(event: KeyboardEvent<HTMLTextAreaElement>) {
-    if (event.key !== "Enter" || event.shiftKey || event.nativeEvent.isComposing) return
-    event.preventDefault()
-    if (!isSending) {
-      void handleSubmit()
-    }
-  }
-
   const composer = (
     <Composer
-      draft={draft}
-      textareaRef={textareaRef}
-      isSending={isSending}
-      isRecording={isRecording}
-      isTranscribing={isTranscribing}
-      voiceLevel={voiceLevel}
+      onSend={sendPrompt}
+      onOpenGuide={openGuideModal}
+      disabled={isSending}
       canTranscribe={serverStatus.transcribeReady}
-      onChange={setDraft}
-      onKeyDown={handleTextareaKeyDown}
-      onSubmit={handleSubmit}
-      onNewChat={startNewChat}
-      onVoicePressStart={handleVoicePressStart}
-      onVoicePressEnd={handleVoicePressEnd}
-      onVoiceKeyDown={handleVoiceKeyDown}
-      onVoiceKeyUp={handleVoiceKeyUp}
-      desktopFontSizeClass={desktopFontClasses.input}
-      mobileFontSizeClass={mobileFontClasses.input}
-      density={layoutDensity}
-      mobileFontSizeMode={fontSize}
     />
   )
 
@@ -1368,11 +1016,11 @@ export function AssistantApp({ initialConfig }: AssistantAppProps) {
         {mobileSidebarBody}
       </MobileAppSidebar>
 
-      <GuideModal open={guideModalOpen} onClose={() => setGuideModalOpen(false)} />
+      <GuideModal open={guideModalOpen} onClose={() => setGuideModalOpen(false)} steps={initialConfig.onboardingGuide} />
 
       <main className="flex min-w-0 flex-1 flex-col bg-[#f7f3ec]">
         <header className="shrink-0 border-b border-[#e6dccb] bg-white/[0.94]">
-          <div className={`mx-auto flex w-full max-w-[430px] items-center justify-between px-4 lg:hidden ${mobileFontClasses.headerHeight}`}>
+          <div className={`mx-auto flex w-full max-w-[430px] items-center justify-between px-5 lg:hidden ${mobileFontClasses.headerHeight}`}>
             <div className="flex min-w-0 flex-1 items-center gap-3 pr-2">
               <button
                 className={`inline-flex shrink-0 items-center justify-center rounded-full text-[#8c8276] transition hover:bg-[#f4eee5] lg:hidden ${
@@ -1433,27 +1081,30 @@ export function AssistantApp({ initialConfig }: AssistantAppProps) {
               <EmptyState
                 prompts={initialConfig.starterPrompts}
                 composer={composer}
-                onQuickPrompt={handleQuickPrompt}
+                onQuickPrompt={(p: string) => void sendPrompt(p)}
                 promptClass={desktopFontClasses.prompt}
                 fontSizeMode={desktopFontSize}
                 uiClasses={desktopFontClasses}
+                welcomeText={initialConfig.emptyStateCopy}
               />
             </section>
 
             <section className="flex min-h-0 w-full flex-1 flex-col overflow-hidden lg:hidden">
-              <div className="min-h-0 w-full flex-1 overflow-y-auto px-4 py-4">
+              <div className="min-h-0 w-full flex-1 overflow-y-auto px-6 py-4">
                 <div className="mx-auto flex min-h-full w-full max-w-[430px] flex-col items-stretch justify-start gap-5 pb-8 pt-5 sm:gap-8">
-                  <WelcomePanel framed={false} fontSizeMode={fontSize} uiClasses={mobileFontClasses} />
+                  <WelcomePanel framed={false} fontSizeMode={fontSize} uiClasses={mobileFontClasses} welcomeText={initialConfig.emptyStateCopy} />
                   <MobileQuickActions fontSizeMode={fontSize} />
                 </div>
               </div>
 
-              <div className="w-full shrink-0 border-t border-[#e6dccb] bg-[#f7f3ec] px-4 pb-[calc(env(safe-area-inset-bottom)+1rem)] pt-2">
-                <div className="mx-auto w-full max-w-[430px]">
-                  {composer}
-                  <p className="mx-auto mt-2 text-center text-[0.65em] leading-normal text-[#7d7d7d] opacity-75">
-                    回答来自AI生成，请以官方最新资料为准
-                  </p>
+              <div className="w-full shrink-0 bg-[#f7f3ec]">
+                <div className="border-t border-[#e6dccb] px-5 pb-[calc(env(safe-area-inset-bottom)+1rem)] pt-2">
+                  <div className="mx-auto w-full max-w-[430px]">
+                    {composer}
+                    <p className="mx-auto mt-2 text-center text-[0.65em] leading-normal text-[#7d7d7d] opacity-75">
+                      回答来自AI生成，请以官方最新资料为准
+                    </p>
+                  </div>
                 </div>
               </div>
             </section>
@@ -1464,14 +1115,11 @@ export function AssistantApp({ initialConfig }: AssistantAppProps) {
               <div className="min-h-0 overflow-y-auto px-4">
                 <div className={`mx-auto max-w-3xl ${desktopFontClasses.messageSpacing}`}>
                   {activeMessages.map((message) => (
-                    <MessageRow
+                    <Bubble
                       key={message.id}
                       message={message}
                       onCopy={copyMessage}
                       copiedMessageId={copiedMessageId}
-                      fontSizeClass={desktopFontClasses.body}
-                      fontSizeMode={desktopFontSize}
-                      uiClasses={desktopFontClasses}
                     />
                   ))}
                   <div ref={desktopStreamAnchorRef} />
@@ -1487,24 +1135,21 @@ export function AssistantApp({ initialConfig }: AssistantAppProps) {
             </section>
 
             <section className="grid min-h-0 flex-1 grid-rows-[minmax(0,1fr)_auto] lg:hidden">
-              <div className="min-h-0 overflow-y-auto px-4">
+              <div className="min-h-0 overflow-y-auto px-6">
                 <div className={`mx-auto w-full max-w-[430px] ${mobileFontClasses.messageSpacing}`}>
                   {activeMessages.map((message) => (
-                    <MessageRow
+                    <Bubble
                       key={message.id}
                       message={message}
                       onCopy={copyMessage}
                       copiedMessageId={copiedMessageId}
-                      fontSizeClass={mobileFontClasses.body}
-                      fontSizeMode={fontSize}
-                      uiClasses={mobileFontClasses}
                     />
                   ))}
                   <div ref={mobileStreamAnchorRef} />
                 </div>
               </div>
 
-              <div className="bg-[#f7f3ec] px-4 pb-4 pt-2">
+              <div className="bg-[#f7f3ec] px-5 pb-4 pt-2">
                 <div className="mx-auto w-full max-w-[430px]">
                 {composer}
                 <p className="mx-auto mt-2 text-center text-[0.65em] leading-normal text-[#7d7d7d] opacity-75">
@@ -1520,107 +1165,16 @@ export function AssistantApp({ initialConfig }: AssistantAppProps) {
   )
 }
 
-type MessageRowProps = {
-  message: ChatMessage
-  copiedMessageId: string
-  onCopy: (content: string, messageId: string) => void
-  fontSizeClass: string
-  fontSizeMode?: FontSizeMode
-  uiClasses?: (typeof fontSizeStyles)["md"]
-}
-
-function MessageRow({ message, copiedMessageId, onCopy, fontSizeClass, fontSizeMode = "md", uiClasses }: MessageRowProps) {
-  const isUser = message.role === "user"
-  const isPending = message.status === "pending" && !message.content
-  const attachments = message.attachments ?? []
-  const hasAttachments = attachments.length > 0
-  const hasContent = Boolean(message.content.trim())
-  const fontClasses = uiClasses ?? fontSizeStyles[fontSizeMode]
-
-  if (isUser) {
-    return (
-      <article className="flex w-full justify-end">
-        <div className={`min-w-0 break-words text-[#1a1410] ${fontClasses.userBubble} ${fontSizeClass}`}>
-          {message.content}
-        </div>
-      </article>
-    )
-  }
-
-  return (
-    <article className="group w-full min-w-0">
-      <div
-        className={`min-w-0 overflow-x-hidden ${fontSizeClass} ${message.status === "error" ? "text-[#d1242f]" : "text-[#1a1410]"}`}
-      >
-        {isPending ? (
-          <div className="flex items-center gap-2 text-sm text-[#8c8276]">
-            <Loader2 className="h-4 w-4 animate-spin" />
-            正在回复
-          </div>
-        ) : (
-          <div className="space-y-3">
-            {hasAttachments ? (
-              <div className="space-y-3">
-                {attachments.map((attachment) => (
-                  <figure key={`${attachment.kind}:${attachment.url}`} className="overflow-hidden rounded-2xl border border-[#e6dccb] bg-white">
-                    {attachment.kind === "image" ? (
-                      <img
-                        src={attachment.url}
-                        alt={attachment.alt || attachment.name || "图片"}
-                        loading="lazy"
-                        className="block h-auto w-full max-w-full bg-[#fbf8f3] object-contain"
-                      />
-                    ) : (
-                      <a
-                        href={attachment.url}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="flex items-center gap-3 px-4 py-3 text-sm text-[#1a1410] transition hover:bg-[#fbf8f3]"
-                      >
-                        <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-black/[0.06] text-xs font-medium text-[#444]">
-                          文件
-                        </span>
-                        <span className="min-w-0">
-                          <span className="block truncate font-medium">{attachment.name || "附件"}</span>
-                          <span className="block truncate text-xs text-[#8c8276]">{attachment.mimeType || attachment.url}</span>
-                        </span>
-                      </a>
-                    )}
-                  </figure>
-                ))}
-              </div>
-            ) : null}
-            {hasContent ? <MarkdownRenderer content={message.content} /> : null}
-            {!hasContent && !hasAttachments ? <MarkdownRenderer content="暂未生成内容。" /> : null}
-          </div>
-        )}
-      </div>
-
-      {hasContent ? (
-        <button
-          className={`mt-2 inline-flex items-center rounded-lg text-[#8c8276] opacity-100 transition hover:bg-[#f4eee5] hover:text-[#1a1410] md:opacity-0 md:group-hover:opacity-100 ${fontClasses.copyBtn}`}
-          onClick={() => onCopy(message.content, message.id)}
-        >
-          {copiedMessageId === message.id ? (
-            <Check className={fontSizeMode === "lg" ? "h-5 w-5" : "h-4 w-4"} />
-          ) : (
-            <Copy className={fontSizeMode === "lg" ? "h-5 w-5" : "h-4 w-4"} />
-          )}
-          {copiedMessageId === message.id ? "已复制" : "复制"}
-        </button>
-      ) : null}
-    </article>
-  )
-}
-
 function WelcomePanel({
   framed = true,
   fontSizeMode = "md",
   uiClasses,
+  welcomeText,
 }: {
   framed?: boolean
   fontSizeMode?: FontSizeMode
   uiClasses?: (typeof fontSizeStyles)["md"]
+  welcomeText: string
 }) {
   const fontClasses = uiClasses ?? fontSizeStyles[fontSizeMode]
   
@@ -1638,17 +1192,17 @@ function WelcomePanel({
 
   return (
     <section className={`w-full ${shellStyle} ${shellClass}`}>
-      <div className="flex flex-col items-center justify-center gap-3">
-        <BrandMark size={logoImgSize} />
-        <div className={`font-serif font-semibold uppercase tracking-[0.18em] text-[#8c8276] flex items-center ${subtitleChipClass}`}>
+      <div className="flex flex-col items-center justify-center gap-3 lux-in">
+        <BrandMark size={logoImgSize} animated />
+        <div className={`font-serif font-semibold uppercase tracking-[0.18em] text-[#8c8276] flex items-center ${subtitleChipClass} lux-in-1`}>
           <Sparkles className="h-[1.1em] w-[1.1em] text-[#c9a87a] fill-[#c9a87a] shrink-0" />
           问兰智能体系统
         </div>
       </div>
 
-      <h1 className={`${titleMargin} text-center font-serif font-bold tracking-tight text-[#1a1410] ${titleStyle}`}>{launchTitle}</h1>
+      <h1 className={`${titleMargin} text-center font-serif font-bold tracking-tight text-[#1a1410] ${titleStyle} lux-in-2 lux-shimmer-text`}>{launchTitle}</h1>
 
-      <p className={`mx-auto ${copyMargin} max-w-2xl text-center text-[#3a322a] ${copyStyle} leading-[1.65]`}>{emptyStateCopy}</p>
+      <p className={`mx-auto ${copyMargin} max-w-2xl text-center text-[#3a322a] ${copyStyle} leading-[1.65] lux-in-3`}>{welcomeText}</p>
     </section>
   )
 }
@@ -1660,6 +1214,7 @@ function EmptyState({
   promptClass,
   fontSizeMode = "md",
   uiClasses,
+  welcomeText,
 }: {
   prompts: string[]
   composer: ReactNode
@@ -1667,6 +1222,7 @@ function EmptyState({
   promptClass: string
   fontSizeMode?: FontSizeMode
   uiClasses?: (typeof fontSizeStyles)["md"]
+  welcomeText: string
 }) {
   const promptBtnClass =
     uiClasses === desktopBaseStyles
@@ -1679,16 +1235,17 @@ function EmptyState({
 
   return (
     <div className="w-full max-w-[600px]">
-      <WelcomePanel fontSizeMode={fontSizeMode} uiClasses={uiClasses} />
+      <WelcomePanel fontSizeMode={fontSizeMode} uiClasses={uiClasses} welcomeText={welcomeText} />
 
-      <div className="mt-7">{composer}</div>
+      <div className="mt-7 lux-in-4">{composer}</div>
 
       <div className="mt-4 flex flex-wrap justify-center gap-2">
-        {prompts.slice(0, 4).map((prompt) => (
+        {prompts.slice(0, 4).map((prompt, i) => (
           <button
             key={prompt}
-            className={`max-w-full rounded-full border border-[#e6dccb] bg-white text-[#1a1410] transition hover:bg-[#fbf8f3] ${promptBtnClass} ${promptClass}`}
+            className={`max-w-full rounded-full border border-[#e6dccb] bg-white text-[#1a1410] transition hover:bg-[#fbf8f3] lux-card lux-press ${promptBtnClass} ${promptClass}`}
             onClick={() => onQuickPrompt(prompt)}
+            style={{ animationDelay: `${0.45 + i * 0.08}s` }}
           >
             <span className="block max-w-[24rem] truncate">{prompt}</span>
           </button>
@@ -1698,15 +1255,16 @@ function EmptyState({
   )
 }
 
-function UsageGuide({ compact = false }: { compact?: boolean }) {
+function UsageGuide({ compact = false, steps }: { compact?: boolean; steps: Array<{ title: string; description: string }> }) {
   const content = (
     <div className={compact ? "grid gap-2" : "grid gap-3 sm:grid-cols-2"}>
-      {onboardingGuide.map((step, index) => (
+      {steps.map((step, index) => (
         <div
           key={step.title}
-          className={`rounded-xl border border-black/[0.08] bg-white px-4 py-3 shadow-[0_1px_12px_rgba(0,0,0,0.03)] sm:rounded-2xl ${
+          className={`lux-in rounded-xl border border-black/[0.08] bg-white px-4 py-3 shadow-[0_1px_12px_rgba(0,0,0,0.03)] sm:rounded-2xl ${
             compact ? "px-3 py-2.5 sm:px-3 sm:py-3" : ""
           }`}
+          style={{ animationDelay: `${index * 0.08}s` }}
         >
           <div className="flex items-start gap-3">
             <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#1a1410] text-[10.5px] font-semibold text-[#c9a87a] sm:h-8 sm:w-8 sm:text-[11px]">
@@ -1737,7 +1295,7 @@ function UsageGuide({ compact = false }: { compact?: boolean }) {
   )
 }
 
-function GuideModal({ open, onClose }: { open: boolean; onClose: () => void }) {
+function GuideModal({ open, onClose, steps }: { open: boolean; onClose: () => void; steps: Array<{ title: string; description: string }> }) {
   if (!open) return null
 
   return (
@@ -1746,12 +1304,12 @@ function GuideModal({ open, onClose }: { open: boolean; onClose: () => void }) {
 
       <section className="relative max-h-[88dvh] w-full max-w-2xl overflow-y-auto rounded-[1.5rem] border border-[#e6dccb] bg-white p-4 text-[#1a1410] shadow-[0_18px_60px_rgba(26,20,16,0.16)] sm:rounded-[2rem] sm:p-6">
         <header className="flex items-start justify-between gap-4">
-          <div>
+          <div className="lux-in">
             <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-[0.18em] text-[#8c8276]">
               <Sparkles className="h-4 w-4" />
               新手指导
             </div>
-            <h2 className="mt-2 text-[22px] font-serif font-semibold leading-tight tracking-normal text-[#1a1410] sm:text-[24px]">第一次使用可以这样开始</h2>
+            <h2 className="mt-2 text-[22px] font-serif font-semibold leading-tight tracking-normal text-[#1a1410] sm:text-[24px] lux-in-1 lux-shimmer-text">第一次使用可以这样开始</h2>
             <p className="mt-2 text-[13.5px] leading-6 text-[#3a322a] sm:text-sm">
               前台只保留提问、素材中心、商务中心和语音输入；上传和删除资料请进入受保护的后台知识库。
             </p>
@@ -1768,7 +1326,7 @@ function GuideModal({ open, onClose }: { open: boolean; onClose: () => void }) {
         </header>
 
         <div className="mt-5">
-          <UsageGuide compact />
+          <UsageGuide compact steps={steps} />
         </div>
 
         <button
@@ -1783,258 +1341,6 @@ function GuideModal({ open, onClose }: { open: boolean; onClose: () => void }) {
   )
 }
 
-function Composer({
-  draft,
-  textareaRef,
-  isSending,
-  isRecording,
-  isTranscribing,
-  voiceLevel,
-  canTranscribe,
-  onChange,
-  onKeyDown,
-  onSubmit,
-  onNewChat,
-  onVoicePressStart,
-  onVoicePressEnd,
-  onVoiceKeyDown,
-  onVoiceKeyUp,
-  density = "regular",
-  desktopFontSizeClass,
-  mobileFontSizeClass,
-  mobileFontSizeMode = "md",
-}: {
-  draft: string
-  textareaRef: RefObject<HTMLTextAreaElement | null>
-  isSending: boolean
-  isRecording: boolean
-  isTranscribing: boolean
-  voiceLevel: number
-  canTranscribe: boolean
-  onChange: (value: string) => void
-  onKeyDown: (event: KeyboardEvent<HTMLTextAreaElement>) => void
-  onSubmit: () => void
-  onNewChat: () => void
-  onVoicePressStart: (event: ReactPointerEvent<HTMLButtonElement>) => void
-  onVoicePressEnd: (event: ReactPointerEvent<HTMLButtonElement>) => void
-  onVoiceKeyDown: (event: KeyboardEvent<HTMLButtonElement>) => void
-  onVoiceKeyUp: (event: KeyboardEvent<HTMLButtonElement>) => void
-  density?: LayoutDensity
-  desktopFontSizeClass: string
-  mobileFontSizeClass: string
-  mobileFontSizeMode?: FontSizeMode
-}) {
-  const canSend = draft.trim().length > 0 && !isSending && !isTranscribing
-  const isCompact = density !== "regular"
-  const placeholder = isTranscribing
-    ? "正在识别语音..."
-    : isCompact
-      ? "输入后回车发送"
-      : "输入问题、产品名或关键词，按回车发送"
-  const desktopBtnSize = "h-9 w-9"
-  const desktopIconSize = "h-4 w-4"
-  const desktopContainerPadding = "rounded-[1.65rem] p-2"
-  const desktopTextareaPadding = "px-3 py-3"
-  const desktopTextareaMinHeight = "min-h-14"
-
-  const mobileBtnSize =
-    mobileFontSizeMode === "sm" ? "h-10 w-10" : mobileFontSizeMode === "md" ? "h-12 w-12" : "h-14 w-14"
-  const mobileIconSize =
-    mobileFontSizeMode === "sm" ? "h-4.5 w-4.5" : mobileFontSizeMode === "md" ? "h-6 w-6" : "h-7 w-7"
-  const mobileContainerPadding =
-    mobileFontSizeMode === "sm"
-      ? "px-3 py-2 rounded-2xl"
-      : mobileFontSizeMode === "md"
-        ? "px-3.5 py-2.5 rounded-[1.35rem]"
-        : "px-4 py-3 rounded-[1.5rem]"
-  const mobileTextareaPadding = mobileFontSizeMode === "sm" ? "px-2 py-1" : "px-2 py-1"
-  const mobileTextareaMinHeight =
-    mobileFontSizeMode === "sm" ? "min-h-12" : mobileFontSizeMode === "md" ? "min-h-14" : "min-h-16"
-
-  useEffect(() => {
-    const textarea = textareaRef.current
-    if (!textarea) return
-
-    const maxHeight = mobileFontSizeMode === "sm" ? 190 : mobileFontSizeMode === "md" ? 230 : 260
-    textarea.style.height = "auto"
-    textarea.style.height = `${Math.min(textarea.scrollHeight, maxHeight)}px`
-    textarea.style.overflowY = textarea.scrollHeight > maxHeight ? "auto" : "hidden"
-  }, [draft, mobileFontSizeMode, textareaRef])
-
-  return (
-    <div className="mx-auto w-full lg:max-w-[600px]">
-      <div className={`hidden border border-[#d9d9d9] bg-white shadow-[0_2px_16px_rgba(0,0,0,0.08)] lg:block ${desktopContainerPadding}`}>
-        <textarea
-          ref={textareaRef}
-          value={draft}
-          onChange={(event) => onChange(event.target.value)}
-          onKeyDown={onKeyDown}
-          placeholder={placeholder}
-          className={`max-h-48 w-full resize-none bg-transparent text-[#0d0d0d] outline-none placeholder:text-[#8f8f8f] ${desktopTextareaMinHeight} ${desktopTextareaPadding} ${desktopFontSizeClass}`}
-          rows={1}
-        />
-
-        <VoiceMeter isRecording={isRecording} isTranscribing={isTranscribing} voiceLevel={voiceLevel} />
-
-        <div className="flex items-center justify-between px-1 pb-1">
-          <button
-            className={`inline-flex items-center justify-center rounded-full transition touch-none select-none ${desktopBtnSize} ${
-              isRecording
-                ? "bg-[#d1242f] text-white"
-                : "text-[#5f5f5f] hover:bg-[#f4eee5] disabled:cursor-not-allowed disabled:opacity-35 disabled:hover:bg-transparent"
-            }`}
-            title={canTranscribe ? "按住说话，松开识别" : "语音输入暂不可用"}
-            onPointerDown={onVoicePressStart}
-            onPointerUp={onVoicePressEnd}
-            onPointerCancel={onVoicePressEnd}
-            onKeyDown={onVoiceKeyDown}
-            onKeyUp={onVoiceKeyUp}
-            onContextMenu={(event) => event.preventDefault()}
-            disabled={!canTranscribe || isTranscribing}
-            aria-label="按住说话，松开识别"
-          >
-            <Mic className={`${desktopIconSize} ${isRecording ? "animate-pulse" : ""}`} />
-          </button>
-
-          <button
-            className={`inline-flex items-center justify-center rounded-full bg-[#1a1410] text-[#f7f3ec] transition hover:bg-[#332922] disabled:cursor-not-allowed disabled:bg-[#d7d7d7] disabled:text-white ${desktopBtnSize}`}
-            onClick={() => void onSubmit()}
-            disabled={!canSend}
-            aria-label="发送"
-          >
-            {isSending ? <Loader2 className={`${desktopIconSize} animate-spin`} /> : <ArrowUp className={desktopIconSize} />}
-          </button>
-        </div>
-      </div>
-
-      <div className="lg:hidden">
-        <div className={`border border-[#e0e0e0] bg-white shadow-[0_4px_24px_rgba(0,0,0,0.08)] ${mobileContainerPadding}`}>
-          <div className="flex items-end gap-2">
-            <button
-              className={`inline-flex shrink-0 items-center justify-center rounded-full text-[#1a1410] transition hover:bg-[#f4eee5] ${mobileBtnSize}`}
-              onClick={onNewChat}
-              aria-label="新建对话"
-              title="新建对话"
-            >
-              <Plus className={mobileIconSize} />
-            </button>
-
-            <textarea
-              ref={textareaRef}
-              value={draft}
-              onChange={(event) => onChange(event.target.value)}
-              onKeyDown={onKeyDown}
-              placeholder={placeholder}
-              className={`flex-1 resize-none bg-transparent ${mobileTextareaPadding} text-[#0d0d0d] outline-none placeholder:text-[#8f8f8f] placeholder:text-[0.8em] leading-normal ${mobileTextareaMinHeight} ${mobileFontSizeClass}`}
-              rows={1}
-            />
-
-            <button
-              className={`inline-flex shrink-0 items-center justify-center rounded-full transition touch-none select-none ${mobileBtnSize} ${
-                isRecording
-                  ? "bg-[#d1242f] text-white"
-                  : "text-[#7a7a7a] hover:bg-[#f4eee5] disabled:cursor-not-allowed disabled:opacity-35 disabled:hover:bg-transparent"
-              }`}
-              title={canTranscribe ? "按住说话，松开识别" : "语音输入暂不可用"}
-              onPointerDown={onVoicePressStart}
-              onPointerUp={onVoicePressEnd}
-              onPointerCancel={onVoicePressEnd}
-              onKeyDown={onVoiceKeyDown}
-              onKeyUp={onVoiceKeyUp}
-              onContextMenu={(event) => event.preventDefault()}
-              disabled={!canTranscribe || isTranscribing}
-              aria-label="按住说话，松开识别"
-            >
-              <Mic className={`${mobileIconSize} ${isRecording ? "animate-pulse" : ""}`} />
-            </button>
-
-            <button
-              className={`inline-flex shrink-0 items-center justify-center rounded-full bg-[#1a1410] text-[#f7f3ec] transition hover:bg-[#332922] disabled:cursor-not-allowed disabled:bg-[#d7d7d7] disabled:text-white ${mobileBtnSize}`}
-              onClick={() => void onSubmit()}
-              disabled={!canSend}
-              aria-label="发送"
-            >
-              {isSending ? <Loader2 className={`${mobileIconSize} animate-spin`} /> : <ArrowUp className={mobileIconSize} />}
-            </button>
-          </div>
-          <VoiceMeter isRecording={isRecording} isTranscribing={isTranscribing} voiceLevel={voiceLevel} compact />
-        </div>
-      </div>
-    </div>
-  )
-}
-
-function VoiceMeter({
-  isRecording,
-  isTranscribing,
-  voiceLevel,
-  compact = false,
-}: {
-  isRecording: boolean
-  isTranscribing: boolean
-  voiceLevel: number
-  compact?: boolean
-}) {
-  if (!isRecording && !isTranscribing) return null
-
-  const isSpeaking = voiceLevel > 0.05
-  const bars = Array.from({ length: compact ? 8 : 12 }, (_, index) => {
-    // If not speaking, keep it flat (height 6px, low opacity)
-    if (!isSpeaking && !isTranscribing) {
-      return { height: 6, opacity: 0.25 }
-    }
-    // If transcribing, keep it at a flat, medium height/opacity (e.g. 8px)
-    if (isTranscribing) {
-      return { height: compact ? 8 : 10, opacity: 0.4 }
-    }
-    // When speaking, show the dynamic wave
-    const wave = 0.35 + Math.sin((voiceLevel * 12 + index) * 1.3) * 0.25
-    const height = Math.max(6, Math.round((compact ? 14 : 22) * (wave + voiceLevel * 0.95)))
-    const opacity = Math.max(0.3, 0.4 + voiceLevel * 0.6)
-    return { height, opacity }
-  })
-
-  const statusText = isTranscribing ? "正在识别语音..." : voiceLevel > 0.08 ? "已检测到声音" : "按住说话中"
-  const helperText = isTranscribing ? "识别完成后可一键发送" : "松开后自动转成文字"
-  const toneClass = isTranscribing ? "text-amber-800" : isRecording ? "text-rose-700" : "text-[#666]"
-  const dotClass = isTranscribing ? "bg-amber-500" : voiceLevel > 0.08 || isRecording ? "bg-sky-500" : "bg-[#c9a87a]"
-  const containerClass = isTranscribing
-    ? "border-amber-200 bg-amber-50/70"
-    : isRecording
-      ? "border-rose-200 bg-rose-50/70"
-      : "border-black/[0.06] bg-[#fbfdff]"
-  const barClass = isTranscribing ? "bg-amber-500" : isRecording ? "bg-sky-500" : "bg-[#c9a87a]"
-
-  return (
-    <div className={`px-3 ${compact ? "pb-2 pt-1" : "pb-3 pt-2"}`} aria-live="polite">
-      <div className={`rounded-2xl border px-3 py-2.5 ${containerClass}`}>
-        <div className="flex items-center justify-between gap-3">
-          <div className={`flex items-center gap-2 text-xs font-medium ${toneClass}`}>
-            <span className={`h-2.5 w-2.5 rounded-full ${dotClass} ${isRecording || isTranscribing ? "animate-pulse" : ""}`} />
-            <span>{statusText}</span>
-          </div>
-          <span className={`text-[11px] ${isTranscribing ? "text-amber-800/80" : isRecording ? "text-sky-700/80" : "text-[#8c8276]"}`}>
-            {helperText}
-          </span>
-        </div>
-
-        <div className="mt-3 flex h-9 items-end gap-1.5">
-          {bars.map((bar, index) => (
-            <span
-              key={index}
-              className={`w-1.5 rounded-full transition-all duration-150 ${barClass}`}
-              style={{
-                height: `${bar.height}px`,
-                opacity: bar.opacity,
-              }}
-            />
-          ))}
-        </div>
-      </div>
-    </div>
-  )
-}
-
 function MobileQuickActions({
   fontSizeMode = "md",
 }: {
@@ -2042,14 +1348,15 @@ function MobileQuickActions({
 }) {
   const fontClasses = fontSizeStyles[fontSizeMode]
   return (
-    <div className={`w-full ${fontClasses.qaSpacing}`}>
-        {centerActions.map(({ icon: Icon, title, description, route }) => (
+    <div className={`w-full ${fontClasses.qaSpacing} lux-in-4`}>
+        {centerActions.map(({ icon: Icon, title, description, route }, i) => (
           <button
             key={title}
-            className={`flex w-full items-center text-left transition bg-white border border-black/[0.06] shadow-[0_8px_24px_rgba(0,0,0,0.05)] hover:bg-[#f5f9fe] hover:border-black/[0.08] active:scale-[0.99] active:shadow-[0_2px_10px_rgba(0,0,0,0.04)] ${fontClasses.qaPadding}`}
+            className={`lux-card lux-press flex w-full items-center text-left transition bg-white border border-black/[0.06] shadow-[0_8px_24px_rgba(0,0,0,0.05)] hover:bg-[#f5f9fe] hover:border-black/[0.08] active:scale-[0.99] active:shadow-[0_2px_10px_rgba(0,0,0,0.04)] ${fontClasses.qaPadding}`}
           onClick={() => {
-            window.location.pathname = route
+            window.location.href = route
           }}
+          style={{ animationDelay: `${i * 0.1}s` }}
           type="button"
         >
           <span

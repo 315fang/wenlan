@@ -2,11 +2,11 @@
 
 import type { ReactNode } from "react"
 import Link from "next/link"
-import { BookOpen, MessageSquare, X } from "lucide-react"
+import { BookOpen, MessageSquare, Settings, X } from "lucide-react"
 
 import { BrandMark } from "@/components/brand-mark"
 
-type AppSection = "chat" | "knowledge"
+type AppSection = "chat" | "knowledge" | "config"
 
 type FontSizeMode = "sm" | "md" | "lg"
 
@@ -40,6 +40,13 @@ const navItems: Array<{
     label: "知识库管理",
     description: "资料上传与删除",
     icon: BookOpen,
+  },
+  {
+    id: "config",
+    href: "/admin/config",
+    label: "系统配置",
+    description: "文案与默认值管理",
+    icon: Settings,
   },
 ]
 

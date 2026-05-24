@@ -3,7 +3,7 @@
 import type { ReactNode } from "react"
 import { ChevronLeft } from "lucide-react"
 
-type PageHeaderProps = {
+interface PageHeaderProps {
   title: string
   subtitle?: string
   onBack: () => void
@@ -25,14 +25,17 @@ export function PageHeader({ title, subtitle, onBack, right }: PageHeaderProps) 
         <ChevronLeft size={20} />
       </button>
       <div className="flex-1 min-w-0">
-        <div className="font-serif truncate" style={{ color: "#1a1410", fontSize: 18, letterSpacing: "0.04em" }}>
+        <div
+          className="font-serif truncate"
+          style={{ color: "#1a1410", fontSize: 18, letterSpacing: "0.04em" }}
+        >
           {title}
         </div>
-        {subtitle ? (
+        {subtitle && (
           <div className="truncate" style={{ color: "#8c8276", fontSize: 11.5, marginTop: 1 }}>
             {subtitle}
           </div>
-        ) : null}
+        )}
       </div>
       {right}
     </header>

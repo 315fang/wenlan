@@ -1,9 +1,9 @@
 "use client"
 
-export function BrandMark({ size = 40, className = "" }: { size?: number; className?: string }) {
+export function BrandMark({ size = 40, animated = false, className = "" }: { size?: number; animated?: boolean; className?: string }) {
   return (
     <span
-      className={`inline-flex shrink-0 items-center justify-center rounded-full ${className}`}
+      className={`inline-flex shrink-0 items-center justify-center rounded-full ${animated ? "lux-breathe" : ""} ${className}`}
       style={{
         width: size,
         height: size,

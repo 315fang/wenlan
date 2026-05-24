@@ -1,4 +1,4 @@
-import { defaultSystemPrompt } from "@/lib/prompts"
+import { readSettings } from "@/lib/config-store"
 import { getChatTarget } from "@/lib/server"
 
 export const runtime = "nodejs"
@@ -140,9 +140,10 @@ function isEventStream(response: Response) {
 }
 
 function buildRoutedMessage(message: string) {
+  const settings = readSettings()
   return [
     "请严格按以下风格回答：",
-    defaultSystemPrompt,
+    settings.defaultSystemPrompt,
     "",
     `用户问题：${message}`,
   ].join("\n")
@@ -238,7 +239,7 @@ export async function POST(request: Request) {
       user_id: body.userId || body.user_id || "wenlan-user",
       pagePath: body.pagePath || body.page_path || "",
       page_path: body.pagePath || body.page_path || "",
-      systemPrompt: defaultSystemPrompt,
+      systemPrompt: readSettings().defaultSystemPrompt,
     }),
   })
 

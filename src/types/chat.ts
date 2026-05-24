@@ -33,6 +33,8 @@ export interface PortalConfig {
   subtitle: string
   headline: string
   starterPrompts: string[]
+  emptyStateCopy: string
+  onboardingGuide: Array<{ title: string; description: string }>
 }
 
 export interface ServerStatus {
