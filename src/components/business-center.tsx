@@ -10,18 +10,6 @@ interface BusinessCenterProps {
   onBack: () => void
 }
 
-const DEFAULT_CONTACTS: ContactInfo[] = [
-  { id: "wechat", label: "官方微信", value: "wenlan-skin" },
-  { id: "phone", label: "商务电话", value: "400-823-0316" },
-  { id: "mail", label: "商务邮箱", value: "biz@wenlan.top" },
-]
-
-const DEFAULT_TIERS: PriceTier[] = [
-  { name: "入门精萃水乳套组", range: "¥380 – ¥580", note: "新客首选 · 日常基础" },
-  { name: "焕活精华系列", range: "¥680 – ¥980", note: "5% 烟酰胺 + 雪绒花干细胞萃取" },
-  { name: "紧致赋活面霜", range: "¥980 – ¥1,280", note: "白松露多肽 · 礼盒装可选" },
-]
-
 const CONTACT_ICONS: Record<string, React.ReactNode> = {
   wechat: <MessageCircle size={16} />,
   phone: <Phone size={16} />,
@@ -29,8 +17,8 @@ const CONTACT_ICONS: Record<string, React.ReactNode> = {
 }
 
 export function BusinessCenter({ onBack }: BusinessCenterProps) {
-  const [contacts, setContacts] = useState<ContactInfo[]>(DEFAULT_CONTACTS)
-  const [priceTiers, setPriceTiers] = useState<PriceTier[]>(DEFAULT_TIERS)
+  const [contacts, setContacts] = useState<ContactInfo[]>([])
+  const [priceTiers, setPriceTiers] = useState<PriceTier[]>([])
   const [copied, setCopied] = useState<string | null>(null)
   const [form, setForm] = useState({ name: "", city: "", wechat: "", note: "" })
   const [submitted, setSubmitted] = useState(false)

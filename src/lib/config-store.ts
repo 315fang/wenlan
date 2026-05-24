@@ -64,26 +64,9 @@ const defaults: AppSettings = {
   emptyStateCopy: "你好，我是问小兰。你可以直接提问，也可以进入素材中心找官方图片、复制宣传文案，或进入商务中心查询联系方式。",
   defaultDifyDatasetId: "a296cee7-e802-4e30-b348-719c459136ba",
   defaultDifyBaseUrl: "http://119.45.182.109:8888",
-  businessContacts: [
-    { id: "wechat", label: "官方微信", value: "wenlan-skin" },
-    { id: "phone", label: "商务电话", value: "400-823-0316" },
-    { id: "mail", label: "商务邮箱", value: "biz@wenlan.top" },
-  ],
-  businessPriceTiers: [
-    { name: "入门精萃水乳套组", range: "¥380 – ¥580", note: "新客首选 · 日常基础" },
-    { name: "焕活精华系列", range: "¥680 – ¥980", note: "5% 烟酰胺 + 雪绒花干细胞萃取" },
-    { name: "紧致赋活面霜", range: "¥980 – ¥1,280", note: "白松露多肽 · 礼盒装可选" },
-  ],
-  materialItems: [
-    { id: "v1", cat: "visual", title: "春日松露光感 · 主视觉", meta: "4K · 9:16 · 3 张组图", download: "wenlan-spring-truffle.zip", hue: "linear-gradient(135deg,#f1dcd1 0%,#e5d4b6 100%)" },
-    { id: "v2", cat: "visual", title: "焕活精华 · 产品展示", meta: "4K · 1:1 · 6 张组图", download: "wenlan-essence.zip", hue: "linear-gradient(135deg,#ebe2d2 0%,#d9cfbd 100%)" },
-    { id: "v3", cat: "visual", title: "紧致赋活面霜 · 礼盒", meta: "4K · 4:5 · 4 张组图", download: "wenlan-cream-gift.zip", hue: "linear-gradient(135deg,#f7f3ec 0%,#e5d4b6 100%)" },
-    { id: "w1", cat: "wechat", title: "换季敏感肌 · 三连图", meta: "朋友圈 · 3 张组图 + 文案", copy: "换季的脸，先别急着叠精华。\n问兰焕活系列里那支低敏神经酰胺，最近被我反复用——\n紧绷感、刺痛感，一周内安静下来。\n\n#问兰 #敏感肌护肤 #换季养肤", hue: "linear-gradient(135deg,#f1dcd1 0%,#d9b3a4 100%)" },
-    { id: "w2", cat: "wechat", title: "熬夜急救 · 三连图", meta: "朋友圈 · 3 张组图 + 文案", copy: "凌晨两点的脸，比谁都需要被温柔对待。\n问兰白松露多肽精华，是我加班包里固定的一支。\n第二天起床，至少不会被自己吓到。\n\n#问兰 #熬夜急救 #轻奢护肤", hue: "linear-gradient(135deg,#e5d4b6 0%,#c9a87a 100%)" },
-    { id: "c1", cat: "community", title: "新品上市 · 群发文案", meta: "社群 · 短文版", copy: "【问兰 · 焕活精华 2.0 上市】\n升级后的核心成分：5% 烟酰胺 + 雪绒花干细胞萃取\n首发期下单，赠送旅行装 30ml × 1。\n限时三天，戳链接锁定。", hue: "linear-gradient(135deg,#ebe2d2 0%,#c9a87a 100%)" },
-    { id: "c2", cat: "community", title: "用户口碑 · 长文案", meta: "社群 · 长文版", copy: "上周收到一位姐妹的反馈：\n用问兰紧致赋活面霜的第 21 天，法令纹真的浅了一点。\n她说这是她这两年用过最「不张扬但有用」的一支面霜。\n这大概就是我们想做的——\n轻奢，不是噪音，是质感。", hue: "linear-gradient(135deg,#f1dcd1 0%,#ebe2d2 100%)" },
-    { id: "s1", cat: "script", title: "60s 体验官口播 · 焕活精华", meta: "短视频 · 60 秒 · 已分镜", copy: "【镜头 1 · 0-5s】\n手持产品，柔光下旋转，特写质地。\n旁白：「这支精华，是我今年最常回购的一支。」\n\n【镜头 2 · 5-25s】\n台面平铺，配合成分卡片。\n旁白：「核心是 5% 烟酰胺加雪绒花干细胞萃取，亮和稳，同时给你。」\n\n【镜头 3 · 25-50s】\n上脸演示，手部按压精华。\n旁白：「早晚两滴，21 天，肤色会自己告诉你答案。」\n\n【镜头 4 · 50-60s】\n收尾留品牌 Logo。\n字幕：「问兰 · 让护肤回到安静的样子。」", hue: "linear-gradient(135deg,#d9b3a4 0%,#c9a87a 100%)" },
-  ],
+  businessContacts: [],
+  businessPriceTiers: [],
+  materialItems: [],
 }
 
 function ensureConfigDir() {
