@@ -73,19 +73,19 @@ const centerActions: Array<{
   icon: typeof Search
   title: string
   description: string
-  prompt: string
+  route: string
 }> = [
   {
     icon: Search,
     title: "素材中心",
     description: "官方图片、朋友圈文案、社群文案",
-    prompt: "进入素材中心，请根据后台最新资料，帮我查找官方图片素材和可直接复制的宣传文案。",
+    route: "/materials",
   },
   {
     icon: Phone,
     title: "商务中心",
     description: "联系方式、合作咨询、对接流程",
-    prompt: "进入商务中心，请根据后台最新资料，告诉我最新联系方式、联系人和合作流程。",
+    route: "/business",
   },
 ]
 
@@ -658,6 +658,9 @@ export function AssistantApp({ initialConfig }: AssistantAppProps) {
   })
   const [copiedMessageId, setCopiedMessageId] = useState("")
   const [serverStatus, setServerStatus] = useState<ServerStatus>(initialServerStatus)
+  const navigateTo = (path: string) => {
+    window.location.pathname = path
+  }
 
   const desktopStreamAnchorRef = useRef<HTMLDivElement | null>(null)
   const mobileStreamAnchorRef = useRef<HTMLDivElement | null>(null)
@@ -1250,13 +1253,13 @@ export function AssistantApp({ initialConfig }: AssistantAppProps) {
       <div className="space-y-1">
         <div className={`px-2 pb-1 font-medium uppercase tracking-[0.18em] text-[#8c8276] ${uiClasses.sidebarHeading}`}>功能入口</div>
         <div className="space-y-1.5">
-          {centerActions.map(({ icon: Icon, title, description, prompt }) => (
+          {centerActions.map(({ icon: Icon, title, description, route }) => (
             <button
               key={title}
               className={`flex w-full items-center gap-3 rounded-2xl border border-[#e6dccb] bg-white text-left transition hover:border-[#d6c5ad] hover:bg-[#fbf8f3] ${uiClasses.sidebarItemBtn}`}
               onClick={() => {
                 setMobileSidebarOpen(false)
-                void handleQuickPrompt(prompt)
+                navigateTo(route)
               }}
               type="button"
             >
@@ -1441,7 +1444,7 @@ export function AssistantApp({ initialConfig }: AssistantAppProps) {
               <div className="min-h-0 w-full flex-1 overflow-y-auto px-4 py-4">
                 <div className="mx-auto flex min-h-full w-full max-w-[430px] flex-col items-stretch justify-start gap-5 pb-8 pt-5 sm:gap-8">
                   <WelcomePanel framed={false} fontSizeMode={fontSize} uiClasses={mobileFontClasses} />
-                  <MobileQuickActions onQuickPrompt={handleQuickPrompt} fontSizeMode={fontSize} />
+                  <MobileQuickActions fontSizeMode={fontSize} />
                 </div>
               </div>
 
@@ -2033,20 +2036,20 @@ function VoiceMeter({
 }
 
 function MobileQuickActions({
-  onQuickPrompt,
   fontSizeMode = "md",
 }: {
-  onQuickPrompt: (prompt: string) => void
   fontSizeMode?: FontSizeMode
 }) {
   const fontClasses = fontSizeStyles[fontSizeMode]
   return (
     <div className={`w-full ${fontClasses.qaSpacing}`}>
-      {centerActions.map(({ icon: Icon, title, description, prompt }) => (
-        <button
-          key={title}
-          className={`flex w-full items-center text-left transition bg-white border border-black/[0.06] shadow-[0_8px_24px_rgba(0,0,0,0.05)] hover:bg-[#f5f9fe] hover:border-black/[0.08] active:scale-[0.99] active:shadow-[0_2px_10px_rgba(0,0,0,0.04)] ${fontClasses.qaPadding}`}
-          onClick={() => onQuickPrompt(prompt)}
+        {centerActions.map(({ icon: Icon, title, description, route }) => (
+          <button
+            key={title}
+            className={`flex w-full items-center text-left transition bg-white border border-black/[0.06] shadow-[0_8px_24px_rgba(0,0,0,0.05)] hover:bg-[#f5f9fe] hover:border-black/[0.08] active:scale-[0.99] active:shadow-[0_2px_10px_rgba(0,0,0,0.04)] ${fontClasses.qaPadding}`}
+          onClick={() => {
+            window.location.pathname = route
+          }}
           type="button"
         >
           <span
