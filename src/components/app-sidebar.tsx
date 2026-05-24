@@ -100,6 +100,7 @@ export function AppSidebar({
   fontSizeMode = "md",
 }: AppSidebarProps) {
   const sizes = sidebarSizeStyles[fontSizeMode]
+  const visibleNavItems = navItems.filter((item) => sections.includes(item.id))
 
   return (
     <div className={`flex h-full flex-col border-r border-black/[0.07] bg-[#f1f1ee] ${className}`}>
@@ -116,8 +117,8 @@ export function AppSidebar({
             />
           </div>
           <div className="min-w-0">
-            <div className={`truncate font-semibold tracking-normal text-[#111111] ${sizes.logoTitle}`}>问兰</div>
-            <div className={`truncate text-[#777777] ${sizes.logoDesc}`}>智能体系统</div>
+            <div className={`truncate font-semibold tracking-normal text-[#111111] ${sizes.logoTitle}`}>问兰智能体系统</div>
+            <div className={`truncate text-[#777777] ${sizes.logoDesc}`}>官方素材与商务服务</div>
           </div>
         </div>
 
@@ -133,10 +134,9 @@ export function AppSidebar({
         ) : null}
       </div>
 
+      {visibleNavItems.length > 0 ? (
       <nav className="shrink-0 space-y-1 px-3 pb-3">
-        {navItems
-          .filter((item) => sections.includes(item.id))
-          .map(({ id, href, label, description, icon: Icon }) => {
+        {visibleNavItems.map(({ id, href, label, description, icon: Icon }) => {
             const isActive = active === id
             return (
               <Link
@@ -164,6 +164,7 @@ export function AppSidebar({
             )
           })}
       </nav>
+      ) : null}
 
       <div className="min-h-0 flex-1">{children}</div>
 

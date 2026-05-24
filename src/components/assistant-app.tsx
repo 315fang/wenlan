@@ -84,7 +84,6 @@ const centerActions: Array<{
 ]
 
 const launchTitle = "今天你“问”了吗？"
-const launchFeatureLabels = ["素材中心", "商务中心", "官方图片", "可复制文案", "语音输入"]
 
 function parseSseBlock(block: string) {
   const lines = block.split(/\r?\n/)
@@ -1060,7 +1059,6 @@ export function AssistantApp({ initialConfig }: AssistantAppProps) {
       {showPreferences ? (
       <div className="mt-auto shrink-0 space-y-3 border-t border-black/[0.05] px-1 pt-3">
         <div className="flex flex-col gap-1.5">
-          <div className={`px-1 font-medium uppercase tracking-[0.12em] text-[#888888] ${uiClasses.sidebarHeading}`}>界面模式</div>
           <div className="grid grid-cols-2 gap-1 rounded-xl bg-black/[0.04] p-1">
             {displayModeOptions.map((option) => (
               <button
@@ -1090,14 +1088,14 @@ export function AssistantApp({ initialConfig }: AssistantAppProps) {
   return (
     <div className="flex h-dvh overflow-hidden bg-[#f6f6f4] text-[#0d0d0d]">
       <aside className={`hidden shrink-0 lg:block ${desktopFontClasses.sidebarWidth}`}>
-        <AppSidebar active="chat" sections={["chat"]} fontSizeMode={desktopFontSize}>
+        <AppSidebar active="chat" sections={[]} fontSizeMode={desktopFontSize}>
           {desktopSidebarBody}
         </AppSidebar>
       </aside>
 
       <MobileAppSidebar
         active="chat"
-        sections={["chat"]}
+        sections={[]}
         open={mobileSidebarOpen}
         onClose={() => setMobileSidebarOpen(false)}
         fontSizeMode={fontSize}
@@ -1325,10 +1323,8 @@ function WelcomePanel({
   const titleStyle = fontClasses.title
   const copyStyle = fontClasses.meta
   const shellClass = fontClasses.welcomeShell
-  const chipClass = fontClasses.welcomeFeatureChip
   const titleMargin = fontClasses.welcomeTitleMargin
   const copyMargin = fontClasses.welcomeCopyMargin
-  const chipMargin = fontClasses.welcomeChipMargin
   const logoBoxClass = fontClasses.welcomeLogoBox
   const logoImgSize = fontClasses.welcomeLogoSize
   const subtitleChipClass = fontClasses.welcomeSubtitleChip
@@ -1359,14 +1355,6 @@ function WelcomePanel({
       <h1 className={`${titleMargin} text-center font-bold tracking-tight bg-gradient-to-r from-[#111111] via-[#484848] to-[#111111] bg-clip-text text-transparent ${titleStyle}`}>{launchTitle}</h1>
 
       <p className={`mx-auto ${copyMargin} max-w-2xl text-center text-[#555] ${copyStyle} leading-[1.65]`}>{emptyStateCopy}</p>
-
-      <div className={`${chipMargin} flex flex-wrap justify-center gap-2 ${framed ? "" : "px-0"}`}>
-        {launchFeatureLabels.map((label) => (
-          <span key={label} className={chipClass}>
-            {label}
-          </span>
-        ))}
-      </div>
     </section>
   )
 }
@@ -1750,7 +1738,7 @@ function MobileQuickActions({
       {centerActions.map(({ icon: Icon, title, description, prompt }) => (
         <button
           key={title}
-          className={`flex w-full items-center text-left transition bg-white border border-black/[0.06] shadow-[0_2px_8px_rgba(0,0,0,0.03)] hover:bg-[#fafafa] hover:border-black/[0.1] active:scale-[0.99] active:shadow-[0_1px_4px_rgba(0,0,0,0.02)] ${fontClasses.qaPadding}`}
+          className={`flex w-full items-center text-left transition bg-white border border-black/[0.06] shadow-[0_8px_24px_rgba(0,0,0,0.05)] hover:bg-[#fafafa] hover:border-black/[0.1] active:scale-[0.99] active:shadow-[0_2px_10px_rgba(0,0,0,0.04)] ${fontClasses.qaPadding}`}
           onClick={() => onQuickPrompt(prompt)}
           type="button"
         >
@@ -1760,10 +1748,15 @@ function MobileQuickActions({
             <Icon className={fontClasses.qaIcon} />
           </span>
           <div className="min-w-0 flex-1 ml-0.5">
-            <span className={`block font-semibold tracking-tight text-[#111111] ${fontClasses.qaTitle}`}>
-              {title}
-            </span>
-            <span className={`block truncate font-normal text-[#777777] ${fontClasses.qaSubtitle}`}>
+            <div className="flex items-center justify-between gap-2">
+              <span className={`block font-semibold tracking-tight text-[#111111] ${fontClasses.qaTitle}`}>
+                {title}
+              </span>
+              <span className="shrink-0 rounded-full bg-[#f4f4f4] px-2.5 py-1 text-[11px] font-medium text-[#666666]">
+                立即进入
+              </span>
+            </div>
+            <span className={`mt-1 block font-normal text-[#777777] ${fontClasses.qaSubtitle}`}>
               {description}
             </span>
           </div>
