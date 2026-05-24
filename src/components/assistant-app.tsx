@@ -1,6 +1,6 @@
 "use client"
 
-import type { KeyboardEvent, ReactNode, RefObject } from "react"
+import type { KeyboardEvent, PointerEvent as ReactPointerEvent, ReactNode, RefObject } from "react"
 import Image from "next/image"
 import { useEffect, useMemo, useRef, useState } from "react"
 import {
@@ -15,7 +15,6 @@ import {
   Plus,
   Search,
   Sparkles,
-  Square,
   Trash2,
   X,
 } from "lucide-react"
@@ -500,6 +499,8 @@ export function AssistantApp({ initialConfig }: AssistantAppProps) {
   const voiceFrameRef = useRef<number | null>(null)
   const analyserRef = useRef<AnalyserNode | null>(null)
   const voiceDataRef = useRef<Uint8Array<ArrayBuffer> | null>(null)
+  const voicePressActiveRef = useRef(false)
+  const voiceStartPendingRef = useRef(false)
   const userIdRef = useRef("browser")
   const [voiceLevel, setVoiceLevel] = useState(0)
 
@@ -867,20 +868,31 @@ export function AssistantApp({ initialConfig }: AssistantAppProps) {
     updateLevel()
   }
 
-  async function toggleVoiceRecording() {
-    if (isTranscribing || !serverStatus.transcribeReady) return
-    if (isRecording) {
-      recorderRef.current?.stop()
-      recorderRef.current = null
-      setIsRecording(false)
-      stopVoiceMeter()
-      recorderStreamRef.current?.getTracks().forEach((track) => track.stop())
-      recorderStreamRef.current = null
-      return
-    }
+  function stopVoiceRecording() {
+    voicePressActiveRef.current = false
+    if (!isRecording && !voiceStartPendingRef.current) return
+    voiceStartPendingRef.current = false
 
+    const recorder = recorderRef.current
+    recorderRef.current = null
+    setIsRecording(false)
+    stopVoiceMeter()
+    recorderStreamRef.current?.getTracks().forEach((track) => track.stop())
+    recorderStreamRef.current = null
+
+    recorder?.stop()
+  }
+
+  async function startVoiceRecording() {
+    if (isTranscribing || !serverStatus.transcribeReady || isRecording || voiceStartPendingRef.current) return
+    voicePressActiveRef.current = true
+    voiceStartPendingRef.current = true
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+      if (!voicePressActiveRef.current) {
+        stream.getTracks().forEach((track) => track.stop())
+        return
+      }
       recorderStreamRef.current = stream
       startVoiceMeter(stream)
       const mimeType = pickRecorderMimeType()
@@ -935,9 +947,48 @@ export function AssistantApp({ initialConfig }: AssistantAppProps) {
       recorder.start()
       setIsRecording(true)
     } catch {
+      voicePressActiveRef.current = false
       stopVoiceMeter()
       // Permission denial is handled by the browser prompt.
+    } finally {
+      voiceStartPendingRef.current = false
     }
+  }
+
+  function handleVoicePressStart(event: ReactPointerEvent<HTMLButtonElement>) {
+    if (!serverStatus.transcribeReady || isTranscribing || isRecording || voiceStartPendingRef.current) return
+    event.preventDefault()
+    try {
+      event.currentTarget.setPointerCapture(event.pointerId)
+    } catch {
+      // Ignore capture issues on browsers that do not support it cleanly.
+    }
+    void startVoiceRecording()
+  }
+
+  function handleVoicePressEnd(event: ReactPointerEvent<HTMLButtonElement>) {
+    event.preventDefault()
+    try {
+      if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+        event.currentTarget.releasePointerCapture(event.pointerId)
+      }
+    } catch {
+      // Ignore capture issues.
+    }
+    stopVoiceRecording()
+  }
+
+  function handleVoiceKeyDown(event: KeyboardEvent<HTMLButtonElement>) {
+    if (event.key !== " " && event.key !== "Enter") return
+    if (event.repeat) return
+    event.preventDefault()
+    void startVoiceRecording()
+  }
+
+  function handleVoiceKeyUp(event: KeyboardEvent<HTMLButtonElement>) {
+    if (event.key !== " " && event.key !== "Enter") return
+    event.preventDefault()
+    stopVoiceRecording()
   }
 
   function handleTextareaKeyDown(event: KeyboardEvent<HTMLTextAreaElement>) {
@@ -961,7 +1012,10 @@ export function AssistantApp({ initialConfig }: AssistantAppProps) {
       onKeyDown={handleTextareaKeyDown}
       onSubmit={handleSubmit}
       onNewChat={startNewChat}
-      onToggleVoice={toggleVoiceRecording}
+      onVoicePressStart={handleVoicePressStart}
+      onVoicePressEnd={handleVoicePressEnd}
+      onVoiceKeyDown={handleVoiceKeyDown}
+      onVoiceKeyUp={handleVoiceKeyUp}
       desktopFontSizeClass={desktopFontClasses.input}
       mobileFontSizeClass={mobileFontClasses.input}
       density={layoutDensity}
@@ -1501,7 +1555,10 @@ function Composer({
   onKeyDown,
   onSubmit,
   onNewChat,
-  onToggleVoice,
+  onVoicePressStart,
+  onVoicePressEnd,
+  onVoiceKeyDown,
+  onVoiceKeyUp,
   density = "regular",
   desktopFontSizeClass,
   mobileFontSizeClass,
@@ -1518,7 +1575,10 @@ function Composer({
   onKeyDown: (event: KeyboardEvent<HTMLTextAreaElement>) => void
   onSubmit: () => void
   onNewChat: () => void
-  onToggleVoice: () => void
+  onVoicePressStart: (event: ReactPointerEvent<HTMLButtonElement>) => void
+  onVoicePressEnd: (event: ReactPointerEvent<HTMLButtonElement>) => void
+  onVoiceKeyDown: (event: KeyboardEvent<HTMLButtonElement>) => void
+  onVoiceKeyUp: (event: KeyboardEvent<HTMLButtonElement>) => void
   density?: LayoutDensity
   desktopFontSizeClass: string
   mobileFontSizeClass: string
@@ -1578,17 +1638,22 @@ function Composer({
 
         <div className="flex items-center justify-between px-1 pb-1">
           <button
-            className={`inline-flex items-center justify-center rounded-full transition ${desktopBtnSize} ${
+            className={`inline-flex items-center justify-center rounded-full transition touch-none select-none ${desktopBtnSize} ${
               isRecording
                 ? "bg-[#d1242f] text-white"
                 : "text-[#5f5f5f] hover:bg-[#f4f4f4] disabled:cursor-not-allowed disabled:opacity-35 disabled:hover:bg-transparent"
             }`}
-            title={canTranscribe ? (isRecording ? "停止录音" : "语音输入") : "语音输入暂不可用"}
-            onClick={onToggleVoice}
+            title={canTranscribe ? "按住说话，松开识别" : "语音输入暂不可用"}
+            onPointerDown={onVoicePressStart}
+            onPointerUp={onVoicePressEnd}
+            onPointerCancel={onVoicePressEnd}
+            onKeyDown={onVoiceKeyDown}
+            onKeyUp={onVoiceKeyUp}
+            onContextMenu={(event) => event.preventDefault()}
             disabled={!canTranscribe || isTranscribing}
-            aria-label={isRecording ? "停止录音" : "语音输入"}
+            aria-label="按住说话，松开识别"
           >
-            {isRecording ? <Square className={desktopIconSize} /> : <Mic className={desktopIconSize} />}
+            <Mic className={`${desktopIconSize} ${isRecording ? "animate-pulse" : ""}`} />
           </button>
 
           <button
@@ -1625,17 +1690,22 @@ function Composer({
             />
 
             <button
-              className={`inline-flex shrink-0 items-center justify-center rounded-full transition ${mobileBtnSize} ${
+              className={`inline-flex shrink-0 items-center justify-center rounded-full transition touch-none select-none ${mobileBtnSize} ${
                 isRecording
                   ? "bg-[#d1242f] text-white"
                   : "text-[#7a7a7a] hover:bg-[#f4f4f4] disabled:cursor-not-allowed disabled:opacity-35 disabled:hover:bg-transparent"
               }`}
-              title={canTranscribe ? (isRecording ? "停止录音" : "语音输入") : "语音输入暂不可用"}
-              onClick={onToggleVoice}
+              title={canTranscribe ? "按住说话，松开识别" : "语音输入暂不可用"}
+              onPointerDown={onVoicePressStart}
+              onPointerUp={onVoicePressEnd}
+              onPointerCancel={onVoicePressEnd}
+              onKeyDown={onVoiceKeyDown}
+              onKeyUp={onVoiceKeyUp}
+              onContextMenu={(event) => event.preventDefault()}
               disabled={!canTranscribe || isTranscribing}
-              aria-label={isRecording ? "停止录音" : "语音输入"}
+              aria-label="按住说话，松开识别"
             >
-              {isRecording ? <Square className={mobileIconSize} /> : <Mic className={mobileIconSize} />}
+              <Mic className={`${mobileIconSize} ${isRecording ? "animate-pulse" : ""}`} />
             </button>
 
             <button
@@ -1684,8 +1754,8 @@ function VoiceMeter({
     return { height, opacity }
   })
 
-  const statusText = isTranscribing ? "正在识别语音..." : voiceLevel > 0.08 ? "已检测到声音" : "正在录音，请开始说话"
-  const helperText = isRecording ? "点击麦克风结束录音" : "录音结束后自动转写"
+  const statusText = isTranscribing ? "正在识别语音..." : voiceLevel > 0.08 ? "已检测到声音" : "按住说话中"
+  const helperText = isTranscribing ? "识别完成后可一键发送" : "松开后自动转成文字"
   const toneClass = isTranscribing ? "text-amber-800" : isRecording ? "text-rose-700" : "text-[#666]"
   const dotClass = isTranscribing ? "bg-amber-500" : voiceLevel > 0.08 || isRecording ? "bg-rose-500" : "bg-[#111111]"
   const containerClass = isTranscribing
