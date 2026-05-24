@@ -13,6 +13,63 @@ import { useCallback, useEffect, useRef, useState } from "react"
 
 import { useRecorder } from "@/lib/use-recorder"
 
+async function convertBlobToWav(blob: Blob): Promise<Blob> {
+  if (blob.type === "audio/wav") return blob
+  const AudioContextClass =
+    window.AudioContext || (window as Window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext
+  if (!AudioContextClass) return blob
+  const audioContext = new AudioContextClass()
+  try {
+    const buffer = await audioContext.decodeAudioData(await blob.arrayBuffer())
+    const numChannels = buffer.numberOfChannels
+    const sampleRate = buffer.sampleRate
+    const bytesPerSample = 2
+    const blockAlign = numChannels * bytesPerSample
+    const byteRate = sampleRate * blockAlign
+    const dataSize = buffer.length * blockAlign
+    const wavBuffer = new ArrayBuffer(44 + dataSize)
+    const view = new DataView(wavBuffer)
+    let offset = 0
+    const writeString = (value: string) => {
+      for (let i = 0; i < value.length; i++) view.setUint8(offset + i, value.charCodeAt(i))
+      offset += value.length
+    }
+    writeString("RIFF")
+    view.setUint32(offset, 36 + dataSize, true)
+    offset += 4
+    writeString("WAVE")
+    writeString("fmt ")
+    view.setUint32(offset, 16, true)
+    offset += 4
+    view.setUint16(offset, 1, true)
+    offset += 2
+    view.setUint16(offset, numChannels, true)
+    offset += 2
+    view.setUint32(offset, sampleRate, true)
+    offset += 4
+    view.setUint32(offset, byteRate, true)
+    offset += 4
+    view.setUint16(offset, blockAlign, true)
+    offset += 2
+    view.setUint16(offset, bytesPerSample * 8, true)
+    offset += 2
+    writeString("data")
+    view.setUint32(offset, dataSize, true)
+    offset += 4
+    for (let channel = 0; channel < numChannels; channel++) {
+      const channelData = buffer.getChannelData(channel)
+      for (let i = 0; i < channelData.length; i++) {
+        const sample = Math.max(-1, Math.min(1, channelData[i]))
+        view.setInt16(offset, sample < 0 ? sample * 0x8000 : sample * 0x7fff, true)
+        offset += 2
+      }
+    }
+    return new Blob([wavBuffer], { type: "audio/wav" })
+  } finally {
+    await audioContext.close().catch(() => {})
+  }
+}
+
 interface ComposerProps {
   onSend: (text: string) => void
   onOpenGuide?: () => void
@@ -140,8 +197,9 @@ export function Composer({ onSend, onOpenGuide, disabled, canTranscribe }: Compo
     if (!blob) return
     try {
       setTranscribing(true)
+      const wavBlob = await convertBlobToWav(blob)
       const formData = new FormData()
-      formData.append("file", blob, "voice.webm")
+      formData.append("file", wavBlob, "voice.wav")
       const response = await fetch("/api/transcribe", { method: "POST", body: formData })
       if (!response.ok) throw new Error("语音识别失败")
       const payload = (await response.json()) as { text?: string }
