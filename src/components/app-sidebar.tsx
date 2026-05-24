@@ -117,7 +117,7 @@ export function AppSidebar({
           </div>
           <div className="min-w-0">
             <div className={`truncate font-semibold tracking-normal text-[#111111] ${sizes.logoTitle}`}>问兰</div>
-            <div className={`truncate text-[#777777] ${sizes.logoDesc}`}>大模型系统</div>
+            <div className={`truncate text-[#777777] ${sizes.logoDesc}`}>智能体系统</div>
           </div>
         </div>
 

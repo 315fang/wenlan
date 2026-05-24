@@ -8,13 +8,12 @@ import {
   Check,
   CircleDashed,
   Copy,
-  FileText,
   Loader2,
   Menu,
   Mic,
+  Phone,
   Plus,
   Search,
-  ShieldAlert,
   Sparkles,
   Square,
   Trash2,
@@ -64,26 +63,28 @@ const initialServerStatus: ServerStatus = {
   assistantLabel: "智能客服",
 }
 
-const mobileShortcuts = [
-  {
-    icon: FileText,
-    label: "找官方图片",
-    prompt: "帮我找适合发朋友圈的官方图片素材。",
-  },
+const centerActions: Array<{
+  icon: typeof Search
+  title: string
+  description: string
+  prompt: string
+}> = [
   {
     icon: Search,
-    label: "复制文案",
-    prompt: "给我一段可以直接复制的朋友圈宣传文案。",
+    title: "素材中心",
+    description: "官方图片、朋友圈文案、社群文案",
+    prompt: "进入素材中心，请根据后台最新资料，帮我查找官方图片素材和可直接复制的宣传文案。",
   },
   {
-    icon: ShieldAlert,
-    label: "产品卖点",
-    prompt: "根据最新资料，帮我整理一下产品卖点。",
+    icon: Phone,
+    title: "商务中心",
+    description: "联系方式、合作咨询、对接流程",
+    prompt: "进入商务中心，请根据后台最新资料，告诉我最新联系方式、联系人和合作流程。",
   },
 ]
 
 const launchTitle = "今天你“问”了吗？"
-const launchFeatureLabels = ["文章资料", "官方图片", "宣传文案", "语音输入", "字号切换"]
+const launchFeatureLabels = ["素材中心", "商务中心", "官方图片", "可复制文案", "语音输入"]
 
 function parseSseBlock(block: string) {
   const lines = block.split(/\r?\n/)
@@ -124,18 +125,12 @@ function scrollElementIntoView(ref: RefObject<HTMLDivElement | null>) {
 }
 
 type FontSizeMode = "sm" | "md" | "lg"
-type DisplayMode = "youth" | "care"
+type DisplayMode = "fashion" | "efficiency"
 type LayoutDensity = "regular" | "compact" | "tight"
 
-const fontSizeOptions: Array<{ value: FontSizeMode; label: string }> = [
-  { value: "sm", label: "小" },
-  { value: "md", label: "中" },
-  { value: "lg", label: "大" },
-]
-
 const displayModeOptions: Array<{ value: DisplayMode; label: string }> = [
-  { value: "youth", label: "青年版" },
-  { value: "care", label: "关爱版" },
+  { value: "fashion", label: "时尚版" },
+  { value: "efficiency", label: "效率版" },
 ]
 
 function useLayoutDensity() {
@@ -474,14 +469,16 @@ export function AssistantApp({ initialConfig }: AssistantAppProps) {
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false)
   const [guideModalOpen, setGuideModalOpen] = useState(false)
   const [displayMode, setDisplayMode] = useState<DisplayMode>(() => {
-    if (typeof window === "undefined") return "youth"
+    if (typeof window === "undefined") return "fashion"
     const stored = window.localStorage.getItem(STORAGE_KEYS.displayMode)
-    if (stored === "care" || stored === "youth") return stored
+    if (stored === "fashion" || stored === "efficiency") return stored
+    if (stored === "care") return "efficiency"
+    if (stored === "youth") return "fashion"
     const legacyFontSize =
       window.localStorage.getItem(STORAGE_KEYS.fontSize) ||
       window.localStorage.getItem("问兰 AI Portal:fontSize") ||
       "md"
-    return legacyFontSize === "lg" ? "care" : "youth"
+    return legacyFontSize === "lg" ? "efficiency" : "fashion"
   })
   const [fontSize, setFontSize] = useState<FontSizeMode>(() => {
     if (typeof window === "undefined") return "md"
@@ -818,7 +815,7 @@ export function AssistantApp({ initialConfig }: AssistantAppProps) {
 
   function changeDisplayMode(mode: DisplayMode) {
     setDisplayMode(mode)
-    setFontSize(mode === "care" ? "lg" : "md")
+    setFontSize(mode === "efficiency" ? "lg" : "md")
   }
 
   function stopVoiceMeter() {
@@ -998,6 +995,31 @@ export function AssistantApp({ initialConfig }: AssistantAppProps) {
         新手指导
       </button>
 
+      <div className="space-y-1">
+        <div className={`px-2 pb-1 font-medium uppercase tracking-[0.18em] text-[#888888] ${uiClasses.sidebarHeading}`}>功能入口</div>
+        <div className="space-y-1.5">
+          {centerActions.map(({ icon: Icon, title, description, prompt }) => (
+            <button
+              key={title}
+              className={`flex w-full items-center gap-3 rounded-2xl border border-black/[0.06] bg-white text-left transition hover:border-black/[0.1] hover:bg-[#fafafa] ${uiClasses.sidebarItemBtn}`}
+              onClick={() => {
+                setMobileSidebarOpen(false)
+                void handleQuickPrompt(prompt)
+              }}
+              type="button"
+            >
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#111111] text-white">
+                <Icon className={uiFontSize === "lg" ? "h-5 w-5" : "h-4 w-4"} />
+              </span>
+              <span className="min-w-0">
+                <span className={`block truncate font-semibold text-[#111111] ${uiClasses.sidebarItemTitle}`}>{title}</span>
+                <span className={`mt-0.5 block truncate text-[#777777] ${uiClasses.sidebarItemDate}`}>{description}</span>
+              </span>
+            </button>
+          ))}
+        </div>
+      </div>
+
       <div className="min-h-0 flex-1 overflow-y-auto pr-1">
         <div className={`px-2 pb-2 font-medium uppercase tracking-[0.18em] text-[#888888] ${uiClasses.sidebarHeading}`}>最近对话</div>
         <div className="space-y-1">
@@ -1056,29 +1078,6 @@ export function AssistantApp({ initialConfig }: AssistantAppProps) {
             ))}
           </div>
         </div>
-
-        <div className="flex flex-col gap-1.5">
-          <div className={`px-1 font-medium uppercase tracking-[0.12em] text-[#888888] ${uiClasses.sidebarHeading}`}>字体大小</div>
-          <div className="grid grid-cols-3 gap-1 rounded-xl bg-black/[0.04] p-1">
-            {fontSizeOptions.map((option) => (
-              <button
-                key={option.value}
-                className={`rounded-lg font-medium transition ${
-                  option.value === fontSize
-                    ? "bg-white text-[#111111] shadow-sm"
-                    : "text-[#5f5f5f] hover:text-[#111111] hover:bg-black/[0.02]"
-                } ${uiClasses.sidebarPrefBtn}`}
-                onClick={() => {
-                  setFontSize(option.value)
-                  setDisplayMode(option.value === "lg" ? "care" : "youth")
-                }}
-                type="button"
-              >
-                {option.label}
-              </button>
-            ))}
-          </div>
-        </div>
       </div>
       ) : null}
     </div>
@@ -1125,7 +1124,7 @@ export function AssistantApp({ initialConfig }: AssistantAppProps) {
 
               <div className="min-w-0">
                 <div className={`truncate font-semibold tracking-tight text-[#111] ${mobileFontClasses.headerTitle}`}>
-                  {hasMessages ? activeConversation?.title || "智能问答" : "问兰智能体"}
+                  {hasMessages ? activeConversation?.title || "智能问答" : "问兰智能体系统"}
                 </div>
                 <div className={`truncate text-[#7a7a7a] ${mobileFontClasses.headerSubtitle}`}>{initialConfig.headline}</div>
               </div>
@@ -1148,7 +1147,7 @@ export function AssistantApp({ initialConfig }: AssistantAppProps) {
             <div className="flex min-w-0 items-center gap-3">
               <div className="min-w-0">
                 <div className={`truncate font-semibold tracking-tight text-[#111] ${desktopFontClasses.headerTitle}`}>
-                  {hasMessages ? activeConversation?.title || "智能问答" : "问兰智能体"}
+                  {hasMessages ? activeConversation?.title || "智能问答" : "问兰智能体系统"}
                 </div>
                 <div className={`truncate text-[#7a7a7a] ${desktopFontClasses.headerSubtitle}`}>{initialConfig.headline}</div>
               </div>
@@ -1190,7 +1189,7 @@ export function AssistantApp({ initialConfig }: AssistantAppProps) {
                 <div className="mx-auto w-full">
                   {composer}
                   <p className="mx-auto mt-2 text-center text-[0.65em] leading-normal text-[#7d7d7d] opacity-75">
-                    回答来自AI生成，请自行诊断真假
+                    回答来自AI生成，请以官方最新资料为准
                   </p>
                 </div>
               </div>
@@ -1219,7 +1218,7 @@ export function AssistantApp({ initialConfig }: AssistantAppProps) {
               <div className="bg-white px-4 pb-4 pt-2">
                 {composer}
                 <p className="mx-auto mt-2 max-w-3xl text-center text-xs leading-5 text-[#7d7d7d]">
-                  回答来自AI生成，请自行诊断真假
+                  回答来自AI生成，请以官方最新资料为准
                 </p>
               </div>
             </section>
@@ -1245,7 +1244,7 @@ export function AssistantApp({ initialConfig }: AssistantAppProps) {
               <div className="bg-white px-[5vw] pb-4 pt-2">
                 {composer}
                 <p className="mx-auto mt-2 text-center text-[0.65em] leading-normal text-[#7d7d7d] opacity-75">
-                  回答来自AI生成，请自行诊断真假
+                  回答来自AI生成，请以官方最新资料为准
                 </p>
               </div>
             </section>
@@ -1353,7 +1352,7 @@ function WelcomePanel({
         </div>
         <div className={`font-semibold uppercase tracking-[0.18em] text-[#8a8a8a] flex items-center ${subtitleChipClass}`}>
           <Sparkles className="h-[1.1em] w-[1.1em] text-amber-500 fill-amber-500 shrink-0" />
-          问兰智能体
+          问兰智能体系统
         </div>
       </div>
 
@@ -1472,7 +1471,7 @@ function GuideModal({ open, onClose }: { open: boolean; onClose: () => void }) {
             </div>
             <h2 className="mt-2 text-[22px] font-semibold leading-tight tracking-normal text-[#202020] sm:text-[24px]">第一次使用可以这样开始</h2>
             <p className="mt-2 text-[13.5px] leading-6 text-[#666666] sm:text-sm">
-              前台只负责提问、找官方图片、复制宣传文案和语音输入；上传和删除资料请进入受保护的后台知识库。
+              前台只保留提问、素材中心、商务中心和语音输入；上传和删除资料请进入受保护的后台知识库。
             </p>
           </div>
 
@@ -1542,7 +1541,7 @@ function Composer({
   const placeholder = isTranscribing
     ? "正在识别语音..."
     : isCompact
-      ? "输入问题，回车发送"
+      ? "输入后回车发送"
       : "输入问题、产品名或关键词，按回车发送"
   const desktopBtnSize = "h-9 w-9"
   const desktopIconSize = "h-4 w-4"
@@ -1748,9 +1747,9 @@ function MobileQuickActions({
   const fontClasses = fontSizeStyles[fontSizeMode]
   return (
     <div className={`w-full ${fontClasses.qaSpacing}`}>
-      {mobileShortcuts.map(({ icon: Icon, label, prompt }) => (
+      {centerActions.map(({ icon: Icon, title, description, prompt }) => (
         <button
-          key={label}
+          key={title}
           className={`flex w-full items-center text-left transition bg-white border border-black/[0.06] shadow-[0_2px_8px_rgba(0,0,0,0.03)] hover:bg-[#fafafa] hover:border-black/[0.1] active:scale-[0.99] active:shadow-[0_1px_4px_rgba(0,0,0,0.02)] ${fontClasses.qaPadding}`}
           onClick={() => onQuickPrompt(prompt)}
           type="button"
@@ -1762,10 +1761,10 @@ function MobileQuickActions({
           </span>
           <div className="min-w-0 flex-1 ml-0.5">
             <span className={`block font-semibold tracking-tight text-[#111111] ${fontClasses.qaTitle}`}>
-              {label}
+              {title}
             </span>
             <span className={`block truncate font-normal text-[#777777] ${fontClasses.qaSubtitle}`}>
-              {prompt}
+              {description}
             </span>
           </div>
         </button>

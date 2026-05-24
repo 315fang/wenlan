@@ -5,7 +5,7 @@ import "./globals.css"
 
 export const metadata: Metadata = {
   title: "问兰智能体系统",
-  description: "面向咨询、素材检索和培训的问兰智能体系统",
+  description: "面向咨询、素材检索和商务联系的问兰智能体系统",
   icons: {
     icon: "/wenlan-yizhantong.ico",
   },
