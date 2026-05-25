@@ -156,16 +156,17 @@ export function Composer({ onSend, onOpenGuide, disabled, canTranscribe }: Compo
       cancelArmedRef.current = false
       setCancelArmed(false)
       setElapsed(0)
-      setPressing(true)
-      pressingRef.current = true
-      startedAtRef.current = Date.now()
+      // 先不设置 pressingRef，等麦克风启动成功后再设置
+      // 避免 await 期间 pointerup 触发 endPress
       const ok = await rec.start()
       if (!ok) {
-        setPressing(false)
-        pressingRef.current = false
         startYRef.current = null
         return
       }
+      // 麦克风就绪后再标记为"正在按住"，并以此时刻为录音起点
+      pressingRef.current = true
+      startedAtRef.current = Date.now()
+      setPressing(true)
       stopTimer()
       timerRef.current = window.setInterval(() => {
         setElapsed(Date.now() - startedAtRef.current)
@@ -435,6 +436,25 @@ function HoldButton({
   onRelease?: () => void
   onCancel?: () => void
 }) {
+  const btnRef = useRef<HTMLButtonElement>(null)
+
+  useEffect(() => {
+    const btn = btnRef.current
+    if (!btn) return
+    const preventTouch = (e: Event) => {
+      if (!transcribing) {
+        e.preventDefault()
+      }
+    }
+    // 强制阻止 touchstart，避免 iOS 调起放大镜/拷贝菜单
+    btn.addEventListener("touchstart", preventTouch as EventListener, { passive: false })
+    btn.addEventListener("contextmenu", preventTouch, { passive: false })
+    return () => {
+      btn.removeEventListener("touchstart", preventTouch as EventListener)
+      btn.removeEventListener("contextmenu", preventTouch)
+    }
+  }, [transcribing])
+
   const label = transcribing
     ? "语音识别中…"
     : pressing
@@ -454,6 +474,7 @@ function HoldButton({
 
   return (
     <button
+      ref={btnRef}
       onPointerDown={transcribing ? undefined : onPointerDown}
       onPointerUp={transcribing || !onRelease ? undefined : () => onRelease()}
       onPointerCancel={transcribing || !onCancel ? undefined : () => onCancel()}
