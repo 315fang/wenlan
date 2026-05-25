@@ -1,7 +1,7 @@
 {
   "name": "问兰 · WENLAN",
   "short_name": "问兰",
-  "description": "问兰智能体系统 - 面向客户咨询、素材检索和商务联系的智能体平台",
+  "description": "问兰智能体系统 - 面向客户咨询和商务联系的智能体平台",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#f7f3ec",

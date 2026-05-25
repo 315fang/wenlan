@@ -16,6 +16,8 @@ export interface ChatMessage {
   status?: "pending" | "done" | "error"
   attachments?: ChatAttachment[]
   createdAt: string
+  thought?: string
+  isThinking?: boolean
 }
 
 export interface ChatConversation {

@@ -1,7 +1,7 @@
 "use client"
 
-import { Check, Copy } from "lucide-react"
-import { useState } from "react"
+import { Check, Copy, BrainCircuit, ChevronDown, ChevronUp } from "lucide-react"
+import { useState, useEffect } from "react"
 
 import { BrandMark } from "@/components/brand-mark"
 import { MarkdownRenderer } from "@/components/markdown-renderer"
@@ -13,14 +13,81 @@ interface BubbleProps {
   onCopy: (content: string, messageId: string) => void
 }
 
+function ThinkingBlock({
+  thought,
+  isThinking,
+}: {
+  thought: string
+  isThinking: boolean
+}) {
+  const [isExpanded, setIsExpanded] = useState(true)
+
+  if (!isThinking && !thought) return null
+
+  return (
+    <div className="mb-4 rounded-xl border border-line bg-cream/15 p-3 text-sm">
+      <div
+        className="flex cursor-pointer items-center justify-between select-none"
+        onClick={() => setIsExpanded(!isExpanded)}
+      >
+        <div className="flex items-center gap-2 text-mute font-medium">
+          <BrainCircuit className={`h-4.5 w-4.5 ${isThinking ? "animate-pulse text-[#6b8e7f]" : "text-mute"}`} />
+          <span style={{ fontSize: 13.5 }}>
+            {isThinking
+              ? "问小兰正在深度思考中..."
+              : "已思考完成"}
+          </span>
+        </div>
+        <button className="text-mute hover:text-ink transition-colors">
+          {isExpanded ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
+        </button>
+      </div>
+
+      {isThinking && (
+        <div className="relative mt-2.5 h-0.5 w-full overflow-hidden rounded-full bg-cream">
+          <div className="absolute top-0 h-full w-2/5 rounded-full bg-[#6b8e7f] animate-progress-slide"></div>
+        </div>
+      )}
+
+      {isExpanded && (
+        <div className="mt-2.5 overflow-x-auto border-t border-line/40 pt-2.5 font-mono text-[13px] leading-relaxed text-ink-soft whitespace-pre-wrap">
+          {thought ? (
+            thought
+          ) : (
+            <span className="italic text-mute">正在整理思路...</span>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
 export function Bubble({ message, copiedMessageId, onCopy }: BubbleProps) {
   const [imgError, setImgError] = useState<Set<string>>(new Set())
+  const [wasThinking, setWasThinking] = useState(false)
+  const [realized, setRealized] = useState(false)
+
   const isUser = message.role === "user"
   const isPending = message.status === "pending" && !message.content
   const isError = message.status === "error"
   const attachments = message.attachments ?? []
   const hasAttachments = attachments.length > 0
   const hasContent = Boolean(message.content.trim())
+
+  const isThinking = message.isThinking ?? (message.role === "assistant" && message.status === "pending" && !message.content)
+
+  useEffect(() => {
+    if (isThinking) {
+      setWasThinking(true)
+    } else if (wasThinking && !isThinking) {
+      setWasThinking(false)
+      setRealized(true)
+      const timer = setTimeout(() => {
+        setRealized(false)
+      }, 1200)
+      return () => clearTimeout(timer)
+    }
+  }, [isThinking, wasThinking])
 
   if (isUser) {
     return (
@@ -45,56 +112,74 @@ export function Bubble({ message, copiedMessageId, onCopy }: BubbleProps) {
   return (
     <div className="flex gap-3 px-5 md:px-0">
       <div className="shrink-0 mt-1">
-        <BrandMark size={32} />
+        <div className={`relative ${isThinking ? "animate-logo-wiggle" : ""} ${realized ? "animate-realization" : ""}`}>
+          <BrandMark size={32} />
+          {realized && (
+            <span className="absolute -top-1 -right-1 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-amber-400 text-[9px] text-white shadow-sm animate-ping">
+              ✨
+            </span>
+          )}
+        </div>
       </div>
       <div className="flex-1 min-w-0 group">
         <div
-          className="font-serif mb-1"
+          className="font-serif mb-1.5 flex items-center gap-2"
           style={{ color: "var(--color-mute)", fontSize: 13, letterSpacing: "0.12em" }}
         >
-          问小兰 · 智能客服
+          <span>问小兰 · 智能客服</span>
+          {isThinking && (
+            <span className="inline-flex items-center gap-1 rounded bg-[#6b8e7f]/10 px-1.5 py-0.5 text-[10px] font-sans font-medium tracking-normal text-[#6b8e7f] animate-pulse">
+              思考中...
+            </span>
+          )}
+          {message.thought && !isThinking && (
+            <span className="inline-flex items-center gap-1 rounded bg-black/[0.04] px-1.5 py-0.5 text-[10px] font-sans font-medium tracking-normal text-mute">
+              已思考
+            </span>
+          )}
         </div>
         <div
-          className="whitespace-pre-wrap"
-          style={{
-            color: isError ? "#d1242f" : "var(--color-ink)",
-            fontSize: 15.5,
-            lineHeight: 1.85,
-            letterSpacing: "0.01em",
-          }}
+          className={`rounded-2xl border bg-white/80 backdrop-blur-md px-5 py-4 shadow-[0_4px_20px_-4px_rgba(26,20,16,0.05)] transition-all duration-500 hover:bg-white hover:shadow-[0_8px_30px_-6px_rgba(26,20,16,0.08)] ${
+            realized ? "border-[#6b8e7f] shadow-[0_0_15px_rgba(107,142,127,0.15)] scale-[1.005]" : "border-line"
+          }`}
         >
-          {isPending ? (
-            <span className="inline-flex gap-1 ml-1 align-middle">
-<span className="w-1.5 h-1.5 rounded-full animate-bounce" style={{ background: "var(--color-champagne)" }} />
-              <span className="w-1.5 h-1.5 rounded-full animate-bounce" style={{ background: "var(--color-champagne)", animationDelay: "0.15s" }} />
-              <span className="w-1.5 h-1.5 rounded-full animate-bounce" style={{ background: "var(--color-champagne)", animationDelay: "0.3s" }} />
-            </span>
-          ) : (
-            <>
-              {hasAttachments ? (
-                <div className="space-y-3 mb-3">
-                  {attachments.map((attachment) => (
-                    <AttachmentPreview
-                      key={`${attachment.kind}:${attachment.url}`}
-                      attachment={attachment}
-                      imgError={imgError}
-                      onImgError={(url) => setImgError((s) => new Set(s).add(url))}
-                    />
-                  ))}
-                </div>
-              ) : null}
-              {hasContent ? (
+          <ThinkingBlock thought={message.thought || ""} isThinking={isThinking} />
+          <div
+            className={`transition-all duration-500 ${
+              isThinking && !hasContent ? "hidden" : "block opacity-100"
+            }`}
+            style={{
+              color: isError ? "#d1242f" : "var(--color-ink)",
+              fontSize: 15.5,
+              lineHeight: 1.85,
+              letterSpacing: "0.01em",
+            }}
+          >
+            {hasAttachments ? (
+              <div className="space-y-3 mb-3.5">
+                {attachments.map((attachment) => (
+                  <AttachmentPreview
+                    key={`${attachment.kind}:${attachment.url}`}
+                    attachment={attachment}
+                    imgError={imgError}
+                    onImgError={(url) => setImgError((s) => new Set(s).add(url))}
+                  />
+                ))}
+              </div>
+            ) : null}
+            {hasContent ? (
+              <div className="break-words">
                 <MarkdownRenderer content={message.content} />
-              ) : !hasAttachments ? (
-                <span style={{ color: "var(--color-mute)", fontSize: 14 }}>暂未生成内容。</span>
-              ) : null}
-            </>
-          )}
+              </div>
+            ) : !isThinking && !hasAttachments ? (
+              <span style={{ color: "var(--color-mute)", fontSize: 14 }}>暂未生成内容。</span>
+            ) : null}
+          </div>
         </div>
         {!isPending && hasContent ? (
           <button
             onClick={() => onCopy(message.content, message.id)}
-className="mt-2 inline-flex items-center gap-1.5 transition-colors rounded-lg px-2 py-1 hover:bg-cream"
+            className="mt-2 inline-flex items-center gap-1.5 transition-colors rounded-lg px-2 py-1 hover:bg-cream"
             style={{
               color: copiedMessageId === message.id ? "var(--color-ink)" : "var(--color-mute)",
               fontSize: 12,

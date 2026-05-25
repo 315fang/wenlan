@@ -119,9 +119,37 @@ button, input, textarea, select { font: inherit; }
 }
 .lux-dot { animation: lux-bounce 1.2s infinite ease-in-out; }
 
+@keyframes logo-wiggle {
+  0%, 100% { transform: rotate(0deg); }
+  25% { transform: rotate(-4deg) translateY(-0.5px); }
+  75% { transform: rotate(4deg) translateY(0.5px); }
+}
+.animate-logo-wiggle {
+  animation: logo-wiggle 1.2s ease-in-out infinite;
+}
+
+@keyframes realization-burst {
+  0% { transform: scale(1); filter: drop-shadow(0 0 0 rgba(107, 142, 127, 0)); }
+  30% { transform: scale(1.18) rotate(4deg); filter: drop-shadow(0 0 10px rgba(107, 142, 127, 0.6)); }
+  60% { transform: scale(0.96) rotate(-2deg); }
+  100% { transform: scale(1); filter: drop-shadow(0 0 0 rgba(107, 142, 127, 0)); }
+}
+.animate-realization {
+  animation: realization-burst 0.75s cubic-bezier(0.25, 1, 0.5, 1) 1;
+}
+
+@keyframes thinking-progress {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(250%); }
+}
+.animate-progress-slide {
+  animation: thinking-progress 1.8s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .lux-in, .lux-in-1, .lux-in-2, .lux-in-3, .lux-in-4,
-  .lux-breathe, .lux-shimmer-text, .lux-dot, .lux-bar {
+  .lux-breathe, .lux-shimmer-text, .lux-dot, .lux-bar,
+  .animate-logo-wiggle, .animate-realization, .animate-progress-slide {
     animation: none !important;
   }
   .lux-shimmer-text { color: var(--color-ink); }

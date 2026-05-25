@@ -1,5 +1,5 @@
 const CACHE = "wenlan-v1"
-const URLS = ["/", "/materials", "/business"]
+const URLS = ["/", "/business"]
 
 self.addEventListener("install", (event) => {
   event.waitUntil(

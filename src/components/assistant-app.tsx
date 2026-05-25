@@ -7,7 +7,6 @@ import {
   CircleDashed,
   Menu,
   Phone,
-  Search,
   Sparkles,
   Trash2,
   X,
@@ -64,17 +63,11 @@ const initialServerStatus: ServerStatus = {
 }
 
 const centerActions: Array<{
-  icon: typeof Search
+  icon: typeof Phone
   title: string
   description: string
   route: string
 }> = [
-  {
-    icon: Search,
-    title: "素材中心",
-    description: "官方图片、朋友圈文案、社群文案",
-    route: "/materials",
-  },
   {
     icon: Phone,
     title: "商务中心",
@@ -115,6 +108,25 @@ function parseSseBlock(block: string) {
 
 function buildConversationTitle(prompt: string) {
   return trimText(prompt.replace(/[？?。，、:：]/g, " "), 16)
+}
+
+function parseRawReply(rawText: string) {
+  let thought = ""
+  let content = rawText
+
+  const thinkStart = rawText.indexOf("<think>")
+  if (thinkStart !== -1) {
+    const thinkEnd = rawText.indexOf("</think>")
+    if (thinkEnd !== -1) {
+      thought = rawText.slice(thinkStart + 7, thinkEnd)
+      content = rawText.slice(thinkEnd + 8)
+    } else {
+      thought = rawText.slice(thinkStart + 7)
+      content = ""
+    }
+  }
+
+  return { thought, content }
 }
 
 function sanitizeAssistantReply(text: string) {
@@ -702,7 +714,9 @@ export function AssistantApp({ initialConfig }: AssistantAppProps) {
     messageId: string,
     nextContent: string,
     status?: ChatMessage["status"],
-    attachments?: ChatAttachment[]
+    attachments?: ChatAttachment[],
+    thought?: string,
+    isThinking?: boolean
   ) {
     patchConversation(conversationId, (conversation) => ({
       ...conversation,
@@ -713,6 +727,8 @@ export function AssistantApp({ initialConfig }: AssistantAppProps) {
               content: nextContent,
               status,
               attachments: attachments ?? message.attachments,
+              thought: thought !== undefined ? thought : message.thought,
+              isThinking: isThinking !== undefined ? isThinking : message.isThinking,
             }
           : message
       ),
@@ -757,6 +773,8 @@ export function AssistantApp({ initialConfig }: AssistantAppProps) {
       attachments: [],
       createdAt: new Date().toISOString(),
       status: "pending",
+      thought: "",
+      isThinking: true,
     }
 
     setIsSending(true)
@@ -814,20 +832,30 @@ export function AssistantApp({ initialConfig }: AssistantAppProps) {
             }
             if (typeof payload.answer === "string" && payload.answer) {
               assistantText += payload.answer
+              const { thought, content } = parseRawReply(assistantText)
+              const hasThinkStart = assistantText.indexOf("<think>") !== -1
+              const hasThinkEnd = assistantText.indexOf("</think>") !== -1
+              const isThinkingNow = hasThinkStart ? !hasThinkEnd : (content.trim() === "")
+
               updateMessage(
                 conversationId,
                 assistantMessageId,
-                sanitizeAssistantReply(assistantText),
+                sanitizeAssistantReply(content),
                 "pending",
-                assistantAttachments
+                assistantAttachments,
+                thought,
+                isThinkingNow
               )
             } else if ((payload.event === "message_end" || parsed.event === "message_end") && (assistantText || assistantAttachments.length > 0)) {
+              const { thought, content } = parseRawReply(assistantText)
               updateMessage(
                 conversationId,
                 assistantMessageId,
-                sanitizeAssistantReply(assistantText),
+                sanitizeAssistantReply(content),
                 "done",
-                assistantAttachments
+                assistantAttachments,
+                thought,
+                false
               )
             }
           }
@@ -835,13 +863,16 @@ export function AssistantApp({ initialConfig }: AssistantAppProps) {
         }
       }
 
+      const { thought, content } = parseRawReply(assistantText)
       updateMessage(
         conversationId,
         assistantMessageId,
-        sanitizeAssistantReply(assistantText) ||
+        sanitizeAssistantReply(content) ||
           (assistantAttachments.length > 0 ? "" : "你可以提问的再具体一些，便于我回答。"),
         "done",
-        assistantAttachments
+        assistantAttachments,
+        thought,
+        false
       )
       if (latestConversationId) {
         patchConversation(conversationId, (item) => ({
@@ -852,7 +883,7 @@ export function AssistantApp({ initialConfig }: AssistantAppProps) {
       }
     } catch (error) {
       const message = error instanceof Error ? error.message : "助手暂时无法回复"
-      updateMessage(conversationId, assistantMessageId, message, "error", [])
+      updateMessage(conversationId, assistantMessageId, message, "error", [], "", false)
     } finally {
       setIsSending(false)
     }
@@ -1302,7 +1333,7 @@ function GuideModal({ open, onClose, steps }: { open: boolean; onClose: () => vo
             </div>
             <h2 className="mt-2 text-[22px] font-serif font-semibold leading-tight tracking-normal text-ink sm:text-[24px] lux-in-1 lux-shimmer-text">第一次使用可以这样开始</h2>
             <p className="mt-2 text-[13.5px] leading-6 text-ink-soft sm:text-sm">
-              前台只保留提问、素材中心、商务中心和语音输入；上传和删除资料请进入受保护的后台知识库。
+              前台只保留提问、商务中心和语音输入；上传和删除资料请进入受保护的后台知识库。
             </p>
           </div>
 
