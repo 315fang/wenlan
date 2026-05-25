@@ -108,6 +108,7 @@ export function Composer({ onSend, onOpenGuide, disabled, canTranscribe }: Compo
   const cancelArmedRef = useRef(false)
   const startedAtRef = useRef(0)
   const timerRef = useRef<number | null>(null)
+  const pressingRef = useRef(false)
   const rec = useRecorder()
 
   useEffect(() => {
@@ -152,10 +153,12 @@ export function Composer({ onSend, onOpenGuide, disabled, canTranscribe }: Compo
       setCancelArmed(false)
       setElapsed(0)
       setPressing(true)
+      pressingRef.current = true
       startedAtRef.current = Date.now()
       const ok = await rec.start()
       if (!ok) {
         setPressing(false)
+        pressingRef.current = false
         startYRef.current = null
         return
       }
@@ -164,7 +167,7 @@ export function Composer({ onSend, onOpenGuide, disabled, canTranscribe }: Compo
         setElapsed(Date.now() - startedAtRef.current)
       }, 100)
     },
-    [disabled, pressing, transcribing, rec]
+    [disabled, pressing, transcribing, rec],
   )
 
   const updatePress = useCallback((clientY: number) => {
@@ -178,7 +181,8 @@ export function Composer({ onSend, onOpenGuide, disabled, canTranscribe }: Compo
   }, [])
 
   const endPress = useCallback(async () => {
-    if (!pressing) return
+    if (!pressingRef.current) return
+    pressingRef.current = false
     const wasCancel = cancelArmedRef.current
     const duration = Date.now() - startedAtRef.current
     stopTimer()
@@ -218,22 +222,27 @@ export function Composer({ onSend, onOpenGuide, disabled, canTranscribe }: Compo
     } finally {
       setTranscribing(false)
     }
-  }, [pressing, rec, onSend])
+  }, [rec, onSend])
 
   useEffect(() => {
-    if (!pressing) return
-    const onMove = (e: PointerEvent) => updatePress(e.clientY)
-    const onUp = () => endPress()
-    const onCancel = () => endPress()
-    window.addEventListener("pointermove", onMove)
-    window.addEventListener("pointerup", onUp)
-    window.addEventListener("pointercancel", onCancel)
-    return () => {
-      window.removeEventListener("pointermove", onMove)
-      window.removeEventListener("pointerup", onUp)
-      window.removeEventListener("pointercancel", onCancel)
+    const onMove = (e: PointerEvent) => {
+      if (pressingRef.current) updatePress(e.clientY)
     }
-  }, [pressing, updatePress, endPress])
+    const onUp = () => {
+      if (pressingRef.current) endPress()
+    }
+    const onCancel = () => {
+      if (pressingRef.current) endPress()
+    }
+    window.addEventListener('pointermove', onMove)
+    window.addEventListener('pointerup', onUp)
+    window.addEventListener('pointercancel', onCancel)
+    return () => {
+      window.removeEventListener('pointermove', onMove)
+      window.removeEventListener('pointerup', onUp)
+      window.removeEventListener('pointercancel', onCancel)
+    }
+  }, [updatePress, endPress])
 
   useEffect(() => () => stopTimer(), [])
 
@@ -341,6 +350,8 @@ export function Composer({ onSend, onOpenGuide, disabled, canTranscribe }: Compo
               ;(e.target as HTMLElement).setPointerCapture?.(e.pointerId)
               beginPress(e.clientY)
             }}
+            onRelease={transcribing ? undefined : () => endPress()}
+            onCancel={transcribing ? undefined : () => endPress()}
           />
         ) : (
           <textarea
@@ -409,12 +420,16 @@ function HoldButton({
   elapsed,
   cancelArmed,
   onPointerDown,
+  onRelease,
+  onCancel,
 }: {
   pressing: boolean
   transcribing: boolean
   elapsed: number
   cancelArmed: boolean
   onPointerDown: (e: React.PointerEvent) => void
+  onRelease?: () => void
+  onCancel?: () => void
 }) {
   const label = transcribing
     ? "语音识别中…"
@@ -436,6 +451,8 @@ function HoldButton({
   return (
     <button
       onPointerDown={transcribing ? undefined : onPointerDown}
+      onPointerUp={transcribing || !onRelease ? undefined : () => onRelease()}
+      onPointerCancel={transcribing || !onCancel ? undefined : () => onCancel()}
       onContextMenu={(e) => e.preventDefault()}
       className="flex-1 inline-flex items-center justify-center gap-2 rounded-full transition-colors"
       style={{
