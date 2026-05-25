@@ -3,7 +3,7 @@
 /* eslint-disable @next/next/no-img-element */
 
 import type { ComponentProps, ReactNode } from "react"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import ReactMarkdown from "react-markdown"
 import remarkGfm from "remark-gfm"
 import { ShoppingBag, ExternalLink } from "lucide-react"
@@ -18,6 +18,141 @@ interface Product {
   image: string
   link: string
   desc: string
+}
+
+// 辅助解析：从文本行块中提取商品字段
+function parseProductBlockText(text: string): Product | null {
+  const urlMatch = text.match(/https?:\/\/[^\s\)]+?\/[a-zA-Z0-9_-]*urllink[^\s\)]*?(?:id|product_id)=\d+[^\s\)]*/i)
+  if (!urlMatch) return null
+  const link = urlMatch[0]
+
+  const lines = text.split("\n")
+  let name = ""
+  let price = ""
+  let image = ""
+  let desc = ""
+
+  for (const line of lines) {
+    const cleanLine = line.replace(/^[-*•\s+]+/g, "").trim()
+    if (!cleanLine) continue
+
+    const nameMatch = cleanLine.match(/^(?:名称|商品|品名|Title|Name|name)\s*[:：]\s*(.*)$/i)
+    const priceMatch = cleanLine.match(/^(?:价格|售价|Price|price)\s*[:：]\s*(.*)$/i)
+    const imageMatch = cleanLine.match(/^(?:图片|图样|Image|image|pic|img)\s*[:：]\s*(.*)$/i)
+    const descMatch = cleanLine.match(/^(?:描述|详情|介绍|文案|Desc|desc|description)\s*[:：]\s*(.*)$/i)
+
+    if (nameMatch) {
+      name = nameMatch[1].trim()
+    } else if (priceMatch) {
+      price = priceMatch[1].trim()
+    } else if (imageMatch) {
+      const imgVal = imageMatch[1].trim()
+      if (imgVal.startsWith("http") || imgVal.startsWith("/")) {
+        image = imgVal
+      }
+    } else if (descMatch) {
+      desc = descMatch[1].trim()
+    } else {
+      // 兜底：如果不是属性关键字，但是加粗文本，可能是商品名
+      const boldMatch = cleanLine.match(/^\*\*([^*]+)\*\*$/)
+      if (boldMatch) {
+        name = boldMatch[1].trim()
+      } else if (!cleanLine.startsWith("http") && !name && cleanLine.length < 50 && !cleanLine.includes("：") && !cleanLine.includes(":")) {
+        name = cleanLine
+      }
+    }
+  }
+
+  // 去除可能的引号
+  name = name.replace(/^[“"‘']|[”"’']$/g, "")
+  desc = desc.replace(/^[“"‘']|[”"’']$/g, "")
+
+  return { name, price, image, link, desc }
+}
+
+// 预处理函数：将 markdown 中包含 urllink 的普通列表/文本段落转化为 ```product 代码块
+function preprocessMarkdown(content: string): string {
+  if (!content) return content
+
+  const urlRegex = /https?:\/\/[^\s\)]+?\/[a-zA-Z0-9_-]*urllink[^\s\)]*?(?:id|product_id)=\d+[^\s\)]*/gi
+  const matches = Array.from(content.matchAll(urlRegex))
+  if (matches.length === 0) return content
+
+  const lines = content.split("\n")
+  const lineProductIds = new Array(lines.length).fill(-1)
+
+  matches.forEach((match, matchIdx) => {
+    const matchStr = match[0]
+    const lineIdx = lines.findIndex(l => l.includes(matchStr))
+    if (lineIdx === -1) return
+
+    // 向上扫描确定商品块的起始行
+    let startIdx = lineIdx
+    while (startIdx > 0) {
+      const prevLine = lines[startIdx - 1].trim()
+      if (prevLine === "") break
+      if (prevLine.startsWith("#")) break
+      if (prevLine.match(/[a-zA-Z0-9_-]*urllink/i)) break
+      startIdx--
+    }
+
+    // 向下扫描确定商品块的结束行
+    let endIdx = lineIdx
+    while (endIdx < lines.length - 1) {
+      const nextLine = lines[endIdx + 1].trim()
+      if (nextLine === "") break
+      if (nextLine.startsWith("#")) break
+      if (nextLine.match(/[a-zA-Z0-9_-]*urllink/i)) break
+      if (nextLine.match(/^[-*•]\s+\*\*[^*]+\*\*$/)) break
+      endIdx++
+    }
+
+    for (let i = startIdx; i <= endIdx; i++) {
+      if (lineProductIds[i] === -1) {
+        lineProductIds[i] = matchIdx
+      }
+    }
+  })
+
+  const newLines: string[] = []
+  let currentProductId = -1
+  let currentProductLines: string[] = []
+
+  const flushProduct = () => {
+    if (currentProductLines.length > 0) {
+      const text = currentProductLines.join("\n")
+      const parsed = parseProductBlockText(text)
+      if (parsed && parsed.link) {
+        newLines.push("\n```product")
+        newLines.push(`名称: ${parsed.name}`)
+        newLines.push(`价格: ${parsed.price}`)
+        newLines.push(`图片: ${parsed.image}`)
+        newLines.push(`链接: ${parsed.link}`)
+        newLines.push(`描述: ${parsed.desc}`)
+        newLines.push("```\n")
+      } else {
+        newLines.push(...currentProductLines)
+      }
+      currentProductLines = []
+    }
+  }
+
+  for (let i = 0; i < lines.length; i++) {
+    const pId = lineProductIds[i]
+    if (pId !== currentProductId) {
+      flushProduct()
+      currentProductId = pId
+    }
+
+    if (pId !== -1) {
+      currentProductLines.push(lines[i])
+    } else {
+      newLines.push(lines[i])
+    }
+  }
+  flushProduct()
+
+  return newLines.join("\n")
 }
 
 function parseProducts(text: string): Product[] {
@@ -57,9 +192,9 @@ function parseProducts(text: string): Product[] {
       }
     }
 
-    if (item.name) {
+    if (item.name || item.link) {
       products.push({
-        name: item.name,
+        name: item.name || "",
         price: item.price || "",
         image: item.image || "",
         link: item.link || "",
@@ -71,13 +206,80 @@ function parseProducts(text: string): Product[] {
   return products
 }
 
-function ProductCard({ product }: { product: Product }) {
+function ProductCard({ product: initialProduct }: { product: Product }) {
+  const [product, setProduct] = useState<Product>(initialProduct)
   const [imgError, setImgError] = useState(false)
+  const [loading, setLoading] = useState(false)
+
+  // 使用 render-phase state synchronization 避免 effect 中的同步 setState 报错
+  const [prevProductImage, setPrevProductImage] = useState(product.image)
+  if (product.image !== prevProductImage) {
+    setPrevProductImage(product.image)
+    setImgError(false)
+  }
+
+  useEffect(() => {
+    const isUrllink = initialProduct.link && (initialProduct.link.includes("/urllink") || initialProduct.link.includes("urllink"))
+    if (!isUrllink) return
+
+    let active = true
+    const detailUrl = initialProduct.link.replace(/\/urllink(\?|$)/i, "/detail$1")
+
+    // 使用异步微任务包裹，避免在 effect 主体中同步触发 setState
+    const fetchDetails = async () => {
+      await Promise.resolve()
+      if (!active) return
+      setLoading(true)
+      try {
+        const res = await fetch(detailUrl)
+        const json = await res.json()
+        if (active && json.code === 0 && json.data) {
+          setProduct(prev => ({
+            ...prev,
+            name: json.data.name || prev.name || "未命名商品",
+            price: json.data.price || prev.price,
+            image: json.data.image || prev.image,
+            desc: json.data.desc || prev.desc,
+            link: json.data.link || prev.link
+          }))
+        }
+      } catch (err) {
+        console.error("Failed to load product details:", err)
+      } finally {
+        if (active) setLoading(false)
+      }
+    }
+
+    fetchDetails()
+
+    return () => {
+      active = false
+    }
+  }, [initialProduct])
+
+  if (loading && !product.name) {
+    return (
+      <div className="flex gap-4 p-4 rounded-2xl border border-[#cad8d1]/60 bg-white/90 shadow-[0_2px_12px_-3px_rgba(26,20,16,0.04)] animate-pulse">
+        <div className="w-20 h-20 sm:w-24 sm:h-24 shrink-0 rounded-xl bg-[#e4ece6]/40"></div>
+        <div className="flex-1 min-w-0 flex flex-col justify-between py-1">
+          <div>
+            <div className="h-4 bg-[#e4ece6]/60 rounded w-2/3 mb-2"></div>
+            <div className="h-3 bg-[#e4ece6]/40 rounded w-full mb-1"></div>
+            <div className="h-3 bg-[#e4ece6]/40 rounded w-4/5"></div>
+          </div>
+          <div className="flex justify-end mt-2">
+            <div className="w-16 h-7 bg-[#6b8e7f]/20 rounded-full"></div>
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="flex gap-4 p-4 rounded-2xl border border-[#cad8d1]/60 bg-white/90 shadow-[0_2px_12px_-3px_rgba(26,20,16,0.04)] transition-all duration-300 hover:shadow-[0_6px_20px_-4px_rgba(26,20,16,0.08)] hover:-translate-y-0.5 select-text">
       {product.image && !imgError ? (
-        <div className="w-20 h-20 sm:w-24 sm:h-24 shrink-0 rounded-xl overflow-hidden bg-[#e4ece6]/30 border border-[#cad8d1]/30 flex items-center justify-center">
+        <div className="w-20 h-20 sm:w-24 sm:h-24 shrink-0 rounded-xl overflow-hidden bg-[#e4ece6]/30 border border-[#cad8d1]/30 flex items-center justify-center relative">
+          {loading && <div className="absolute inset-0 bg-[#e4ece6]/30 animate-pulse" />}
           <img
             src={product.image}
             alt={product.name}
@@ -86,15 +288,19 @@ function ProductCard({ product }: { product: Product }) {
           />
         </div>
       ) : (
-        <div className="w-20 h-20 sm:w-24 sm:h-24 shrink-0 rounded-xl bg-[#e4ece6]/30 border border-[#cad8d1]/30 flex items-center justify-center text-mute">
-          <ShoppingBag size={24} className="opacity-40" />
+        <div className="w-20 h-20 sm:w-24 sm:h-24 shrink-0 rounded-xl bg-[#e4ece6]/30 border border-[#cad8d1]/30 flex items-center justify-center text-mute relative">
+          {loading ? (
+            <div className="absolute inset-0 bg-[#e4ece6]/40 animate-pulse rounded-xl" />
+          ) : (
+            <ShoppingBag size={24} className="opacity-40" />
+          )}
         </div>
       )}
       
       <div className="flex-1 min-w-0 flex flex-col justify-between py-0.5">
         <div>
           <div className="flex items-start justify-between gap-3">
-            <h4 className="font-semibold text-ink text-[15px] truncate font-serif">{product.name}</h4>
+            <h4 className="font-semibold text-ink text-[15px] truncate font-serif">{product.name || "加载中..."}</h4>
             {product.price && (
               <span className="text-[14.5px] font-bold text-[#6b8e7f] shrink-0 font-sans">{product.price}</span>
             )}
@@ -138,6 +344,8 @@ function ProductListBlock({ text }: { text: string }) {
 }
 
 export function MarkdownRenderer({ content }: MarkdownRendererProps) {
+  const processedContent = preprocessMarkdown(content)
+
   return (
     <div className="min-w-0 max-w-full overflow-x-hidden">
       <ReactMarkdown
@@ -204,7 +412,7 @@ export function MarkdownRenderer({ content }: MarkdownRendererProps) {
           },
         }}
       >
-        {content}
+        {processedContent}
       </ReactMarkdown>
     </div>
   )
