@@ -2,7 +2,7 @@
 
 import type { FormEvent } from "react"
 import { useEffect, useState } from "react"
-import { Loader2, Menu, RefreshCw, Save } from "lucide-react"
+import { Loader2, Menu, Plus, RefreshCw, Save, Trash2 } from "lucide-react"
 
 import { AppSidebar, MobileAppSidebar } from "@/components/app-sidebar"
 import type { AppSettings } from "@/types/settings"
@@ -37,8 +37,6 @@ export function AdminConfigPanel() {
   const [knowledgeOutlineText, setKnowledgeOutlineText] = useState("")
   const [onboardingGuideText, setOnboardingGuideText] = useState("")
   const [insightCardsText, setInsightCardsText] = useState("")
-  const [priceTiersText, setPriceTiersText] = useState("")
-  const [materialItemsText, setMaterialItemsText] = useState("")
 
   useEffect(() => {
     void loadSettings()
@@ -56,8 +54,6 @@ export function AdminConfigPanel() {
       setKnowledgeOutlineText(data.knowledgeOutline.join("\n"))
       setOnboardingGuideText(JSON.stringify(data.onboardingGuide, null, 2))
       setInsightCardsText(JSON.stringify(data.insightCards, null, 2))
-      setPriceTiersText(JSON.stringify(data.businessPriceTiers, null, 2))
-      setMaterialItemsText(JSON.stringify(data.materialItems, null, 2))
     } catch (err) {
       setError(err instanceof Error ? err.message : "读取配置失败")
     } finally {
@@ -98,30 +94,12 @@ export function AdminConfigPanel() {
         throw new Error("功能卡片 JSON 格式错误")
       }
 
-      let businessPriceTiers: AppSettings["businessPriceTiers"] = []
-      try {
-        businessPriceTiers = JSON.parse(priceTiersText)
-        if (!Array.isArray(businessPriceTiers)) throw new Error()
-      } catch {
-        throw new Error("价目表 JSON 格式错误")
-      }
-
-      let materialItems: AppSettings["materialItems"] = []
-      try {
-        materialItems = JSON.parse(materialItemsText)
-        if (!Array.isArray(materialItems)) throw new Error()
-      } catch {
-        throw new Error("素材 JSON 格式错误")
-      }
-
       const body: AppSettings = {
         ...settings,
         starterPrompts,
         knowledgeOutline,
         onboardingGuide,
         insightCards,
-        businessPriceTiers,
-        materialItems,
       }
 
       const response = await fetch("/api/admin/config", {
@@ -303,48 +281,261 @@ export function AdminConfigPanel() {
               <h2 className="text-base font-semibold text-ink">商务中心 · 联系方式</h2>
               <p className="mt-1 text-sm text-[#6b6b6b]">显示在商务中心的联系卡片中。</p>
 
-              <div className="mt-4 grid gap-4 sm:grid-cols-2">
+              <div className="mt-4 space-y-3">
                 {settings.businessContacts.map((contact, i) => (
-                  <label key={contact.id} className="grid gap-1.5 text-sm">
-                    <span className="text-mute">{contact.label}</span>
-                    <input
-                      value={settings.businessContacts[i].value}
-                      onChange={(e) => {
-                        const next = [...settings.businessContacts]
-                        next[i] = { ...next[i], value: e.target.value }
-                        setSettings((s) => ({ ...s, businessContacts: next }))
-                      }}
-                      className="h-11 rounded-xl border border-black/10 bg-white px-3 text-[15px] outline-none focus:border-black/30"
-                    />
-                  </label>
+                  <div key={contact.id} className="flex items-end gap-3">
+                    <label className="grid gap-1.5 text-sm flex-1">
+                      <span className="text-mute">标签</span>
+                      <input
+                        value={settings.businessContacts[i].label}
+                        onChange={(e) => {
+                          const next = [...settings.businessContacts]
+                          next[i] = { ...next[i], label: e.target.value }
+                          setSettings((s) => ({ ...s, businessContacts: next }))
+                        }}
+                        className="h-11 rounded-xl border border-black/10 bg-white px-3 text-[15px] outline-none focus:border-black/30"
+                      />
+                    </label>
+                    <label className="grid gap-1.5 text-sm flex-[2]">
+                      <span className="text-mute">值</span>
+                      <input
+                        value={settings.businessContacts[i].value}
+                        onChange={(e) => {
+                          const next = [...settings.businessContacts]
+                          next[i] = { ...next[i], value: e.target.value }
+                          setSettings((s) => ({ ...s, businessContacts: next }))
+                        }}
+                        className="h-11 rounded-xl border border-black/10 bg-white px-3 text-[15px] outline-none focus:border-black/30"
+                      />
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setSettings((s) => ({
+                          ...s,
+                          businessContacts: s.businessContacts.filter((_, idx) => idx !== i),
+                        }))
+                      }
+                      className="mb-0.5 inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-rose transition hover:bg-rose-soft"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
                 ))}
               </div>
+              <button
+                type="button"
+                onClick={() =>
+                  setSettings((s) => ({
+                    ...s,
+                    businessContacts: [
+                      ...s.businessContacts,
+                      { id: `c${Date.now()}`, label: "新联系方式", value: "" },
+                    ],
+                  }))
+                }
+                className="mt-3 inline-flex items-center gap-1.5 rounded-full border border-line bg-white px-3 py-1.5 text-sm text-ink transition hover:bg-ivory"
+              >
+                <Plus size={14} /> 添加联系方式
+              </button>
             </section>
 
             <section className="border border-black/10 bg-white p-4 sm:p-5">
               <h2 className="text-base font-semibold text-ink">商务中心 · 价目表</h2>
-              <p className="mt-1 text-sm text-[#6b6b6b]">JSON 数组格式，每项包含 name、range、note。</p>
+              <p className="mt-1 text-sm text-[#6b6b6b]">产品名称、价格区间和备注。</p>
 
-              <label className="mt-4 grid gap-1.5 text-sm">
-                <textarea
-                  value={priceTiersText}
-                  onChange={(e) => setPriceTiersText(e.target.value)}
-                  className="min-h-32 rounded-xl border border-black/10 bg-white px-3 py-3 text-[13px] outline-none focus:border-black/30 font-mono"
-                />
-              </label>
+              <div className="mt-4 space-y-3">
+                {settings.businessPriceTiers.map((tier, i) => (
+                  <div key={i} className="flex items-end gap-3">
+                    <label className="grid gap-1.5 text-sm flex-1">
+                      <span className="text-mute">名称</span>
+                      <input
+                        value={tier.name}
+                        onChange={(e) => {
+                          const next = [...settings.businessPriceTiers]
+                          next[i] = { ...next[i], name: e.target.value }
+                          setSettings((s) => ({ ...s, businessPriceTiers: next }))
+                        }}
+                        className="h-11 rounded-xl border border-black/10 bg-white px-3 text-[15px] outline-none focus:border-black/30"
+                      />
+                    </label>
+                    <label className="grid gap-1.5 text-sm flex-1">
+                      <span className="text-mute">价格区间</span>
+                      <input
+                        value={tier.range}
+                        onChange={(e) => {
+                          const next = [...settings.businessPriceTiers]
+                          next[i] = { ...next[i], range: e.target.value }
+                          setSettings((s) => ({ ...s, businessPriceTiers: next }))
+                        }}
+                        className="h-11 rounded-xl border border-black/10 bg-white px-3 text-[15px] outline-none focus:border-black/30"
+                      />
+                    </label>
+                    <label className="grid gap-1.5 text-sm flex-1">
+                      <span className="text-mute">备注</span>
+                      <input
+                        value={tier.note}
+                        onChange={(e) => {
+                          const next = [...settings.businessPriceTiers]
+                          next[i] = { ...next[i], note: e.target.value }
+                          setSettings((s) => ({ ...s, businessPriceTiers: next }))
+                        }}
+                        className="h-11 rounded-xl border border-black/10 bg-white px-3 text-[15px] outline-none focus:border-black/30"
+                      />
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setSettings((s) => ({
+                          ...s,
+                          businessPriceTiers: s.businessPriceTiers.filter((_, idx) => idx !== i),
+                        }))
+                      }
+                      className="mb-0.5 inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-rose transition hover:bg-rose-soft"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+              <button
+                type="button"
+                onClick={() =>
+                  setSettings((s) => ({
+                    ...s,
+                    businessPriceTiers: [
+                      ...s.businessPriceTiers,
+                      { name: "新产品", range: "¥0 – ¥0", note: "" },
+                    ],
+                  }))
+                }
+                className="mt-3 inline-flex items-center gap-1.5 rounded-full border border-line bg-white px-3 py-1.5 text-sm text-ink transition hover:bg-ivory"
+              >
+                <Plus size={14} /> 添加价目
+              </button>
             </section>
 
             <section className="border border-black/10 bg-white p-4 sm:p-5">
               <h2 className="text-base font-semibold text-ink">素材中心 · 素材数据</h2>
-              <p className="mt-1 text-sm text-[#6b6b6b]">JSON 数组格式，每项包含 id、cat(visual/wechat/community/script)、title、meta、copy(可选)、download(可选)、hue。</p>
+              <p className="mt-1 text-sm text-[#6b6b6b]">分类管理素材：官方主图、朋友圈文案、社群文案、短视频脚本。</p>
 
-              <label className="mt-4 grid gap-1.5 text-sm">
-                <textarea
-                  value={materialItemsText}
-                  onChange={(e) => setMaterialItemsText(e.target.value)}
-                  className="min-h-48 rounded-xl border border-black/10 bg-white px-3 py-3 text-[13px] outline-none focus:border-black/30 font-mono"
-                />
-              </label>
+              {(["visual", "wechat", "community", "script"] as const).map((cat) => {
+                const CAT_LABELS: Record<string, string> = { visual: "官方主图", wechat: "朋友圈三连", community: "社群文案", script: "短视频脚本" }
+                const catItems = settings.materialItems.filter((m) => m.cat === cat)
+                return (
+                  <div key={cat} className="mt-4">
+                    <div className="mb-2 flex items-center justify-between">
+                      <span className="text-sm font-medium text-ink">{CAT_LABELS[cat]}</span>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setSettings((s) => ({
+                            ...s,
+                            materialItems: [
+                              ...s.materialItems,
+                              { id: `m${Date.now()}`, cat, title: "新素材", meta: "", copy: "", download: "", hue: "linear-gradient(135deg,var(--color-line),var(--color-rose-soft))" },
+                            ],
+                          }))
+                        }
+                        className="inline-flex items-center gap-1 rounded-full border border-line bg-white px-2.5 py-1 text-xs text-ink transition hover:bg-ivory"
+                      >
+                        <Plus size={12} /> 添加
+                      </button>
+                    </div>
+                    {catItems.length === 0 ? (
+                      <div className="rounded-xl border border-dashed border-line px-3 py-4 text-center text-xs text-mute">
+                        暂无素材，点击上方「添加」按钮
+                      </div>
+                    ) : (
+                      <div className="space-y-2">
+                        {catItems.map((item) => {
+                          const globalIdx = settings.materialItems.findIndex((m) => m.id === item.id)
+                          return (
+                            <div key={item.id} className="rounded-xl border border-line bg-ivory/50 p-3">
+                              <div className="grid gap-2 sm:grid-cols-3">
+                                <label className="grid gap-1 text-xs text-mute">
+                                  标题
+                                  <input
+                                    value={item.title}
+                                    onChange={(e) => {
+                                      const next = [...settings.materialItems]
+                                      next[globalIdx] = { ...next[globalIdx], title: e.target.value }
+                                      setSettings((s) => ({ ...s, materialItems: next }))
+                                    }}
+                                    className="h-9 rounded-lg border border-line bg-white px-2.5 text-sm outline-none"
+                                  />
+                                </label>
+                                <label className="grid gap-1 text-xs text-mute">
+                                  描述
+                                  <input
+                                    value={item.meta}
+                                    onChange={(e) => {
+                                      const next = [...settings.materialItems]
+                                      next[globalIdx] = { ...next[globalIdx], meta: e.target.value }
+                                      setSettings((s) => ({ ...s, materialItems: next }))
+                                    }}
+                                    className="h-9 rounded-lg border border-line bg-white px-2.5 text-sm outline-none"
+                                  />
+                                </label>
+                                <label className="grid gap-1 text-xs text-mute">
+                                  色调 CSS
+                                  <input
+                                    value={item.hue}
+                                    onChange={(e) => {
+                                      const next = [...settings.materialItems]
+                                      next[globalIdx] = { ...next[globalIdx], hue: e.target.value }
+                                      setSettings((s) => ({ ...s, materialItems: next }))
+                                    }}
+                                    className="h-9 rounded-lg border border-line bg-white px-2.5 text-sm outline-none font-mono"
+                                  />
+                                </label>
+                                <label className="grid gap-1 text-xs text-mute sm:col-span-2">
+                                  文案（可选）
+                                  <textarea
+                                    value={item.copy || ""}
+                                    onChange={(e) => {
+                                      const next = [...settings.materialItems]
+                                      next[globalIdx] = { ...next[globalIdx], copy: e.target.value }
+                                      setSettings((s) => ({ ...s, materialItems: next }))
+                                    }}
+                                    className="min-h-16 rounded-lg border border-line bg-white px-2.5 py-1.5 text-sm outline-none"
+                                  />
+                                </label>
+                                <div className="flex items-end justify-end gap-1">
+                                  <label className="grid gap-1 text-xs text-mute flex-1">
+                                    下载链接（可选）
+                                    <input
+                                      value={item.download || ""}
+                                      onChange={(e) => {
+                                        const next = [...settings.materialItems]
+                                        next[globalIdx] = { ...next[globalIdx], download: e.target.value }
+                                        setSettings((s) => ({ ...s, materialItems: next }))
+                                      }}
+                                      className="h-9 rounded-lg border border-line bg-white px-2.5 text-sm outline-none"
+                                    />
+                                  </label>
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      setSettings((s) => ({
+                                        ...s,
+                                        materialItems: s.materialItems.filter((m) => m.id !== item.id),
+                                      }))
+                                    }
+                                    className="mb-0.5 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-rose transition hover:bg-rose-soft"
+                                  >
+                                    <Trash2 size={14} />
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
             </section>
 
             <section className="border border-black/10 bg-white p-4 sm:p-5">

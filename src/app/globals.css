@@ -37,7 +37,7 @@
   --color-rose-soft: var(--color-rose-soft);
   --color-background: var(--color-ivory);
   --color-foreground: var(--color-ink);
-  --font-serif: "Cormorant Garamond", "Noto Serif SC", ui-serif, serif;
+  --font-serif: "Noto Serif SC", "Cormorant Garamond", ui-serif, serif;
   --font-sans: "Inter", "Noto Sans SC", ui-sans-serif, system-ui, sans-serif;
 }
 
