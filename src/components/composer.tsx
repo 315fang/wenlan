@@ -92,6 +92,10 @@ const CANCEL_THRESHOLD_PX = 60
 export function Composer({ onSend, onOpenGuide, disabled, canTranscribe }: ComposerProps) {
   const [mode, setMode] = useState<InputMode>(canTranscribe ? "voice" : "text")
   const [text, setText] = useState("")
+
+  useEffect(() => {
+    if (canTranscribe && mode === "text") setMode("voice")
+  }, [canTranscribe])
   const [transcribing, setTranscribing] = useState(false)
   const [showPlus, setShowPlus] = useState(false)
   const [pressing, setPressing] = useState(false)
