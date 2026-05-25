@@ -146,14 +146,14 @@ export function AdminConfigPanel() {
 
   if (loading) {
     return (
-      <div className="flex min-h-dvh items-center justify-center bg-[#f6f6f4]">
-        <Loader2 className="h-6 w-6 animate-spin text-[#666]" />
+      <div className="flex min-h-dvh items-center justify-center bg-ivory">
+        <Loader2 className="h-6 w-6 animate-spin text-mute" />
       </div>
     )
   }
 
   return (
-    <div className="flex min-h-dvh bg-[#f6f6f4] text-[#111111]">
+    <div className="flex min-h-dvh bg-ivory text-ink">
       <aside className="hidden w-[18rem] shrink-0 lg:block">
         <AppSidebar active="config" sections={["config"]} />
       </aside>
@@ -170,7 +170,7 @@ export function AdminConfigPanel() {
           <header className="mb-4 flex items-center justify-between border-b border-black/10 pb-4">
             <div className="flex min-w-0 items-center gap-3">
               <button
-                className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-[#5b5b5b] transition hover:bg-white lg:hidden"
+                className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-mute transition hover:bg-white lg:hidden"
                 onClick={() => setMobileSidebarOpen(true)}
                 type="button"
                 aria-label="打开侧边菜单"
@@ -179,12 +179,12 @@ export function AdminConfigPanel() {
               </button>
               <div className="min-w-0">
                 <div className="text-[18px] font-semibold tracking-tight">系统配置</div>
-                <div className="text-sm text-[#666]">管理前台文案、默认提示词和后端接口默认地址。</div>
+                <div className="text-sm text-mute">管理前台文案、默认提示词和后端接口默认地址。</div>
               </div>
             </div>
 
             <button
-              className="inline-flex items-center gap-2 rounded-full border border-black/10 bg-white px-4 py-2 text-sm text-[#333] transition hover:bg-[#f7f7f7]"
+              className="inline-flex items-center gap-2 rounded-full border border-black/10 bg-white px-4 py-2 text-sm text-ink-soft transition hover:bg-[#f7f7f7]"
               onClick={() => void loadSettings()}
             >
               <RefreshCw className="h-4 w-4" />
@@ -194,12 +194,12 @@ export function AdminConfigPanel() {
 
           <form className="space-y-6" onSubmit={handleSubmit}>
             <section className="border border-black/10 bg-white p-4 sm:p-5">
-              <h2 className="text-base font-semibold text-[#121212]">基本信息</h2>
+              <h2 className="text-base font-semibold text-ink">基本信息</h2>
               <p className="mt-1 text-sm text-[#6b6b6b]">这些信息将显示在前台页面的标题和介绍区域。</p>
 
               <div className="mt-4 grid gap-4 sm:grid-cols-2">
                 <label className="grid gap-1.5 text-sm">
-                  <span className="text-[#444]">应用名称</span>
+                  <span className="text-mute">应用名称</span>
                   <input
                     value={settings.appName}
                     onChange={(e) => setSettings((s) => ({ ...s, appName: e.target.value }))}
@@ -208,7 +208,7 @@ export function AdminConfigPanel() {
                 </label>
 
                 <label className="grid gap-1.5 text-sm">
-                  <span className="text-[#444]">助手名称</span>
+                  <span className="text-mute">助手名称</span>
                   <input
                     value={settings.assistantName}
                     onChange={(e) => setSettings((s) => ({ ...s, assistantName: e.target.value }))}
@@ -217,7 +217,7 @@ export function AdminConfigPanel() {
                 </label>
 
                 <label className="grid gap-1.5 text-sm sm:col-span-2">
-                  <span className="text-[#444]">副标题</span>
+                  <span className="text-mute">副标题</span>
                   <input
                     value={settings.assistantSubtitle}
                     onChange={(e) => setSettings((s) => ({ ...s, assistantSubtitle: e.target.value }))}
@@ -226,7 +226,7 @@ export function AdminConfigPanel() {
                 </label>
 
                 <label className="grid gap-1.5 text-sm sm:col-span-2">
-                  <span className="text-[#444]">头条标语</span>
+                  <span className="text-mute">头条标语</span>
                   <input
                     value={settings.assistantHeadline}
                     onChange={(e) => setSettings((s) => ({ ...s, assistantHeadline: e.target.value }))}
@@ -235,7 +235,7 @@ export function AdminConfigPanel() {
                 </label>
 
                 <label className="grid gap-1.5 text-sm sm:col-span-2">
-                  <span className="text-[#444]">空状态欢迎语</span>
+                  <span className="text-mute">空状态欢迎语</span>
                   <textarea
                     value={settings.emptyStateCopy}
                     onChange={(e) => setSettings((s) => ({ ...s, emptyStateCopy: e.target.value }))}
@@ -246,7 +246,7 @@ export function AdminConfigPanel() {
             </section>
 
             <section className="border border-black/10 bg-white p-4 sm:p-5">
-              <h2 className="text-base font-semibold text-[#121212]">快捷提问</h2>
+              <h2 className="text-base font-semibold text-ink">快捷提问</h2>
               <p className="mt-1 text-sm text-[#6b6b6b]">每行一条，显示在前台输入框上方作为快捷入口。</p>
 
               <label className="mt-4 grid gap-1.5 text-sm">
@@ -260,7 +260,7 @@ export function AdminConfigPanel() {
             </section>
 
             <section className="border border-black/10 bg-white p-4 sm:p-5">
-              <h2 className="text-base font-semibold text-[#121212]">新手指导</h2>
+              <h2 className="text-base font-semibold text-ink">新手指导</h2>
               <p className="mt-1 text-sm text-[#6b6b6b]">JSON 数组格式，每项包含 title 和 description。</p>
 
               <label className="mt-4 grid gap-1.5 text-sm">
@@ -273,7 +273,7 @@ export function AdminConfigPanel() {
             </section>
 
             <section className="border border-black/10 bg-white p-4 sm:p-5">
-              <h2 className="text-base font-semibold text-[#121212]">功能卡片</h2>
+              <h2 className="text-base font-semibold text-ink">功能卡片</h2>
               <p className="mt-1 text-sm text-[#6b6b6b]">JSON 数组格式，每项包含 title 和 description。</p>
 
               <label className="mt-4 grid gap-1.5 text-sm">
@@ -286,7 +286,7 @@ export function AdminConfigPanel() {
             </section>
 
             <section className="border border-black/10 bg-white p-4 sm:p-5">
-              <h2 className="text-base font-semibold text-[#121212]">知识库大纲</h2>
+              <h2 className="text-base font-semibold text-ink">知识库大纲</h2>
               <p className="mt-1 text-sm text-[#6b6b6b]">每行一个分类名称。</p>
 
               <label className="mt-4 grid gap-1.5 text-sm">
@@ -300,13 +300,13 @@ export function AdminConfigPanel() {
             </section>
 
             <section className="border border-black/10 bg-white p-4 sm:p-5">
-              <h2 className="text-base font-semibold text-[#121212]">商务中心 · 联系方式</h2>
+              <h2 className="text-base font-semibold text-ink">商务中心 · 联系方式</h2>
               <p className="mt-1 text-sm text-[#6b6b6b]">显示在商务中心的联系卡片中。</p>
 
               <div className="mt-4 grid gap-4 sm:grid-cols-2">
                 {settings.businessContacts.map((contact, i) => (
                   <label key={contact.id} className="grid gap-1.5 text-sm">
-                    <span className="text-[#444]">{contact.label}</span>
+                    <span className="text-mute">{contact.label}</span>
                     <input
                       value={settings.businessContacts[i].value}
                       onChange={(e) => {
@@ -322,7 +322,7 @@ export function AdminConfigPanel() {
             </section>
 
             <section className="border border-black/10 bg-white p-4 sm:p-5">
-              <h2 className="text-base font-semibold text-[#121212]">商务中心 · 价目表</h2>
+              <h2 className="text-base font-semibold text-ink">商务中心 · 价目表</h2>
               <p className="mt-1 text-sm text-[#6b6b6b]">JSON 数组格式，每项包含 name、range、note。</p>
 
               <label className="mt-4 grid gap-1.5 text-sm">
@@ -335,7 +335,7 @@ export function AdminConfigPanel() {
             </section>
 
             <section className="border border-black/10 bg-white p-4 sm:p-5">
-              <h2 className="text-base font-semibold text-[#121212]">素材中心 · 素材数据</h2>
+              <h2 className="text-base font-semibold text-ink">素材中心 · 素材数据</h2>
               <p className="mt-1 text-sm text-[#6b6b6b]">JSON 数组格式，每项包含 id、cat(visual/wechat/community/script)、title、meta、copy(可选)、download(可选)、hue。</p>
 
               <label className="mt-4 grid gap-1.5 text-sm">
@@ -348,7 +348,7 @@ export function AdminConfigPanel() {
             </section>
 
             <section className="border border-black/10 bg-white p-4 sm:p-5">
-              <h2 className="text-base font-semibold text-[#121212]">系统提示词</h2>
+              <h2 className="text-base font-semibold text-ink">系统提示词</h2>
               <p className="mt-1 text-sm text-[#6b6b6b]">这是每次对话发送给 AI 模型的系统指令。</p>
 
               <label className="mt-4 grid gap-1.5 text-sm">
@@ -361,12 +361,12 @@ export function AdminConfigPanel() {
             </section>
 
             <section className="border border-black/10 bg-white p-4 sm:p-5">
-              <h2 className="text-base font-semibold text-[#121212]">后端默认值</h2>
+              <h2 className="text-base font-semibold text-ink">后端默认值</h2>
               <p className="mt-1 text-sm text-[#6b6b6b]">当环境变量未配置时使用的默认值。</p>
 
               <div className="mt-4 grid gap-4 sm:grid-cols-2">
                 <label className="grid gap-1.5 text-sm">
-                  <span className="text-[#444]">默认 Dify Dataset ID</span>
+                  <span className="text-mute">默认 Dify Dataset ID</span>
                   <input
                     value={settings.defaultDifyDatasetId}
                     onChange={(e) => setSettings((s) => ({ ...s, defaultDifyDatasetId: e.target.value }))}
@@ -375,7 +375,7 @@ export function AdminConfigPanel() {
                 </label>
 
                 <label className="grid gap-1.5 text-sm">
-                  <span className="text-[#444]">默认 Dify 接口地址</span>
+                  <span className="text-mute">默认 Dify 接口地址</span>
                   <input
                     value={settings.defaultDifyBaseUrl}
                     onChange={(e) => setSettings((s) => ({ ...s, defaultDifyBaseUrl: e.target.value }))}
@@ -392,7 +392,7 @@ export function AdminConfigPanel() {
               <button
                 type="submit"
                 disabled={saving}
-                className="inline-flex h-11 items-center gap-2 rounded-full bg-[#111111] px-5 text-sm font-medium text-white transition hover:bg-[#2e2e2e] disabled:cursor-not-allowed disabled:bg-[#888]"
+                className="inline-flex h-11 items-center gap-2 rounded-full bg-ink px-5 text-sm font-medium text-white transition hover:bg-ink-soft disabled:cursor-not-allowed disabled:bg-[#888]"
               >
                 {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
                 {saving ? "保存中..." : "保存配置"}

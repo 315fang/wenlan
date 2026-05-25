@@ -224,7 +224,7 @@ export function KnowledgeAdminPanel() {
   const filteredCount = items.length
 
   return (
-    <div className="flex min-h-dvh bg-[#f6f6f4] text-[#111111]">
+    <div className="flex min-h-dvh bg-ivory text-ink">
       <aside className="hidden w-[18rem] shrink-0 lg:block">
         <AppSidebar active="knowledge" sections={["knowledge"]} />
       </aside>
@@ -241,14 +241,14 @@ export function KnowledgeAdminPanel() {
         <header className="mb-4 flex items-center justify-between border-b border-black/10 pb-4">
           <div className="flex min-w-0 items-center gap-3">
             <button
-              className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-[#5b5b5b] transition hover:bg-white lg:hidden"
+              className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-mute transition hover:bg-white lg:hidden"
               onClick={() => setMobileSidebarOpen(true)}
               type="button"
               aria-label="打开侧边菜单"
             >
               <Menu className="h-5 w-5" />
             </button>
-            <div className="hidden h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#111111] text-white sm:flex lg:hidden">
+            <div className="hidden h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-ink text-white sm:flex lg:hidden">
               <Image
                 src="/wenlan-yizhantong.ico"
                 alt=""
@@ -260,12 +260,12 @@ export function KnowledgeAdminPanel() {
             </div>
             <div className="min-w-0">
               <div className="text-[18px] font-semibold tracking-tight">问兰知识库</div>
-              <div className="text-sm text-[#666]">后台上传文章、表格和图片素材，系统按最新版本覆盖旧答案。</div>
+              <div className="text-sm text-mute">后台上传文章、表格和图片素材，系统按最新版本覆盖旧答案。</div>
             </div>
           </div>
 
           <button
-            className="inline-flex items-center gap-2 rounded-full border border-black/10 bg-white px-4 py-2 text-sm text-[#333] transition hover:bg-[#f7f7f7]"
+            className="inline-flex items-center gap-2 rounded-full border border-black/10 bg-white px-4 py-2 text-sm text-ink-soft transition hover:bg-[#f7f7f7]"
             onClick={() => void loadItems(false)}
           >
             {refreshing ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
@@ -280,7 +280,7 @@ export function KnowledgeAdminPanel() {
                 <button
                   key={tabKind}
                   className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm transition ${
-                    tabKind === kind ? "bg-[#111111] text-white" : "bg-white text-[#444] hover:bg-[#efefef]"
+                    tabKind === kind ? "bg-ink text-white" : "bg-white text-mute hover:bg-[#efefef]"
                   }`}
                   onClick={() => {
                     setKind(tabKind)
@@ -293,19 +293,19 @@ export function KnowledgeAdminPanel() {
                 </button>
               ))}
             </div>
-            <p className="mt-3 max-w-3xl text-sm leading-6 text-[#666]">{kindDescriptions[kind]}</p>
+            <p className="mt-3 max-w-3xl text-sm leading-6 text-mute">{kindDescriptions[kind]}</p>
           </section>
 
           <section className="grid gap-4 lg:grid-cols-[1.1fr_1.4fr]">
             <form className="border border-black/10 bg-white p-4 sm:p-5" onSubmit={handleSubmit}>
               <div className="flex items-center justify-between">
                 <div>
-                  <h2 className="text-base font-semibold text-[#121212]">上传资料</h2>
+                  <h2 className="text-base font-semibold text-ink">上传资料</h2>
                   <p className="mt-1 text-sm text-[#6b6b6b]">
                     {uploadMode === "single" ? "同关键词的新版本会自动覆盖旧版本。" : "批量上传会按标题或文件名自动生成关键词，减少重复录入。"}
                   </p>
                 </div>
-                <div className="inline-flex items-center gap-1 rounded-full bg-[#f4f4f4] px-3 py-1 text-xs text-[#666]">
+                <div className="inline-flex items-center gap-1 rounded-full bg-[#f4f4f4] px-3 py-1 text-xs text-mute">
                   <Plus className="h-3.5 w-3.5" />
                   {uploadMode === "single" ? `第 ${nextVersion} 版` : `本次 ${batchItemCount} 条`}
                 </div>
@@ -317,7 +317,7 @@ export function KnowledgeAdminPanel() {
                     key={mode}
                     type="button"
                     className={`rounded-full px-3 py-1.5 transition ${
-                      uploadMode === mode ? "bg-white text-[#111111] shadow-sm" : "text-[#666666] hover:text-[#111111]"
+                      uploadMode === mode ? "bg-white text-ink shadow-sm" : "text-mute hover:text-ink"
                     }`}
                     onClick={() => {
                       setUploadMode(mode)
@@ -333,32 +333,32 @@ export function KnowledgeAdminPanel() {
                 {uploadMode === "single" ? (
                   <>
                     <label className="grid gap-1.5 text-sm">
-                      <span className="text-[#444]">资料标题</span>
+                      <span className="text-mute">资料标题</span>
                       <input
                         value={form.title}
                         onChange={(event) => setForm((current) => ({ ...current, title: event.target.value }))}
-                        className="h-11 rounded-xl border border-black/10 bg-white px-3 text-[15px] outline-none ring-0 placeholder:text-[#aaa] focus:border-black/30"
+                        className="h-11 rounded-xl border border-black/10 bg-white px-3 text-[15px] outline-none ring-0 placeholder:text-mute focus:border-black/30"
                         placeholder={kind === "article" ? "例如：代理政策更新说明" : "例如：销售数据统计表"}
                       />
                     </label>
 
                     <label className="grid gap-1.5 text-sm">
-                      <span className="text-[#444]">关键词</span>
+                      <span className="text-mute">关键词</span>
                       <input
                         value={form.knowledgeKey}
                         onChange={(event) => setForm((current) => ({ ...current, knowledgeKey: event.target.value }))}
-                        className="h-11 rounded-xl border border-black/10 bg-white px-3 text-[15px] outline-none ring-0 placeholder:text-[#aaa] focus:border-black/30"
+                        className="h-11 rounded-xl border border-black/10 bg-white px-3 text-[15px] outline-none ring-0 placeholder:text-mute focus:border-black/30"
                         placeholder="例如：代理政策、等级说明、问兰前身"
                       />
                     </label>
 
                     <div className="grid gap-3">
                       <label className="grid gap-1.5 text-sm">
-                        <span className="text-[#444]">来源链接</span>
+                        <span className="text-mute">来源链接</span>
                         <input
                           value={form.sourceUrl}
                           onChange={(event) => setForm((current) => ({ ...current, sourceUrl: event.target.value }))}
-                          className="h-11 rounded-xl border border-black/10 bg-white px-3 text-[15px] outline-none ring-0 placeholder:text-[#aaa] focus:border-black/30"
+                          className="h-11 rounded-xl border border-black/10 bg-white px-3 text-[15px] outline-none ring-0 placeholder:text-mute focus:border-black/30"
                           placeholder="可选"
                         />
                       </label>
@@ -367,20 +367,20 @@ export function KnowledgeAdminPanel() {
                     {kind === "article" ? (
                       <>
                         <label className="grid gap-1.5 text-sm">
-                          <span className="text-[#444]">正文快照或补充内容</span>
+                          <span className="text-mute">正文快照或补充内容</span>
                           <textarea
                             value={form.content}
                             onChange={(event) => setForm((current) => ({ ...current, content: event.target.value }))}
-                            className="min-h-36 rounded-xl border border-black/10 bg-white px-3 py-3 text-[15px] outline-none ring-0 placeholder:text-[#aaa] focus:border-black/30"
+                            className="min-h-36 rounded-xl border border-black/10 bg-white px-3 py-3 text-[15px] outline-none ring-0 placeholder:text-mute focus:border-black/30"
                             placeholder="可粘贴文章正文。若留空，系统会根据来源链接抓取页面正文。"
                           />
                         </label>
                         <label className="grid gap-1.5 text-sm">
-                          <span className="text-[#444]">备注</span>
+                          <span className="text-mute">备注</span>
                           <textarea
                             value={form.description}
                             onChange={(event) => setForm((current) => ({ ...current, description: event.target.value }))}
-                            className="min-h-20 rounded-xl border border-black/10 bg-white px-3 py-3 text-[15px] outline-none ring-0 placeholder:text-[#aaa] focus:border-black/30"
+                            className="min-h-20 rounded-xl border border-black/10 bg-white px-3 py-3 text-[15px] outline-none ring-0 placeholder:text-mute focus:border-black/30"
                             placeholder="可写明适用场景、分类说明或人工补充信息。"
                           />
                         </label>
@@ -388,7 +388,7 @@ export function KnowledgeAdminPanel() {
                     ) : (
                       <>
                         <label className="grid gap-1.5 text-sm">
-                          <span className="text-[#444]">{kind === "image" ? "图片文件" : "表格文件"}</span>
+                          <span className="text-mute">{kind === "image" ? "图片文件" : "表格文件"}</span>
                           <div className="rounded-xl border border-dashed border-black/15 bg-[#fafafa] p-4">
                             <input
                               type="file"
@@ -400,9 +400,9 @@ export function KnowledgeAdminPanel() {
                                   title: current.title.trim() || event.target.files?.[0]?.name || "",
                                 }))
                               }
-                              className="block w-full text-sm text-[#444] file:mr-4 file:rounded-full file:border-0 file:bg-[#111111] file:px-4 file:py-2 file:text-sm file:text-white hover:file:bg-[#2f2f2f]"
+                              className="block w-full text-sm text-mute file:mr-4 file:rounded-full file:border-0 file:bg-ink file:px-4 file:py-2 file:text-sm file:text-white hover:file:bg-ink-soft"
                             />
-                            <p className="mt-2 text-xs leading-5 text-[#777]">
+                            <p className="mt-2 text-xs leading-5 text-mute">
                               {kind === "image"
                                 ? "建议同时填写用途说明或图片识别文字，方便模型引用图片素材。"
                                 : "支持常见电子表格文件。"}
@@ -411,11 +411,11 @@ export function KnowledgeAdminPanel() {
                         </label>
 
                         <label className="grid gap-1.5 text-sm">
-                          <span className="text-[#444]">{kind === "image" ? "图片说明 / 识别文字" : "补充说明"}</span>
+                          <span className="text-mute">{kind === "image" ? "图片说明 / 识别文字" : "补充说明"}</span>
                           <textarea
                             value={form.description}
                             onChange={(event) => setForm((current) => ({ ...current, description: event.target.value }))}
-                            className="min-h-28 rounded-xl border border-black/10 bg-white px-3 py-3 text-[15px] outline-none ring-0 placeholder:text-[#aaa] focus:border-black/30"
+                            className="min-h-28 rounded-xl border border-black/10 bg-white px-3 py-3 text-[15px] outline-none ring-0 placeholder:text-mute focus:border-black/30"
                             placeholder={
                               kind === "image"
                                 ? "描述这张图片适用的场景、文案要点或图片里能识别的文字。"
@@ -429,20 +429,20 @@ export function KnowledgeAdminPanel() {
                 ) : kind === "article" ? (
                   <>
                     <label className="grid gap-1.5 text-sm">
-                      <span className="text-[#444]">来源链接列表</span>
+                      <span className="text-mute">来源链接列表</span>
                       <textarea
                         value={form.batchUrls}
                         onChange={(event) => setForm((current) => ({ ...current, batchUrls: event.target.value }))}
-                        className="min-h-36 rounded-xl border border-black/10 bg-white px-3 py-3 text-[15px] outline-none ring-0 placeholder:text-[#aaa] focus:border-black/30"
+                        className="min-h-36 rounded-xl border border-black/10 bg-white px-3 py-3 text-[15px] outline-none ring-0 placeholder:text-mute focus:border-black/30"
                         placeholder={"每行一个文章链接。\n系统会自动抓取文章标题，并按标题生成关键词。"}
                       />
                     </label>
                     <label className="grid gap-1.5 text-sm">
-                      <span className="text-[#444]">统一备注</span>
+                      <span className="text-mute">统一备注</span>
                       <textarea
                         value={form.description}
                         onChange={(event) => setForm((current) => ({ ...current, description: event.target.value }))}
-                        className="min-h-20 rounded-xl border border-black/10 bg-white px-3 py-3 text-[15px] outline-none ring-0 placeholder:text-[#aaa] focus:border-black/30"
+                        className="min-h-20 rounded-xl border border-black/10 bg-white px-3 py-3 text-[15px] outline-none ring-0 placeholder:text-mute focus:border-black/30"
                         placeholder="可统一写明这批文章的分类或适用场景。"
                       />
                     </label>
@@ -450,7 +450,7 @@ export function KnowledgeAdminPanel() {
                 ) : (
                   <>
                     <label className="grid gap-1.5 text-sm">
-                      <span className="text-[#444]">{kind === "image" ? "图片文件" : "表格文件"}</span>
+                      <span className="text-mute">{kind === "image" ? "图片文件" : "表格文件"}</span>
                       <div className="rounded-xl border border-dashed border-black/15 bg-[#fafafa] p-4">
                         <input
                           type="file"
@@ -462,25 +462,25 @@ export function KnowledgeAdminPanel() {
                               files: Array.from(event.target.files || []),
                             }))
                           }
-                          className="block w-full text-sm text-[#444] file:mr-4 file:rounded-full file:border-0 file:bg-[#111111] file:px-4 file:py-2 file:text-sm file:text-white hover:file:bg-[#2f2f2f]"
+                          className="block w-full text-sm text-mute file:mr-4 file:rounded-full file:border-0 file:bg-ink file:px-4 file:py-2 file:text-sm file:text-white hover:file:bg-ink-soft"
                         />
-                        <p className="mt-2 text-xs leading-5 text-[#777]">
+                        <p className="mt-2 text-xs leading-5 text-mute">
                           {kind === "image"
                             ? "可一次选择多张图片，系统会按文件名自动生成标题和关键词。"
                             : "可一次选择多个表格文件，系统会按文件名自动生成标题和关键词。"}
                         </p>
                         {form.files.length > 0 ? (
-                          <p className="mt-2 text-xs font-medium text-[#333]">已选择 {form.files.length} 个文件。</p>
+                          <p className="mt-2 text-xs font-medium text-ink-soft">已选择 {form.files.length} 个文件。</p>
                         ) : null}
                       </div>
                     </label>
 
                     <label className="grid gap-1.5 text-sm">
-                      <span className="text-[#444]">{kind === "image" ? "统一图片说明" : "统一补充说明"}</span>
+                      <span className="text-mute">{kind === "image" ? "统一图片说明" : "统一补充说明"}</span>
                       <textarea
                         value={form.description}
                         onChange={(event) => setForm((current) => ({ ...current, description: event.target.value }))}
-                        className="min-h-24 rounded-xl border border-black/10 bg-white px-3 py-3 text-[15px] outline-none ring-0 placeholder:text-[#aaa] focus:border-black/30"
+                        className="min-h-24 rounded-xl border border-black/10 bg-white px-3 py-3 text-[15px] outline-none ring-0 placeholder:text-mute focus:border-black/30"
                         placeholder={
                           kind === "image"
                             ? "这批图片都适用于什么场景、配什么文案，可统一写在这里。"
@@ -503,7 +503,7 @@ export function KnowledgeAdminPanel() {
               <button
                 type="submit"
                 disabled={submitting}
-                className="mt-4 inline-flex h-11 items-center gap-2 rounded-full bg-[#111111] px-4 text-sm font-medium text-white transition hover:bg-[#2e2e2e] disabled:cursor-not-allowed disabled:bg-[#888]"
+                className="mt-4 inline-flex h-11 items-center gap-2 rounded-full bg-ink px-4 text-sm font-medium text-white transition hover:bg-ink-soft disabled:cursor-not-allowed disabled:bg-[#888]"
               >
                 {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
                 {uploadMode === "single" ? "上传资料" : `批量上传${batchItemCount ? `（${batchItemCount}）` : ""}`}
@@ -513,7 +513,7 @@ export function KnowledgeAdminPanel() {
             <section className="border border-black/10 bg-white p-4 sm:p-5">
               <div className="flex items-center justify-between gap-3">
                 <div>
-                  <h2 className="text-base font-semibold text-[#121212]">资料列表</h2>
+                  <h2 className="text-base font-semibold text-ink">资料列表</h2>
                   <p className="mt-1 text-sm text-[#6b6b6b]">共 {filteredCount} 条，默认以最新上传版本为准。</p>
                 </div>
 
@@ -531,7 +531,7 @@ export function KnowledgeAdminPanel() {
               </div>
 
               <div className="mt-4 overflow-hidden rounded-2xl border border-black/10">
-                <div className="grid grid-cols-[1.8fr_1.2fr_0.7fr_0.8fr_0.9fr_0.5fr] gap-3 border-b border-black/10 bg-[#f8f8f8] px-4 py-3 text-xs font-medium uppercase tracking-wide text-[#666]">
+                <div className="grid grid-cols-[1.8fr_1.2fr_0.7fr_0.8fr_0.9fr_0.5fr] gap-3 border-b border-black/10 bg-[#f8f8f8] px-4 py-3 text-xs font-medium uppercase tracking-wide text-mute">
                   <span>标题</span>
                   <span>关键词 / 来源</span>
                   <span>版本</span>
@@ -542,12 +542,12 @@ export function KnowledgeAdminPanel() {
 
                 <div className="max-h-[58vh] overflow-y-auto">
                   {loading ? (
-                    <div className="flex min-h-60 items-center justify-center text-sm text-[#666]">
+                    <div className="flex min-h-60 items-center justify-center text-sm text-mute">
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                       正在加载资料...
                     </div>
                   ) : items.length === 0 ? (
-                    <div className="flex min-h-60 items-center justify-center px-6 text-center text-sm leading-6 text-[#666]">
+                    <div className="flex min-h-60 items-center justify-center px-6 text-center text-sm leading-6 text-mute">
                       当前没有资料。你可以先上传一篇文章、一张图片或一个表格，作为问兰智能体系统的知识来源。
                     </div>
                   ) : (
@@ -557,18 +557,18 @@ export function KnowledgeAdminPanel() {
                         className="grid grid-cols-[1.8fr_1.2fr_0.7fr_0.8fr_0.9fr_0.5fr] items-center gap-3 border-b border-black/[0.06] px-4 py-3 last:border-b-0"
                       >
                         <div className="min-w-0">
-                          <div className="truncate text-sm font-medium text-[#111]">{item.title}</div>
-                          <div className="mt-1 truncate text-xs text-[#777]">
+                          <div className="truncate text-sm font-medium text-ink">{item.title}</div>
+                          <div className="mt-1 truncate text-xs text-mute">
                             {item.kind === "article" ? "文章" : item.kind === "table" ? "表格" : "图片"} · {item.documentId}
                           </div>
                         </div>
 
-                        <div className="min-w-0 text-sm text-[#4a4a4a]">
+                        <div className="min-w-0 text-sm text-mute">
                           <div className="truncate">{item.knowledgeKey || "未命名关键词"}</div>
-                          {item.sourceUrl ? <div className="mt-1 truncate text-xs text-[#777]">{item.sourceUrl}</div> : null}
+                          {item.sourceUrl ? <div className="mt-1 truncate text-xs text-mute">{item.sourceUrl}</div> : null}
                         </div>
 
-                        <div className="text-sm text-[#333]">第 {item.version} 版</div>
+                        <div className="text-sm text-ink-soft">第 {item.version} 版</div>
 
                         <div>
                           <span
@@ -584,13 +584,13 @@ export function KnowledgeAdminPanel() {
                           </span>
                         </div>
 
-                        <div className="text-sm text-[#666]">
+                        <div className="text-sm text-mute">
                           {new Date(item.updatedAt).toLocaleString("zh-CN", { hour12: false })}
                         </div>
 
                         <div className="flex justify-end">
                           <button
-                            className="inline-flex h-9 w-9 items-center justify-center rounded-full text-[#666] transition hover:bg-red-50 hover:text-red-600"
+                            className="inline-flex h-9 w-9 items-center justify-center rounded-full text-mute transition hover:bg-red-50 hover:text-red-600"
                             aria-label="删除资料"
                             onClick={() => void handleDelete(item.documentId)}
                           >
@@ -603,7 +603,7 @@ export function KnowledgeAdminPanel() {
                 </div>
               </div>
 
-              <div className="mt-3 flex items-center justify-between text-xs text-[#777]">
+              <div className="mt-3 flex items-center justify-between text-xs text-mute">
                 <span>连接知识库接口后，将直接显示真实资料状态。</span>
                 <span>{refreshing ? "正在刷新..." : "就绪"}</span>
               </div>

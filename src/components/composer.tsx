@@ -253,18 +253,18 @@ export function Composer({ onSend, onOpenGuide, disabled, canTranscribe }: Compo
           className="mb-2 flex items-start gap-2 rounded-2xl px-3 py-2.5"
           style={{
             background: "#fff6ef",
-            border: "1px solid #e5d4b6",
-            color: "#3a322a",
+            border: "1px solid var(--color-champagne-soft)",
+            color: "var(--color-ink-soft)",
             fontSize: 12.5,
             lineHeight: 1.55,
           }}
         >
-          <AlertCircle size={15} style={{ color: "#c9a87a", marginTop: 1, flexShrink: 0 }} />
+          <AlertCircle size={15} style={{ color: "var(--color-champagne)", marginTop: 1, flexShrink: 0 }} />
           <div className="flex-1">{errorText}</div>
           <button
             onClick={rec.clearError}
             className="rounded-full p-0.5"
-            style={{ color: "#8c8276" }}
+            style={{ color: "var(--color-mute)" }}
             aria-label="关闭"
           >
             <X size={14} />
@@ -278,8 +278,8 @@ export function Composer({ onSend, onOpenGuide, disabled, canTranscribe }: Compo
           style={{
             display: "inline-block",
             width: "fit-content",
-            background: "#1a1410",
-            color: "#f7f3ec",
+            background: "var(--color-ink)",
+            color: "var(--color-ivory)",
             fontSize: 12,
             letterSpacing: "0.06em",
             borderRadius: 999,
@@ -292,7 +292,7 @@ export function Composer({ onSend, onOpenGuide, disabled, canTranscribe }: Compo
       {showPlus && (
         <div
           className="mb-2 flex flex-wrap gap-2 rounded-2xl px-3 py-3"
-          style={{ background: "#ffffff", border: "1px solid #e6dccb" }}
+          style={{ background: "var(--color-pearl)", border: "1px solid var(--color-line)" }}
         >
           {onOpenGuide ? (
             <ActionChip icon={<Sparkles size={14} />} label="新手指导" onClick={onOpenGuide} />
@@ -303,9 +303,9 @@ export function Composer({ onSend, onOpenGuide, disabled, canTranscribe }: Compo
       <div
         className="relative flex items-end gap-2 rounded-[26px] px-3 py-2.5 transition-all"
         style={{
-          background: "#ffffff",
-          border: "1px solid #e6dccb",
-          boxShadow: "0 8px 24px -16px rgba(26,20,16,0.18)",
+          background: "var(--color-pearl)",
+          border: "1px solid var(--color-line)",
+          boxShadow: "0 8px 24px -16px color-mix(in srgb, var(--color-ink), transparent 82%)",
         }}
       >
         {canTranscribe ? (
@@ -318,8 +318,8 @@ export function Composer({ onSend, onOpenGuide, disabled, canTranscribe }: Compo
                 if (mode === "voice") taRef.current?.focus()
               })
             }}
-            className="shrink-0 grid place-items-center rounded-full transition-colors hover:bg-[#f7f3ec]"
-            style={{ width: 38, height: 38, color: "#1a1410" }}
+            className="shrink-0 grid place-items-center rounded-full transition-colors hover:bg-ivory"
+            style={{ width: 38, height: 38, color: "var(--color-ink)" }}
             aria-label={mode === "voice" ? "切换到键盘" : "切换到语音"}
           >
             {mode === "voice" ? <Keyboard size={18} /> : <Mic size={18} />}
@@ -349,7 +349,7 @@ export function Composer({ onSend, onOpenGuide, disabled, canTranscribe }: Compo
             disabled={disabled || transcribing}
             className="flex-1 resize-none bg-transparent outline-none px-1 py-2 block"
             style={{
-              color: "#1a1410",
+              color: "var(--color-ink)",
               fontSize: 15,
               lineHeight: 1.6,
               minHeight: 24,
@@ -361,8 +361,8 @@ export function Composer({ onSend, onOpenGuide, disabled, canTranscribe }: Compo
 
         <button
           onClick={() => setShowPlus((s) => !s)}
-          className="shrink-0 grid place-items-center rounded-full transition-colors hover:bg-[#f7f3ec]"
-          style={{ width: 38, height: 38, color: "#1a1410" }}
+          className="shrink-0 grid place-items-center rounded-full transition-colors hover:bg-ivory"
+          style={{ width: 38, height: 38, color: "var(--color-ink)" }}
           aria-label="更多"
           disabled={pressing}
         >
@@ -377,8 +377,8 @@ export function Composer({ onSend, onOpenGuide, disabled, canTranscribe }: Compo
             style={{
               width: 40,
               height: 40,
-              background: text.trim() ? "#1a1410" : "#ebe2d2",
-              color: text.trim() ? "#f7f3ec" : "#8c8276",
+              background: text.trim() ? "var(--color-ink)" : "var(--color-bone)",
+              color: text.trim() ? "var(--color-ivory)" : "var(--color-mute)",
             }}
             aria-label="发送"
           >
@@ -389,7 +389,7 @@ export function Composer({ onSend, onOpenGuide, disabled, canTranscribe }: Compo
 
       <div
         className="mt-2 text-center font-serif"
-        style={{ color: "#8c8276", fontSize: 11.5, letterSpacing: "0.14em" }}
+        style={{ color: "var(--color-mute)", fontSize: 11.5, letterSpacing: "0.14em" }}
       >
         回答由 AI 生成 · 内容以问兰官方最新资料为准
       </div>
@@ -421,13 +421,13 @@ function HoldButton({
       : "按住 说话"
 
   const bg = transcribing
-    ? "#ebe2d2"
+    ? "var(--color-bone)"
     : pressing
       ? cancelArmed
         ? "#d9b3a4"
-        : "#1a1410"
-      : "#f7f3ec"
-  const fg = pressing && !cancelArmed ? "#f7f3ec" : "#1a1410"
+        : "var(--color-ink)"
+      : "var(--color-ivory)"
+  const fg = pressing && !cancelArmed ? "var(--color-ivory)" : "var(--color-ink)"
 
   return (
     <button
@@ -438,7 +438,7 @@ function HoldButton({
         height: 44,
         background: bg,
         color: fg,
-        border: pressing ? "none" : "1px solid #e6dccb",
+        border: pressing ? "none" : "1px solid var(--color-line)",
         fontSize: 14,
         letterSpacing: "0.08em",
         touchAction: "none",
@@ -467,9 +467,9 @@ function PressOverlay({ elapsed, cancelArmed }: { elapsed: number; cancelArmed: 
         style={{
           width: 160,
           height: 160,
-          background: cancelArmed ? "#d9b3a4" : "rgba(26,20,16,0.92)",
-          color: "#f7f3ec",
-          boxShadow: "0 30px 60px -20px rgba(26,20,16,0.45)",
+          background: cancelArmed ? "#d9b3a4" : "color-mix(in srgb, var(--color-ink), transparent 8%)",
+          color: "var(--color-ivory)",
+          boxShadow: "0 30px 60px -20px color-mix(in srgb, var(--color-ink), transparent 55%)",
           backdropFilter: "blur(8px)",
         }}
       >
@@ -494,8 +494,8 @@ function PressOverlay({ elapsed, cancelArmed }: { elapsed: number; cancelArmed: 
       <div
         className="mt-3 rounded-full px-3 py-1.5"
         style={{
-          background: "rgba(26,20,16,0.78)",
-          color: "#efe7da",
+          background: "color-mix(in srgb, var(--color-ink), transparent 22%)",
+          color: "var(--color-cream)",
           fontSize: 12,
           letterSpacing: "0.06em",
         }}
@@ -515,7 +515,7 @@ function Waveform() {
           className="rounded-full"
           style={{
             width: 4,
-            background: "#c9a87a",
+            background: "var(--color-champagne)",
             animation: `lux-bar 0.9s ${i * 0.12}s ease-in-out infinite`,
             height: 10,
           }}
@@ -538,8 +538,8 @@ function ActionChip({
   return (
     <button
       onClick={onClick}
-      className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 transition-colors hover:bg-[#f7f3ec]"
-      style={{ border: "1px solid #e6dccb", color: "#1a1410", fontSize: 13 }}
+      className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 transition-colors hover:bg-ivory"
+      style={{ border: "1px solid var(--color-line)", color: "var(--color-ink)", fontSize: 13 }}
     >
       {icon}
       {label}
