@@ -22,9 +22,11 @@ function ThinkingBlock({
 }) {
   const [isExpanded, setIsExpanded] = useState(isThinking)
 
-  useEffect(() => {
+  const [prevIsThinkingInBlock, setPrevIsThinkingInBlock] = useState(isThinking)
+  if (isThinking !== prevIsThinkingInBlock) {
+    setPrevIsThinkingInBlock(isThinking)
     setIsExpanded(isThinking)
-  }, [isThinking])
+  }
 
   if (!isThinking && !thought) return null
 
@@ -80,18 +82,25 @@ export function Bubble({ message, copiedMessageId, onCopy }: BubbleProps) {
 
   const isThinking = message.isThinking ?? (message.role === "assistant" && message.status === "pending" && !message.content)
 
-  useEffect(() => {
+  const [prevIsThinking, setPrevIsThinking] = useState(isThinking)
+  if (isThinking !== prevIsThinking) {
+    setPrevIsThinking(isThinking)
     if (isThinking) {
       setWasThinking(true)
-    } else if (wasThinking && !isThinking) {
+    } else if (wasThinking) {
       setWasThinking(false)
       setRealized(true)
+    }
+  }
+
+  useEffect(() => {
+    if (realized) {
       const timer = setTimeout(() => {
         setRealized(false)
       }, 1200)
       return () => clearTimeout(timer)
     }
-  }, [isThinking, wasThinking])
+  }, [realized])
 
   if (isUser) {
     return (

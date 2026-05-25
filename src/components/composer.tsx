@@ -93,9 +93,13 @@ export function Composer({ onSend, onOpenGuide, disabled, canTranscribe }: Compo
   const [mode, setMode] = useState<InputMode>(canTranscribe ? "voice" : "text")
   const [text, setText] = useState("")
 
-  useEffect(() => {
-    if (canTranscribe && mode === "text") setMode("voice")
-  }, [canTranscribe])
+  const [prevCanTranscribe, setPrevCanTranscribe] = useState(canTranscribe)
+  if (canTranscribe !== prevCanTranscribe) {
+    setPrevCanTranscribe(canTranscribe)
+    if (canTranscribe && mode === "text") {
+      setMode("voice")
+    }
+  }
   const [transcribing, setTranscribing] = useState(false)
   const [showPlus, setShowPlus] = useState(false)
   const [pressing, setPressing] = useState(false)
@@ -180,10 +184,10 @@ export function Composer({ onSend, onOpenGuide, disabled, canTranscribe }: Compo
     }
   }, [])
 
-  const endPress = useCallback(async () => {
+  const endPress = useCallback(async (isCancel = false) => {
     if (!pressingRef.current) return
     pressingRef.current = false
-    const wasCancel = cancelArmedRef.current
+    const wasCancel = isCancel || cancelArmedRef.current
     const duration = Date.now() - startedAtRef.current
     stopTimer()
     setPressing(false)
@@ -229,10 +233,10 @@ export function Composer({ onSend, onOpenGuide, disabled, canTranscribe }: Compo
       if (pressingRef.current) updatePress(e.clientY)
     }
     const onUp = () => {
-      if (pressingRef.current) endPress()
+      if (pressingRef.current) endPress(false)
     }
     const onCancel = () => {
-      if (pressingRef.current) endPress()
+      if (pressingRef.current) endPress(true)
     }
     window.addEventListener('pointermove', onMove)
     window.addEventListener('pointerup', onUp)
@@ -350,8 +354,8 @@ export function Composer({ onSend, onOpenGuide, disabled, canTranscribe }: Compo
               ;(e.target as HTMLElement).setPointerCapture?.(e.pointerId)
               beginPress(e.clientY)
             }}
-            onRelease={transcribing ? undefined : () => endPress()}
-            onCancel={transcribing ? undefined : () => endPress()}
+            onRelease={transcribing ? undefined : () => endPress(false)}
+            onCancel={transcribing ? undefined : () => endPress(true)}
           />
         ) : (
           <textarea
@@ -463,6 +467,7 @@ function HoldButton({
         fontSize: 14,
         letterSpacing: "0.08em",
         touchAction: "none",
+        WebkitTouchCallout: "none",
         WebkitUserSelect: "none",
         userSelect: "none",
         cursor: transcribing ? "wait" : "pointer",
