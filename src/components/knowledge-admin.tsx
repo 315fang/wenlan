@@ -226,12 +226,12 @@ export function KnowledgeAdminPanel() {
   return (
     <div className="flex min-h-dvh bg-ivory text-ink">
       <aside className="hidden w-[18rem] shrink-0 lg:block">
-        <AppSidebar active="knowledge" sections={["knowledge"]} />
+        <AppSidebar active="knowledge" sections={["knowledge", "config"]} />
       </aside>
 
       <MobileAppSidebar
         active="knowledge"
-        sections={["knowledge"]}
+        sections={["knowledge", "config"]}
         open={mobileSidebarOpen}
         onClose={() => setMobileSidebarOpen(false)}
       />
