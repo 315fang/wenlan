@@ -112,14 +112,7 @@ export function Bubble({ message, copiedMessageId, onCopy }: BubbleProps) {
   return (
     <div className="flex gap-3 px-5 md:px-0">
       <div className="shrink-0 mt-1">
-        <div className={`relative ${isThinking ? "animate-logo-wiggle" : ""} ${realized ? "animate-realization" : ""}`}>
-          <BrandMark size={32} />
-          {realized && (
-            <span className="absolute -top-1 -right-1 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-amber-400 text-[9px] text-white shadow-sm animate-ping">
-              ✨
-            </span>
-          )}
-        </div>
+        <BrandMark size={32} />
       </div>
       <div className="flex-1 min-w-0 group">
         <div
