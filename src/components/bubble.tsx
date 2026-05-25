@@ -95,7 +95,7 @@ export function Bubble({ message, copiedMessageId, onCopy }: BubbleProps) {
 
   if (isUser) {
     return (
-      <div className="flex justify-end px-5 md:px-0">
+      <div className="flex justify-end px-1 md:px-0">
         <div
           className="max-w-[78%] rounded-[20px] rounded-tr-[6px] px-5 py-3"
           style={{
@@ -114,7 +114,7 @@ export function Bubble({ message, copiedMessageId, onCopy }: BubbleProps) {
   }
 
   return (
-    <div className="flex gap-3 px-5 md:px-0">
+    <div className="flex gap-3 px-1 md:px-0">
       <div className="shrink-0 mt-1">
         <BrandMark size={32} />
       </div>

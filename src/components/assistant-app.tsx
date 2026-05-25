@@ -1051,7 +1051,7 @@ export function AssistantApp({ initialConfig }: AssistantAppProps) {
 
       <main className="flex min-w-0 flex-1 flex-col bg-ivory">
         <header className="shrink-0 border-b border-line bg-white/[0.94]">
-          <div className={`mx-auto flex w-full max-w-[430px] items-center justify-between px-5 lg:hidden ${mobileFontClasses.headerHeight}`}>
+          <div className={`mx-auto flex w-full max-w-[500px] items-center justify-between px-4 lg:hidden ${mobileFontClasses.headerHeight}`}>
             <div className="flex min-w-0 flex-1 items-center gap-3 pr-2">
               <button
                 className={`inline-flex shrink-0 items-center justify-center rounded-full text-mute transition hover:bg-cream lg:hidden ${
@@ -1121,16 +1121,16 @@ export function AssistantApp({ initialConfig }: AssistantAppProps) {
             </section>
 
             <section className="flex min-h-0 w-full flex-1 flex-col overflow-hidden lg:hidden">
-              <div className="min-h-0 w-full flex-1 overflow-y-auto px-6 py-4">
-                <div className="mx-auto flex min-h-full w-full max-w-[430px] flex-col items-stretch justify-start gap-5 pb-8 pt-5 sm:gap-8">
+              <div className="min-h-0 w-full flex-1 overflow-y-auto px-4 py-4">
+                <div className="mx-auto flex min-h-full w-full max-w-[500px] flex-col items-stretch justify-start gap-5 pb-8 pt-5 sm:gap-8">
                   <WelcomePanel framed={false} fontSizeMode={fontSize} uiClasses={mobileFontClasses} welcomeText={initialConfig.emptyStateCopy} />
                   <MobileQuickActions fontSizeMode={fontSize} />
                 </div>
               </div>
 
               <div className="w-full shrink-0 bg-ivory">
-                <div className="border-t border-line px-5 pb-[calc(env(safe-area-inset-bottom)+1rem)] pt-2">
-                  <div className="mx-auto w-full max-w-[430px]">
+                <div className="border-t border-line px-4 pb-[calc(env(safe-area-inset-bottom)+1rem)] pt-2">
+                  <div className="mx-auto w-full max-w-[500px]">
                     {composer}
                   </div>
                 </div>
@@ -1160,8 +1160,8 @@ export function AssistantApp({ initialConfig }: AssistantAppProps) {
             </section>
 
             <section className="grid min-h-0 flex-1 grid-rows-[minmax(0,1fr)_auto] lg:hidden">
-              <div className="min-h-0 overflow-y-auto px-6">
-                <div className={`mx-auto w-full max-w-[430px] ${mobileFontClasses.messageSpacing}`}>
+              <div className="min-h-0 overflow-y-auto px-4">
+                <div className={`mx-auto w-full max-w-[500px] ${mobileFontClasses.messageSpacing}`}>
                   {activeMessages.map((message) => (
                     <Bubble
                       key={message.id}
@@ -1174,8 +1174,8 @@ export function AssistantApp({ initialConfig }: AssistantAppProps) {
                 </div>
               </div>
 
-              <div className="bg-ivory px-5 pb-4 pt-2">
-                <div className="mx-auto w-full max-w-[430px]">
+              <div className="bg-ivory px-4 pb-4 pt-2">
+                <div className="mx-auto w-full max-w-[500px]">
                 {composer}
                 </div>
               </div>
