@@ -20,7 +20,11 @@ function ThinkingBlock({
   thought: string
   isThinking: boolean
 }) {
-  const [isExpanded, setIsExpanded] = useState(true)
+  const [isExpanded, setIsExpanded] = useState(isThinking)
+
+  useEffect(() => {
+    setIsExpanded(isThinking)
+  }, [isThinking])
 
   if (!isThinking && !thought) return null
 
