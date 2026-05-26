@@ -2,7 +2,7 @@
 
 /* eslint-disable @next/next/no-img-element */
 
-import type { ComponentProps, ReactNode } from "react"
+import React, { ComponentProps, ReactNode } from "react"
 import { useState, useEffect } from "react"
 import ReactMarkdown from "react-markdown"
 import remarkGfm from "remark-gfm"
@@ -299,8 +299,8 @@ function ProductCard({ product: initialProduct }: { product: Product }) {
       
       <div className="flex-1 min-w-0 flex flex-col justify-between py-0.5">
         <div>
-          <div className="flex items-start justify-between gap-3">
-            <h4 className="font-semibold text-ink text-[15px] truncate font-serif">{product.name || "加载中..."}</h4>
+          <div className="flex items-start justify-between gap-3 min-w-0">
+            <h4 className="font-semibold text-ink text-[15.5px] font-serif leading-snug break-words flex-1">{product.name || "加载中..."}</h4>
             {product.price && (
               <span className="text-[14.5px] font-bold text-[#6b8e7f] shrink-0 font-sans">{product.price}</span>
             )}
@@ -387,11 +387,27 @@ export function MarkdownRenderer({ content }: MarkdownRendererProps) {
           th: ({ children }) => <th className="border-b border-black/10 bg-black/[0.03] px-3 py-2 font-medium">{children}</th>,
           td: ({ children }) => <td className="border-b border-black/[0.06] px-3 py-2 align-top">{children}</td>,
           hr: () => <hr className="my-5 border-black/10" />,
-          pre: ({ children }) => (
-            <pre className="mb-4 max-w-full overflow-x-auto rounded-2xl border border-black/10 bg-[#f7f7f7] p-4 text-sm text-ink">
-              {children}
-            </pre>
-          ),
+          pre: ({ children }) => {
+            const isProduct = React.Children.toArray(children).some(child => {
+              if (React.isValidElement(child) && child.type === "code") {
+                const className = (child.props as { className?: string }).className || ""
+                const match = /language-(\w+)/.exec(className)
+                const lang = match ? match[1] : ""
+                return lang === "product" || lang === "products" || lang === "goods" || lang === "commodity"
+              }
+              return false
+            })
+
+            if (isProduct) {
+              return <>{children}</>
+            }
+
+            return (
+              <pre className="mb-4 max-w-full overflow-x-auto rounded-2xl border border-black/10 bg-[#f7f7f7] p-4 text-sm text-ink">
+                {children}
+              </pre>
+            )
+          },
           code: (props) => {
             const { inline, className, children } = props as ComponentProps<"code"> & { inline?: boolean; className?: string; children?: ReactNode }
             const match = /language-(\w+)/.exec(className || "")
