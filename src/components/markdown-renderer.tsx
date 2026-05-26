@@ -387,16 +387,19 @@ export function MarkdownRenderer({ content }: MarkdownRendererProps) {
           th: ({ children }) => <th className="border-b border-black/10 bg-black/[0.03] px-3 py-2 font-medium">{children}</th>,
           td: ({ children }) => <td className="border-b border-black/[0.06] px-3 py-2 align-top">{children}</td>,
           hr: () => <hr className="my-5 border-black/10" />,
-          pre: ({ children }) => {
-            const isProduct = React.Children.toArray(children).some(child => {
-              if (React.isValidElement(child) && child.type === "code") {
-                const className = (child.props as { className?: string }).className || ""
-                const match = /language-(\w+)/.exec(className)
-                const lang = match ? match[1] : ""
-                return lang === "product" || lang === "products" || lang === "goods" || lang === "commodity"
-              }
-              return false
-            })
+          pre: ({ children, node }) => {
+            const firstChild = node?.children?.[0]
+            const isProduct = firstChild && 
+              firstChild.type === "element" && 
+              "tagName" in firstChild && 
+              firstChild.tagName === "code" && 
+              (() => {
+                const className = ("properties" in firstChild && (firstChild as { properties?: { className?: string[] } }).properties?.className) || []
+                const classList = Array.isArray(className) ? className : [className]
+                return classList.some(cls => 
+                  cls === "language-product" || cls === "language-products" || cls === "language-goods" || cls === "language-commodity"
+                )
+              })()
 
             if (isProduct) {
               return <>{children}</>
