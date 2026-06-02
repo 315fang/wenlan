@@ -1,0 +1,1 @@
+import{t as p}from"./vue-vendor-cndhOZfR.js";const e=[10,20,50,100];function u({defaultLimit:i=20,pageSizes:a,fetchFn:l}={}){const n=p({page:1,limit:i,total:0,pageSizes:Array.isArray(a)&&a.length?a:e});return{pagination:n,resetPage:()=>{n.page=1},applyResponse:t=>{var o;n.total=((o=t==null?void 0:t.pagination)==null?void 0:o.total)??(t==null?void 0:t.total)??0}}}export{u};

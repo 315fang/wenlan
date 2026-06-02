@@ -107,6 +107,23 @@ button, input, textarea, select { font: inherit; }
 .lux-press { transition: transform .12s ease, opacity .2s ease; }
 .lux-press:active { transform: scale(0.97); opacity: .92; }
 
+@keyframes lux-sidebar-in {
+  0%   { opacity: 0; transform: translateX(-14px); }
+  100% { opacity: 1; transform: translateX(0); }
+}
+.lux-sidebar-in { animation: lux-sidebar-in .24s cubic-bezier(.2,.7,.2,1) both; }
+
+@keyframes lux-row-in {
+  0%   { opacity: 0; transform: translateY(4px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+.lux-row-in { animation: lux-row-in .28s cubic-bezier(.2,.7,.2,1) both; }
+
+:where(button, a, input, textarea, select):focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--color-champagne) 70%, var(--color-ink));
+  outline-offset: 2px;
+}
+
 @keyframes lux-bar {
   0%, 100% { transform: scaleY(0.4); }
   50%      { transform: scaleY(1.0); }
@@ -149,6 +166,7 @@ button, input, textarea, select { font: inherit; }
 @media (prefers-reduced-motion: reduce) {
   .lux-in, .lux-in-1, .lux-in-2, .lux-in-3, .lux-in-4,
   .lux-breathe, .lux-shimmer-text, .lux-dot, .lux-bar,
+  .lux-sidebar-in, .lux-row-in,
   .animate-logo-wiggle, .animate-realization, .animate-progress-slide {
     animation: none !important;
   }

@@ -218,6 +218,7 @@ function AttachmentPreview({
   if (attachment.kind === "image" && !imgError.has(attachment.url)) {
     return (
       <figure className="overflow-hidden rounded-2xl border border-line bg-white">
+        {/* eslint-disable-next-line @next/next/no-img-element -- Dynamic chat attachments do not have stable dimensions for next/image. */}
         <img
           src={attachment.url}
           alt={attachment.alt || attachment.name || "图片"}

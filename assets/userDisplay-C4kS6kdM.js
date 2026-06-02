@@ -1,0 +1,1 @@
+function i(a={},n="-"){return(a==null?void 0:a.virtual_display_name)||(a==null?void 0:a.nickName)||(a==null?void 0:a.nickname)||""||n}function c(a={}){return(a==null?void 0:a.avatarUrl)||(a==null?void 0:a.avatar_url)||""}function m(a={}){const n=i(a,""),t=c(a);return{...a,nickName:n,nickname:n,avatarUrl:t,avatar_url:t}}export{c as a,i as g,m as n};

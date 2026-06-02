@@ -512,6 +512,7 @@ export async function POST(request: Request) {
         ok: true,
         documentId: result.documentId,
         removedPrevious: result.removedPrevious,
+        items: result.items.filter((item) => item.kind === kind),
       })
     }
 
@@ -607,6 +608,7 @@ export async function POST(request: Request) {
       failedCount,
       removedPrevious,
       failures,
+      items: workingItems.filter((item) => item.kind === kind),
     })
   } catch (error) {
     const message = error instanceof Error ? error.message : "上传知识资料失败"

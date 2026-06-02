@@ -193,7 +193,7 @@ export function MobileAppSidebar({
         type="button"
         aria-label="关闭侧边菜单遮罩"
       />
-      <div className="relative h-full w-[85vw] max-w-[34rem]">
+      <div className="lux-sidebar-in relative h-full w-[85vw] max-w-[34rem]">
         <AppSidebar active={active} sections={sections} footer={footer} onClose={onClose} className="shadow-2xl" fontSizeMode={fontSizeMode}>
           {children}
         </AppSidebar>

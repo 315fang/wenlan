@@ -1,0 +1,1 @@
+function e(n=[]){return n.find(i=>i!=null&&String(i).trim()!=="")}function m(n={},i="",r=[]){const t=e([n.my_invite_code,n.invite_code,n.member_no,n.openid,n.id,n._legacy_id,n.user_id,...r]);if(t!=null&&String(t).trim()!=="")return{lookup:String(t)};const o=e([i,n.phone,n.nickname,n.nickName,n.name]);return o!=null&&String(o).trim()!==""?{keyword:String(o)}:{}}export{m as b};

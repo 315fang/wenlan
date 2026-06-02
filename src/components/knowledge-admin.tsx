@@ -64,6 +64,7 @@ export function KnowledgeAdminPanel() {
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
   const [submitting, setSubmitting] = useState(false)
+  const [deletingId, setDeletingId] = useState<string | null>(null)
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false)
   const [configured, setConfigured] = useState(true)
   const [error, setError] = useState("")
@@ -136,11 +137,26 @@ export function KnowledgeAdminPanel() {
     }
   }
 
+  function filterItemsForCurrentView(nextItems: KnowledgeItem[]) {
+    const normalizedQuery = query.trim().toLowerCase()
+    return nextItems.filter((item) => {
+      if (item.kind !== kind) return false
+      if (!normalizedQuery) return true
+      return `${item.title} ${item.knowledgeKey}`.toLowerCase().includes(normalizedQuery)
+    })
+  }
+
+  function syncItemsSoon() {
+    window.setTimeout(() => {
+      void loadItems(false)
+    }, 1800)
+  }
+
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     setSubmitting(true)
     setError("")
-    setMessage("")
+    setMessage(uploadMode === "single" ? "正在上传资料，请稍等..." : `正在批量上传 ${batchItemCount} 条资料，请稍等...`)
 
     try {
       const formData = new FormData()
@@ -174,6 +190,7 @@ export function KnowledgeAdminPanel() {
         createdCount?: number
         failedCount?: number
         failures?: Array<{ title?: string; error?: string }>
+        items?: KnowledgeItem[]
       }
       if (!response.ok) {
         throw new Error(payload.error || "上传失败")
@@ -193,8 +210,13 @@ export function KnowledgeAdminPanel() {
       } else {
         setMessage(payload.removedPrevious ? `已上传，自动移除 ${payload.removedPrevious} 条旧版本。` : "已上传。")
       }
+      if (payload.items) {
+        setItems(filterItemsForCurrentView(payload.items))
+        syncItemsSoon()
+      } else {
+        await loadItems(false)
+      }
       setForm(emptyFormState)
-      await loadItems(false)
     } catch (submitError) {
       setError(submitError instanceof Error ? submitError.message : "上传失败")
     } finally {
@@ -203,9 +225,11 @@ export function KnowledgeAdminPanel() {
   }
 
   async function handleDelete(documentId: string) {
+    if (!documentId || deletingId) return
     if (!window.confirm("确定删除这条知识资料吗？")) return
     setError("")
-    setMessage("")
+    setMessage("正在删除资料，请稍等...")
+    setDeletingId(documentId)
     try {
       const response = await fetch(`/api/admin/knowledge/${documentId}`, {
         method: "DELETE",
@@ -214,17 +238,28 @@ export function KnowledgeAdminPanel() {
       if (!response.ok) {
         throw new Error(payload.error || "删除失败")
       }
+      setItems((current) => current.filter((item) => item.documentId !== documentId))
       setMessage("已删除。")
-      await loadItems(false)
+      syncItemsSoon()
     } catch (deleteError) {
       setError(deleteError instanceof Error ? deleteError.message : "删除失败")
+      setMessage("")
+    } finally {
+      setDeletingId(null)
     }
   }
 
   const filteredCount = items.length
+  const submitButtonLabel = submitting
+    ? uploadMode === "single"
+      ? "正在上传..."
+      : "正在批量上传..."
+    : uploadMode === "single"
+      ? "上传资料"
+      : `批量上传${batchItemCount ? `（${batchItemCount}）` : ""}`
 
   return (
-    <div className="flex min-h-dvh bg-ivory text-ink">
+    <div className="flex min-h-dvh overflow-x-hidden bg-ivory text-ink">
       <aside className="hidden w-[18rem] shrink-0 lg:block">
         <AppSidebar active="knowledge" sections={["knowledge", "config"]} />
       </aside>
@@ -237,11 +272,11 @@ export function KnowledgeAdminPanel() {
       />
 
       <main className="min-w-0 flex-1 overflow-y-auto">
-        <div className="mx-auto flex min-h-dvh w-full max-w-[1600px] flex-col px-4 py-4 sm:px-6 lg:px-8">
-        <header className="mb-4 flex items-center justify-between border-b border-black/10 pb-4">
+        <div className="mx-auto flex min-h-dvh w-full max-w-[1600px] flex-col px-3 py-3 sm:px-6 sm:py-4 lg:px-8">
+        <header className="mb-4 flex flex-col gap-3 border-b border-black/10 pb-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex min-w-0 items-center gap-3">
             <button
-              className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-mute transition hover:bg-white lg:hidden"
+              className="lux-press inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-mute transition hover:bg-white lg:hidden"
               onClick={() => setMobileSidebarOpen(true)}
               type="button"
               aria-label="打开侧边菜单"
@@ -265,8 +300,10 @@ export function KnowledgeAdminPanel() {
           </div>
 
           <button
-            className="inline-flex items-center gap-2 rounded-full border border-black/10 bg-white px-4 py-2 text-sm text-ink-soft transition hover:bg-[#f7f7f7]"
+            className="lux-press inline-flex h-10 w-full items-center justify-center gap-2 rounded-full border border-black/10 bg-white px-4 text-sm text-ink-soft transition hover:bg-[#f7f7f7] disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
+            disabled={refreshing || submitting || Boolean(deletingId)}
             onClick={() => void loadItems(false)}
+            type="button"
           >
             {refreshing ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
             刷新
@@ -297,26 +334,26 @@ export function KnowledgeAdminPanel() {
           </section>
 
           <section className="grid gap-4 lg:grid-cols-[1.1fr_1.4fr]">
-            <form className="border border-black/10 bg-white p-4 sm:p-5" onSubmit={handleSubmit}>
-              <div className="flex items-center justify-between">
+            <form className="lux-card lux-in border border-black/10 bg-white p-4 sm:p-5" onSubmit={handleSubmit}>
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                   <h2 className="text-base font-semibold text-ink">上传资料</h2>
                   <p className="mt-1 text-sm text-[#6b6b6b]">
                     {uploadMode === "single" ? "同关键词的新版本会自动覆盖旧版本。" : "批量上传会按标题或文件名自动生成关键词，减少重复录入。"}
                   </p>
                 </div>
-                <div className="inline-flex items-center gap-1 rounded-full bg-[#f4f4f4] px-3 py-1 text-xs text-mute">
+                <div className="inline-flex w-fit items-center gap-1 rounded-full bg-[#f4f4f4] px-3 py-1 text-xs text-mute">
                   <Plus className="h-3.5 w-3.5" />
                   {uploadMode === "single" ? `第 ${nextVersion} 版` : `本次 ${batchItemCount} 条`}
                 </div>
               </div>
 
-              <div className="mt-4 inline-flex rounded-full bg-[#f4f4f4] p-1 text-sm">
+              <div className="mt-4 grid grid-cols-2 rounded-full bg-[#f4f4f4] p-1 text-sm sm:inline-grid">
                 {(["single", "batch"] as UploadMode[]).map((mode) => (
                   <button
                     key={mode}
                     type="button"
-                    className={`rounded-full px-3 py-1.5 transition ${
+                    className={`lux-press rounded-full px-3 py-1.5 transition ${
                       uploadMode === mode ? "bg-white text-ink shadow-sm" : "text-mute hover:text-ink"
                     }`}
                     onClick={() => {
@@ -503,35 +540,35 @@ export function KnowledgeAdminPanel() {
               <button
                 type="submit"
                 disabled={submitting}
-                className="mt-4 inline-flex h-11 items-center gap-2 rounded-full bg-ink px-4 text-sm font-medium text-white transition hover:bg-ink-soft disabled:cursor-not-allowed disabled:bg-[#888]"
+                className="lux-press mt-4 inline-flex h-11 w-full items-center justify-center gap-2 rounded-full bg-ink px-4 text-sm font-medium text-white transition hover:bg-ink-soft disabled:cursor-not-allowed disabled:bg-[#888] sm:w-auto"
               >
                 {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
-                {uploadMode === "single" ? "上传资料" : `批量上传${batchItemCount ? `（${batchItemCount}）` : ""}`}
+                {submitButtonLabel}
               </button>
             </form>
 
-            <section className="border border-black/10 bg-white p-4 sm:p-5">
-              <div className="flex items-center justify-between gap-3">
+            <section className="lux-card border border-black/10 bg-white p-4 sm:p-5">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                   <h2 className="text-base font-semibold text-ink">资料列表</h2>
                   <p className="mt-1 text-sm text-[#6b6b6b]">共 {filteredCount} 条，默认以最新上传版本为准。</p>
                 </div>
 
-                <div className="flex items-center gap-2">
-                  <div className="relative">
+                <div className="flex w-full items-center gap-2 sm:w-auto">
+                  <div className="relative w-full sm:w-auto">
                     <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#8a8a8a]" />
                     <input
                       value={query}
                       onChange={(event) => setQuery(event.target.value)}
                       placeholder="搜索标题或关键词"
-                      className="h-10 w-[16rem] rounded-full border border-black/10 bg-white pl-9 pr-3 text-sm outline-none focus:border-black/30"
+                      className="h-10 w-full rounded-full border border-black/10 bg-white pl-9 pr-3 text-sm outline-none focus:border-black/30 sm:w-[16rem]"
                     />
                   </div>
                 </div>
               </div>
 
               <div className="mt-4 overflow-hidden rounded-2xl border border-black/10">
-                <div className="grid grid-cols-[1.8fr_1.2fr_0.7fr_0.8fr_0.9fr_0.5fr] gap-3 border-b border-black/10 bg-[#f8f8f8] px-4 py-3 text-xs font-medium uppercase tracking-wide text-mute">
+                <div className="hidden grid-cols-[1.8fr_1.2fr_0.7fr_0.8fr_0.9fr_0.5fr] gap-3 border-b border-black/10 bg-[#f8f8f8] px-4 py-3 text-xs font-medium uppercase tracking-wide text-mute md:grid">
                   <span>标题</span>
                   <span>关键词 / 来源</span>
                   <span>版本</span>
@@ -540,7 +577,7 @@ export function KnowledgeAdminPanel() {
                   <span>操作</span>
                 </div>
 
-                <div className="max-h-[58vh] overflow-y-auto">
+                <div className="max-h-none overflow-y-auto md:max-h-[58vh]">
                   {loading ? (
                     <div className="flex min-h-60 items-center justify-center text-sm text-mute">
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -551,61 +588,82 @@ export function KnowledgeAdminPanel() {
                       当前没有资料。你可以先上传一篇文章、一张图片或一个表格，作为问兰智能体系统的知识来源。
                     </div>
                   ) : (
-                    items.map((item) => (
-                      <article
-                        key={item.documentId}
-                        className="grid grid-cols-[1.8fr_1.2fr_0.7fr_0.8fr_0.9fr_0.5fr] items-center gap-3 border-b border-black/[0.06] px-4 py-3 last:border-b-0"
-                      >
-                        <div className="min-w-0">
-                          <div className="truncate text-sm font-medium text-ink">{item.title}</div>
-                          <div className="mt-1 truncate text-xs text-mute">
-                            {item.kind === "article" ? "文章" : item.kind === "table" ? "表格" : "图片"} · {item.documentId}
+                    items.map((item) => {
+                      const isDeleting = deletingId === item.documentId
+
+                      return (
+                        <article
+                          key={item.documentId}
+                          className={`lux-row-in grid gap-3 border-b border-black/[0.06] px-3 py-4 transition last:border-b-0 md:grid-cols-[1.8fr_1.2fr_0.7fr_0.8fr_0.9fr_0.5fr] md:items-center md:px-4 md:py-3 ${
+                            isDeleting ? "bg-red-50/50 opacity-70" : ""
+                          }`}
+                        >
+                          <div className="min-w-0">
+                            <div className="truncate text-sm font-medium text-ink">{item.title}</div>
+                            <div className="mt-1 truncate text-xs text-mute">
+                              {item.kind === "article" ? "文章" : item.kind === "table" ? "表格" : "图片"} · {item.documentId}
+                            </div>
                           </div>
-                        </div>
 
-                        <div className="min-w-0 text-sm text-mute">
-                          <div className="truncate">{item.knowledgeKey || "未命名关键词"}</div>
-                          {item.sourceUrl ? <div className="mt-1 truncate text-xs text-mute">{item.sourceUrl}</div> : null}
-                        </div>
+                          <div className="min-w-0 text-sm text-mute">
+                            <span className="mb-1 block text-[11px] font-medium text-mute md:hidden">关键词 / 来源</span>
+                            <div className="truncate">{item.knowledgeKey || "未命名关键词"}</div>
+                            {item.sourceUrl ? <div className="mt-1 truncate text-xs text-mute">{item.sourceUrl}</div> : null}
+                          </div>
 
-                        <div className="text-sm text-ink-soft">第 {item.version} 版</div>
+                          <div className="flex items-center justify-between text-sm text-ink-soft md:block">
+                            <span className="text-[11px] font-medium text-mute md:hidden">版本</span>
+                            <span>第 {item.version} 版</span>
+                          </div>
 
-                        <div>
-                          <span
-                            className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${
-                              item.status === "active"
-                                ? "bg-emerald-50 text-emerald-700"
-                                : item.status === "indexing"
-                                  ? "bg-amber-50 text-amber-700"
-                                  : "bg-neutral-100 text-neutral-600"
-                            }`}
-                          >
-                            {item.status === "active" ? "已发布" : item.status === "indexing" ? "索引中" : "已归档"}
-                          </span>
-                        </div>
+                          <div className="flex items-center justify-between md:block">
+                            <span className="text-[11px] font-medium text-mute md:hidden">状态</span>
+                            <span
+                              className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${
+                                isDeleting
+                                  ? "bg-red-50 text-red-600"
+                                  : item.status === "active"
+                                    ? "bg-emerald-50 text-emerald-700"
+                                    : item.status === "indexing"
+                                      ? "bg-amber-50 text-amber-700"
+                                      : "bg-neutral-100 text-neutral-600"
+                              }`}
+                            >
+                              {isDeleting
+                                ? "删除中"
+                                : item.status === "active"
+                                  ? "已发布"
+                                  : item.status === "indexing"
+                                    ? "索引中"
+                                    : "已归档"}
+                            </span>
+                          </div>
 
-                        <div className="text-sm text-mute">
-                          {new Date(item.updatedAt).toLocaleString("zh-CN", { hour12: false })}
-                        </div>
+                          <div className="flex items-center justify-between text-sm text-mute md:block">
+                            <span className="text-[11px] font-medium text-mute md:hidden">更新时间</span>
+                            <span>{new Date(item.updatedAt).toLocaleString("zh-CN", { hour12: false })}</span>
+                          </div>
 
-                        <div className="flex justify-end">
-                          <button
-                            className="inline-flex h-9 w-9 items-center justify-center rounded-full text-mute transition hover:bg-red-50 hover:text-red-600"
-                            aria-label="删除资料"
-                            onClick={() => void handleDelete(item.documentId)}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </button>
-                        </div>
-                      </article>
-                    ))
+                          <div className="flex justify-end border-t border-black/[0.06] pt-2 md:border-t-0 md:pt-0">
+                            <button
+                              className="lux-press inline-flex h-9 w-9 items-center justify-center rounded-full text-mute transition hover:bg-red-50 hover:text-red-600 disabled:cursor-not-allowed disabled:bg-neutral-100 disabled:text-neutral-400"
+                              aria-label={isDeleting ? "正在删除资料" : "删除资料"}
+                              disabled={Boolean(deletingId) || !item.documentId}
+                              onClick={() => void handleDelete(item.documentId)}
+                            >
+                              {isDeleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                            </button>
+                          </div>
+                        </article>
+                      )
+                    })
                   )}
                 </div>
               </div>
 
-              <div className="mt-3 flex items-center justify-between text-xs text-mute">
+              <div className="mt-3 flex flex-col gap-1 text-xs text-mute sm:flex-row sm:items-center sm:justify-between">
                 <span>连接知识库接口后，将直接显示真实资料状态。</span>
-                <span>{refreshing ? "正在刷新..." : "就绪"}</span>
+                <span>{deletingId ? "正在删除..." : refreshing ? "正在同步资料列表..." : "就绪"}</span>
               </div>
             </section>
           </section>

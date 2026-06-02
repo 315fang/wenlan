@@ -133,22 +133,22 @@ export function AdminConfigPanel() {
   return (
     <div className="flex min-h-dvh bg-ivory text-ink">
       <aside className="hidden w-[18rem] shrink-0 lg:block">
-        <AppSidebar active="config" sections={["config"]} />
+        <AppSidebar active="config" sections={["knowledge", "config"]} />
       </aside>
 
       <MobileAppSidebar
         active="config"
-        sections={["config"]}
+        sections={["knowledge", "config"]}
         open={mobileSidebarOpen}
         onClose={() => setMobileSidebarOpen(false)}
       />
 
       <main className="min-w-0 flex-1 overflow-y-auto">
-        <div className="mx-auto flex min-h-dvh w-full max-w-[1000px] flex-col px-4 py-4 sm:px-6 lg:px-8">
-          <header className="mb-4 flex items-center justify-between border-b border-black/10 pb-4">
+        <div className="mx-auto flex min-h-dvh w-full max-w-[1000px] flex-col px-3 py-3 sm:px-6 sm:py-4 lg:px-8">
+          <header className="mb-4 flex flex-col gap-3 border-b border-black/10 pb-4 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex min-w-0 items-center gap-3">
               <button
-                className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-mute transition hover:bg-white lg:hidden"
+                className="lux-press inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-mute transition hover:bg-white lg:hidden"
                 onClick={() => setMobileSidebarOpen(true)}
                 type="button"
                 aria-label="打开侧边菜单"
@@ -162,8 +162,9 @@ export function AdminConfigPanel() {
             </div>
 
             <button
-              className="inline-flex items-center gap-2 rounded-full border border-black/10 bg-white px-4 py-2 text-sm text-ink-soft transition hover:bg-[#f7f7f7]"
+              className="lux-press inline-flex h-10 w-full items-center justify-center gap-2 rounded-full border border-black/10 bg-white px-4 text-sm text-ink-soft transition hover:bg-[#f7f7f7] sm:w-auto"
               onClick={() => void loadSettings()}
+              type="button"
             >
               <RefreshCw className="h-4 w-4" />
               刷新
@@ -171,7 +172,7 @@ export function AdminConfigPanel() {
           </header>
 
           <form className="space-y-6" onSubmit={handleSubmit}>
-            <section className="border border-black/10 bg-white p-4 sm:p-5">
+            <section className="lux-card lux-in border border-black/10 bg-white p-4 sm:p-5">
               <h2 className="text-base font-semibold text-ink">基本信息</h2>
               <p className="mt-1 text-sm text-[#6b6b6b]">这些信息将显示在前台页面的标题和介绍区域。</p>
 
@@ -223,7 +224,7 @@ export function AdminConfigPanel() {
               </div>
             </section>
 
-            <section className="border border-black/10 bg-white p-4 sm:p-5">
+            <section className="lux-card border border-black/10 bg-white p-4 sm:p-5">
               <h2 className="text-base font-semibold text-ink">快捷提问</h2>
               <p className="mt-1 text-sm text-[#6b6b6b]">每行一条，显示在前台输入框上方作为快捷入口。</p>
 
@@ -237,7 +238,7 @@ export function AdminConfigPanel() {
               </label>
             </section>
 
-            <section className="border border-black/10 bg-white p-4 sm:p-5">
+            <section className="lux-card border border-black/10 bg-white p-4 sm:p-5">
               <h2 className="text-base font-semibold text-ink">新手指导</h2>
               <p className="mt-1 text-sm text-[#6b6b6b]">JSON 数组格式，每项包含 title 和 description。</p>
 
@@ -250,7 +251,7 @@ export function AdminConfigPanel() {
               </label>
             </section>
 
-            <section className="border border-black/10 bg-white p-4 sm:p-5">
+            <section className="lux-card border border-black/10 bg-white p-4 sm:p-5">
               <h2 className="text-base font-semibold text-ink">功能卡片</h2>
               <p className="mt-1 text-sm text-[#6b6b6b]">JSON 数组格式，每项包含 title 和 description。</p>
 
@@ -263,7 +264,7 @@ export function AdminConfigPanel() {
               </label>
             </section>
 
-            <section className="border border-black/10 bg-white p-4 sm:p-5">
+            <section className="lux-card border border-black/10 bg-white p-4 sm:p-5">
               <h2 className="text-base font-semibold text-ink">知识库大纲</h2>
               <p className="mt-1 text-sm text-[#6b6b6b]">每行一个分类名称。</p>
 
@@ -277,13 +278,13 @@ export function AdminConfigPanel() {
               </label>
             </section>
 
-            <section className="border border-black/10 bg-white p-4 sm:p-5">
+            <section className="lux-card border border-black/10 bg-white p-4 sm:p-5">
               <h2 className="text-base font-semibold text-ink">商务中心 · 联系方式</h2>
               <p className="mt-1 text-sm text-[#6b6b6b]">显示在商务中心的联系卡片中。</p>
 
               <div className="mt-4 space-y-3">
                 {settings.businessContacts.map((contact, i) => (
-                  <div key={contact.id} className="flex items-end gap-3">
+                  <div key={contact.id} className="grid gap-3 rounded-xl border border-black/10 bg-[#fbfbfb] p-3 sm:grid-cols-[1fr_2fr_auto] sm:items-end">
                     <label className="grid gap-1.5 text-sm flex-1">
                       <span className="text-mute">标签</span>
                       <input
@@ -316,7 +317,8 @@ export function AdminConfigPanel() {
                           businessContacts: s.businessContacts.filter((_, idx) => idx !== i),
                         }))
                       }
-                      className="mb-0.5 inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-rose transition hover:bg-rose-soft"
+                      className="lux-press inline-flex h-10 w-full shrink-0 items-center justify-center rounded-full text-rose transition hover:bg-rose-soft sm:mb-0.5 sm:w-10"
+                      aria-label="删除联系方式"
                     >
                       <Trash2 size={16} />
                     </button>
@@ -334,19 +336,19 @@ export function AdminConfigPanel() {
                     ],
                   }))
                 }
-                className="mt-3 inline-flex items-center gap-1.5 rounded-full border border-line bg-white px-3 py-1.5 text-sm text-ink transition hover:bg-ivory"
+                className="lux-press mt-3 inline-flex h-10 w-full items-center justify-center gap-1.5 rounded-full border border-line bg-white px-3 text-sm text-ink transition hover:bg-ivory sm:w-auto"
               >
                 <Plus size={14} /> 添加联系方式
               </button>
             </section>
 
-            <section className="border border-black/10 bg-white p-4 sm:p-5">
+            <section className="lux-card border border-black/10 bg-white p-4 sm:p-5">
               <h2 className="text-base font-semibold text-ink">商务中心 · 价目表</h2>
               <p className="mt-1 text-sm text-[#6b6b6b]">产品名称、价格区间和备注。</p>
 
               <div className="mt-4 space-y-3">
                 {settings.businessPriceTiers.map((tier, i) => (
-                  <div key={i} className="flex items-end gap-3">
+                  <div key={i} className="grid gap-3 rounded-xl border border-black/10 bg-[#fbfbfb] p-3 md:grid-cols-[1fr_1fr_1fr_auto] md:items-end">
                     <label className="grid gap-1.5 text-sm flex-1">
                       <span className="text-mute">名称</span>
                       <input
@@ -391,7 +393,8 @@ export function AdminConfigPanel() {
                           businessPriceTiers: s.businessPriceTiers.filter((_, idx) => idx !== i),
                         }))
                       }
-                      className="mb-0.5 inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-rose transition hover:bg-rose-soft"
+                      className="lux-press inline-flex h-10 w-full shrink-0 items-center justify-center rounded-full text-rose transition hover:bg-rose-soft md:mb-0.5 md:w-10"
+                      aria-label="删除价目"
                     >
                       <Trash2 size={16} />
                     </button>
@@ -409,13 +412,13 @@ export function AdminConfigPanel() {
                     ],
                   }))
                 }
-                className="mt-3 inline-flex items-center gap-1.5 rounded-full border border-line bg-white px-3 py-1.5 text-sm text-ink transition hover:bg-ivory"
+                className="lux-press mt-3 inline-flex h-10 w-full items-center justify-center gap-1.5 rounded-full border border-line bg-white px-3 text-sm text-ink transition hover:bg-ivory sm:w-auto"
               >
                 <Plus size={14} /> 添加价目
               </button>
             </section>
 
-            <section className="border border-black/10 bg-white p-4 sm:p-5">
+            <section className="lux-card border border-black/10 bg-white p-4 sm:p-5">
               <h2 className="text-base font-semibold text-ink">系统提示词</h2>
               <p className="mt-1 text-sm text-[#6b6b6b]">这是每次对话发送给 AI 模型的系统指令。</p>
 
@@ -428,7 +431,7 @@ export function AdminConfigPanel() {
               </label>
             </section>
 
-            <section className="border border-black/10 bg-white p-4 sm:p-5">
+            <section className="lux-card border border-black/10 bg-white p-4 sm:p-5">
               <h2 className="text-base font-semibold text-ink">后端默认值</h2>
               <p className="mt-1 text-sm text-[#6b6b6b]">当环境变量未配置时使用的默认值。</p>
 
@@ -456,11 +459,11 @@ export function AdminConfigPanel() {
             {error ? <p className="rounded-xl bg-red-50 px-3 py-2 text-sm text-red-600">{error}</p> : null}
             {message ? <p className="rounded-xl bg-emerald-50 px-3 py-2 text-sm text-emerald-700">{message}</p> : null}
 
-            <div className="flex justify-end pb-8">
+            <div className="sticky bottom-0 -mx-3 flex justify-end border-t border-black/10 bg-ivory/95 px-3 py-3 backdrop-blur sm:static sm:mx-0 sm:border-t-0 sm:bg-transparent sm:px-0 sm:pb-8 sm:pt-0 sm:backdrop-blur-0">
               <button
                 type="submit"
                 disabled={saving}
-                className="inline-flex h-11 items-center gap-2 rounded-full bg-ink px-5 text-sm font-medium text-white transition hover:bg-ink-soft disabled:cursor-not-allowed disabled:bg-[#888]"
+                className="lux-press inline-flex h-11 w-full items-center justify-center gap-2 rounded-full bg-ink px-5 text-sm font-medium text-white transition hover:bg-ink-soft disabled:cursor-not-allowed disabled:bg-[#888] sm:w-auto"
               >
                 {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
                 {saving ? "保存中..." : "保存配置"}

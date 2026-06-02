@@ -1,5 +1,7 @@
 "use client"
 
+import Image from "next/image"
+
 export function BrandMark({ size = 40, animated = false, className = "" }: { size?: number; animated?: boolean; className?: string }) {
   return (
     <span
@@ -12,9 +14,12 @@ export function BrandMark({ size = 40, animated = false, className = "" }: { siz
       }}
       aria-hidden="true"
     >
-      <img
+      <Image
         src="/wenlan-yizhantong.ico"
         alt=""
+        width={Math.round(size * 0.58)}
+        height={Math.round(size * 0.58)}
+        unoptimized
         style={{
           width: size * 0.58,
           height: size * 0.58,
