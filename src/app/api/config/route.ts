@@ -10,6 +10,7 @@ export async function GET() {
     ...status,
     businessContacts: settings.businessContacts,
     businessPriceTiers: settings.businessPriceTiers,
+    businessQr: settings.businessQr,
     materialItems: settings.materialItems,
   })
 }

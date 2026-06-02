@@ -58,6 +58,12 @@ const defaults: AppSettings = {
   defaultDifyBaseUrl: "http://119.45.182.109:8888",
   businessContacts: [],
   businessPriceTiers: [],
+  businessQr: {
+    imageUrl: "",
+    title: "扫码添加问兰商务顾问",
+    description: "OFFICIAL · WECHAT",
+    availability: "工作日 09:30 - 19:00 · 周末顺延回复",
+  },
   materialItems: [],
 }
 
@@ -72,7 +78,14 @@ export function readSettings(): AppSettings {
     if (fs.existsSync(CONFIG_FILE)) {
       const raw = fs.readFileSync(CONFIG_FILE, "utf-8")
       const parsed = JSON.parse(raw) as Partial<AppSettings>
-      return { ...defaults, ...parsed }
+      return {
+        ...defaults,
+        ...parsed,
+        businessQr: {
+          ...defaults.businessQr,
+          ...parsed.businessQr,
+        },
+      }
     }
   } catch {
     // Fall through to defaults

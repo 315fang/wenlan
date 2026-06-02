@@ -20,6 +20,23 @@ export interface PriceTier {
   note: string
 }
 
+export interface BusinessQrConfig {
+  imageUrl: string
+  title: string
+  description: string
+  availability: string
+}
+
+export interface CooperationApplication {
+  id: string
+  name: string
+  city: string
+  contact: string
+  note: string
+  createdAt: string
+  status: "new" | "contacted" | "closed"
+}
+
 export interface MaterialItem {
   id: string
   cat: string
@@ -45,5 +62,6 @@ export interface AppSettings {
   defaultDifyBaseUrl: string
   businessContacts: ContactInfo[]
   businessPriceTiers: PriceTier[]
+  businessQr: BusinessQrConfig
   materialItems: MaterialItem[]
 }

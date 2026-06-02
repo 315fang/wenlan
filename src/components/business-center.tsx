@@ -4,7 +4,7 @@ import { Check, Copy, Mail, MessageCircle, Phone, QrCode, Send } from "lucide-re
 import { useEffect, useState } from "react"
 
 import { PageHeader } from "@/components/page-header"
-import type { ContactInfo, PriceTier } from "@/types/settings"
+import type { BusinessQrConfig, ContactInfo, PriceTier } from "@/types/settings"
 
 interface BusinessCenterProps {
   onBack: () => void
@@ -19,9 +19,12 @@ const CONTACT_ICONS: Record<string, React.ReactNode> = {
 export function BusinessCenter({ onBack }: BusinessCenterProps) {
   const [contacts, setContacts] = useState<ContactInfo[]>([])
   const [priceTiers, setPriceTiers] = useState<PriceTier[]>([])
+  const [businessQr, setBusinessQr] = useState<BusinessQrConfig | null>(null)
   const [copied, setCopied] = useState<string | null>(null)
   const [form, setForm] = useState({ name: "", city: "", wechat: "", note: "" })
   const [submitted, setSubmitted] = useState(false)
+  const [submitting, setSubmitting] = useState(false)
+  const [submitError, setSubmitError] = useState("")
 
   useEffect(() => {
     fetch("/api/config", { cache: "no-store" })
@@ -29,6 +32,7 @@ export function BusinessCenter({ onBack }: BusinessCenterProps) {
       .then((data) => {
         if (data.businessContacts?.length) setContacts(data.businessContacts)
         if (data.businessPriceTiers?.length) setPriceTiers(data.businessPriceTiers)
+        if (data.businessQr) setBusinessQr(data.businessQr)
       })
       .catch(() => {})
   }, [])
@@ -41,12 +45,34 @@ export function BusinessCenter({ onBack }: BusinessCenterProps) {
     } catch {}
   }
 
-  const submit = (e: React.FormEvent) => {
+  const submit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!form.name || !form.wechat) return
-    setSubmitted(true)
-    setTimeout(() => setSubmitted(false), 2400)
-    setForm({ name: "", city: "", wechat: "", note: "" })
+    if (!form.name || !form.wechat || submitting) return
+    setSubmitting(true)
+    setSubmitError("")
+    try {
+      const response = await fetch("/api/business/applications", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: form.name,
+          city: form.city,
+          contact: form.wechat,
+          note: form.note,
+        }),
+      })
+      const payload = (await response.json().catch(() => ({}))) as { error?: string }
+      if (!response.ok) {
+        throw new Error(payload.error || "提交失败")
+      }
+      setSubmitted(true)
+      setTimeout(() => setSubmitted(false), 2400)
+      setForm({ name: "", city: "", wechat: "", note: "" })
+    } catch (error) {
+      setSubmitError(error instanceof Error ? error.message : "提交失败")
+    } finally {
+      setSubmitting(false)
+    }
   }
 
   return (
@@ -107,25 +133,30 @@ export function BusinessCenter({ onBack }: BusinessCenterProps) {
             >
               <div
                 className="grid place-items-center rounded-xl shrink-0"
-                style={{ width: 76, height: 76, background: "var(--color-ivory)", color: "var(--color-ink)" }}
+                style={{ width: 76, height: 76, background: "var(--color-ivory)", color: "var(--color-ink)", overflow: "hidden" }}
               >
-                <QrCode size={44} />
+                {businessQr?.imageUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element -- Admin-provided QR codes can be data URLs or remote image URLs.
+                  <img src={businessQr.imageUrl} alt="商务顾问二维码" className="h-full w-full object-cover" />
+                ) : (
+                  <QrCode size={44} />
+                )}
               </div>
               <div className="min-w-0">
                 <div
                   className="font-serif"
                   style={{ color: "var(--color-champagne)", fontSize: 12.5, letterSpacing: "0.18em" }}
                 >
-                  OFFICIAL &middot; WECHAT
+                  {businessQr?.description || "OFFICIAL · WECHAT"}
                 </div>
                 <div
                   className="font-serif mt-1"
                   style={{ color: "var(--color-ivory)", fontSize: 16, letterSpacing: "0.04em" }}
                 >
-                  扫码添加问兰商务顾问
+                  {businessQr?.title || "扫码添加问兰商务顾问"}
                 </div>
                 <div style={{ color: "var(--color-mute)", fontSize: 12, marginTop: 4 }}>
-                  工作日 09:30 &ndash; 19:00 &middot; 周末顺延回复
+                  {businessQr?.availability || "工作日 09:30 - 19:00 · 周末顺延回复"}
                 </div>
               </div>
             </div>
@@ -204,22 +235,22 @@ export function BusinessCenter({ onBack }: BusinessCenterProps) {
                 />
               </div>
               <div className="@xl:col-span-2 flex items-center justify-between">
-                <span style={{ color: "var(--color-mute)", fontSize: 12 }}>
-                  提交后由问兰商务团队在 1 个工作日内联系。
+                <span style={{ color: submitError ? "#dc2626" : "var(--color-mute)", fontSize: 12 }}>
+                  {submitError || "提交后由问兰商务团队在 1 个工作日内联系。"}
                 </span>
                 <button
                   type="submit"
-                  disabled={!form.name || !form.wechat}
+                  disabled={!form.name || !form.wechat || submitting}
                   className="inline-flex items-center gap-2 rounded-full px-5 py-2.5 transition-opacity"
                   style={{
-                    background: form.name && form.wechat ? "var(--color-ink)" : "var(--color-bone)",
-                    color: form.name && form.wechat ? "var(--color-ivory)" : "var(--color-mute)",
+                    background: form.name && form.wechat && !submitting ? "var(--color-ink)" : "var(--color-bone)",
+                    color: form.name && form.wechat && !submitting ? "var(--color-ivory)" : "var(--color-mute)",
                     fontSize: 13,
                     letterSpacing: "0.08em",
                   }}
                 >
                   <Send size={14} />
-                  {submitted ? "已提交，等待回复" : "提交合作申请"}
+                  {submitting ? "提交中..." : submitted ? "已提交，等待回复" : "提交合作申请"}
                 </button>
               </div>
             </form>

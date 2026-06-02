@@ -2,10 +2,10 @@
 
 import type { FormEvent } from "react"
 import { useEffect, useState } from "react"
-import { Loader2, Menu, Plus, RefreshCw, Save, Trash2 } from "lucide-react"
+import { Image as ImageIcon, Loader2, Menu, Plus, RefreshCw, Save, Trash2 } from "lucide-react"
 
 import { AppSidebar, MobileAppSidebar } from "@/components/app-sidebar"
-import type { AppSettings } from "@/types/settings"
+import type { AppSettings, CooperationApplication } from "@/types/settings"
 
 const defaultSettings: AppSettings = {
   appName: "",
@@ -22,6 +22,12 @@ const defaultSettings: AppSettings = {
   defaultDifyBaseUrl: "",
   businessContacts: [],
   businessPriceTiers: [],
+  businessQr: {
+    imageUrl: "",
+    title: "",
+    description: "",
+    availability: "",
+  },
   materialItems: [],
 }
 
@@ -30,6 +36,8 @@ export function AdminConfigPanel() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false)
+  const [applications, setApplications] = useState<CooperationApplication[]>([])
+  const [applicationsLoading, setApplicationsLoading] = useState(false)
   const [message, setMessage] = useState("")
   const [error, setError] = useState("")
 
@@ -40,6 +48,7 @@ export function AdminConfigPanel() {
 
   useEffect(() => {
     void loadSettings()
+    void loadApplications()
   }, [])
 
   async function loadSettings() {
@@ -59,6 +68,37 @@ export function AdminConfigPanel() {
     } finally {
       setLoading(false)
     }
+  }
+
+  async function loadApplications() {
+    setApplicationsLoading(true)
+    try {
+      const response = await fetch("/api/admin/business/applications", { cache: "no-store" })
+      const payload = (await response.json().catch(() => ({}))) as {
+        applications?: CooperationApplication[]
+      }
+      if (response.ok) {
+        setApplications(payload.applications || [])
+      }
+    } finally {
+      setApplicationsLoading(false)
+    }
+  }
+
+  function handleQrUpload(file: File | null) {
+    if (!file) return
+    const reader = new FileReader()
+    reader.onload = () => {
+      const imageUrl = typeof reader.result === "string" ? reader.result : ""
+      setSettings((current) => ({
+        ...current,
+        businessQr: {
+          ...current.businessQr,
+          imageUrl,
+        },
+      }))
+    }
+    reader.readAsDataURL(file)
   }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -416,6 +456,119 @@ export function AdminConfigPanel() {
               >
                 <Plus size={14} /> 添加价目
               </button>
+            </section>
+
+            <section className="lux-card border border-black/10 bg-white p-4 sm:p-5">
+              <h2 className="text-base font-semibold text-ink">商务中心 · 二维码</h2>
+              <p className="mt-1 text-sm text-[#6b6b6b]">配置前台商务中心展示的顾问二维码和说明文字。</p>
+
+              <div className="mt-4 grid gap-4 md:grid-cols-[140px_1fr]">
+                <div className="grid gap-2">
+                  <div className="flex aspect-square items-center justify-center overflow-hidden rounded-2xl border border-black/10 bg-[#f7f7f7] text-mute">
+                    {settings.businessQr.imageUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element -- Admin QR preview supports data URLs saved in settings.
+                      <img src={settings.businessQr.imageUrl} alt="商务二维码预览" className="h-full w-full object-cover" />
+                    ) : (
+                      <ImageIcon className="h-8 w-8" />
+                    )}
+                  </div>
+                  <label className="lux-press inline-flex h-10 cursor-pointer items-center justify-center rounded-full border border-line bg-white px-3 text-sm text-ink transition hover:bg-ivory">
+                    上传二维码
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="sr-only"
+                      onChange={(event) => handleQrUpload(event.target.files?.[0] || null)}
+                    />
+                  </label>
+                  {settings.businessQr.imageUrl ? (
+                    <button
+                      type="button"
+                      onClick={() => setSettings((s) => ({ ...s, businessQr: { ...s.businessQr, imageUrl: "" } }))}
+                      className="lux-press inline-flex h-10 items-center justify-center rounded-full text-sm text-rose transition hover:bg-rose-soft"
+                    >
+                      清除图片
+                    </button>
+                  ) : null}
+                </div>
+
+                <div className="grid gap-3">
+                  <label className="grid gap-1.5 text-sm">
+                    <span className="text-mute">标题</span>
+                    <input
+                      value={settings.businessQr.title}
+                      onChange={(e) =>
+                        setSettings((s) => ({ ...s, businessQr: { ...s.businessQr, title: e.target.value } }))
+                      }
+                      className="h-11 rounded-xl border border-black/10 bg-white px-3 text-[15px] outline-none focus:border-black/30"
+                      placeholder="扫码添加问兰商务顾问"
+                    />
+                  </label>
+                  <label className="grid gap-1.5 text-sm">
+                    <span className="text-mute">小标题</span>
+                    <input
+                      value={settings.businessQr.description}
+                      onChange={(e) =>
+                        setSettings((s) => ({ ...s, businessQr: { ...s.businessQr, description: e.target.value } }))
+                      }
+                      className="h-11 rounded-xl border border-black/10 bg-white px-3 text-[15px] outline-none focus:border-black/30"
+                      placeholder="OFFICIAL · WECHAT"
+                    />
+                  </label>
+                  <label className="grid gap-1.5 text-sm">
+                    <span className="text-mute">回复时间说明</span>
+                    <input
+                      value={settings.businessQr.availability}
+                      onChange={(e) =>
+                        setSettings((s) => ({ ...s, businessQr: { ...s.businessQr, availability: e.target.value } }))
+                      }
+                      className="h-11 rounded-xl border border-black/10 bg-white px-3 text-[15px] outline-none focus:border-black/30"
+                      placeholder="工作日 09:30 - 19:00 · 周末顺延回复"
+                    />
+                  </label>
+                </div>
+              </div>
+            </section>
+
+            <section className="lux-card border border-black/10 bg-white p-4 sm:p-5">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <h2 className="text-base font-semibold text-ink">商务中心 · 合作申请</h2>
+                  <p className="mt-1 text-sm text-[#6b6b6b]">前台提交的合作申请会显示在这里。</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => void loadApplications()}
+                  className="lux-press inline-flex h-10 w-full items-center justify-center gap-2 rounded-full border border-line bg-white px-3 text-sm text-ink transition hover:bg-ivory sm:w-auto"
+                >
+                  {applicationsLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+                  刷新申请
+                </button>
+              </div>
+
+              <div className="mt-4 overflow-hidden rounded-2xl border border-black/10">
+                {applications.length === 0 ? (
+                  <div className="flex min-h-28 items-center justify-center px-4 text-center text-sm text-mute">
+                    当前还没有合作申请。前台商务中心提交后会自动记录到这里。
+                  </div>
+                ) : (
+                  <div className="divide-y divide-black/[0.06]">
+                    {applications.slice(0, 20).map((application) => (
+                      <article key={application.id} className="grid gap-3 p-4 md:grid-cols-[1fr_1fr_1.4fr_1fr] md:items-start">
+                        <div>
+                          <div className="text-sm font-medium text-ink">{application.name}</div>
+                          <div className="mt-1 text-xs text-mute">{application.city || "未填写城市"}</div>
+                        </div>
+                        <div className="text-sm text-ink-soft">{application.contact}</div>
+                        <div className="text-sm leading-6 text-mute">{application.note || "未填写合作意向"}</div>
+                        <div className="text-xs text-mute md:text-right">
+                          {new Date(application.createdAt).toLocaleString("zh-CN", { hour12: false })}
+                        </div>
+                      </article>
+                    ))}
+                  </div>
+                )}
+              </div>
             </section>
 
             <section className="lux-card border border-black/10 bg-white p-4 sm:p-5">
