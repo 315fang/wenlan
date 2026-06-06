@@ -142,10 +142,11 @@ function isEventStream(response: Response) {
 function buildRoutedMessage(message: string) {
   const settings = readSettings()
   return [
-    "请严格按以下风格回答：",
-    settings.defaultSystemPrompt,
+    "用户真实问题：",
+    message,
     "",
-    `用户问题：${message}`,
+    "回答规则：",
+    settings.defaultSystemPrompt,
   ].join("\n")
 }
 
