@@ -1,4 +1,3 @@
-import { readSettings } from "@/lib/config-store"
 import { getChatTarget } from "@/lib/server"
 
 export const runtime = "nodejs"
@@ -140,14 +139,7 @@ function isEventStream(response: Response) {
 }
 
 function buildRoutedMessage(message: string) {
-  const settings = readSettings()
-  return [
-    "用户真实问题：",
-    message,
-    "",
-    "回答规则：",
-    settings.defaultSystemPrompt,
-  ].join("\n")
+  return message
 }
 
 export async function POST(request: Request) {
@@ -240,7 +232,6 @@ export async function POST(request: Request) {
       user_id: body.userId || body.user_id || "wenlan-user",
       pagePath: body.pagePath || body.page_path || "",
       page_path: body.pagePath || body.page_path || "",
-      systemPrompt: readSettings().defaultSystemPrompt,
     }),
   })
 
