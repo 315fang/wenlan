@@ -90,16 +90,9 @@ const MIN_PRESS_MS = 600
 const CANCEL_THRESHOLD_PX = 60
 
 export function Composer({ onSend, onOpenGuide, disabled, canTranscribe }: ComposerProps) {
-  const [mode, setMode] = useState<InputMode>(canTranscribe ? "voice" : "text")
+  const [mode, setMode] = useState<InputMode>("text")
   const [text, setText] = useState("")
 
-  const [prevCanTranscribe, setPrevCanTranscribe] = useState(canTranscribe)
-  if (canTranscribe !== prevCanTranscribe) {
-    setPrevCanTranscribe(canTranscribe)
-    if (canTranscribe && mode === "text") {
-      setMode("voice")
-    }
-  }
   const [transcribing, setTranscribing] = useState(false)
   const [showPlus, setShowPlus] = useState(false)
   const [pressing, setPressing] = useState(false)
